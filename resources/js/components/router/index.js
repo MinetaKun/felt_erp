@@ -52,7 +52,7 @@ const routes = [
     component: Petty_Cash
   },
   {
-    path: '/users-list',  // Added the User List Route
+    path: '/users',  // Added the User List Route
     name: 'users-list',
     component: Users_List
   }

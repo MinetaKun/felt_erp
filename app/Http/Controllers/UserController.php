@@ -7,6 +7,7 @@ use App\Models\User;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Validator;
+use Illuminate\Support\Facades\Log;
 
 class UserController extends Controller
 {
@@ -41,7 +42,8 @@ class UserController extends Controller
 
     public function getAllUsers()
     {
-        $users = User::all();
-        return response()->json($users);
+
+        $users = User::orderBy('created_at', 'DESC')->get();
+        return response()->json(['data' => $users]);
     }
 }

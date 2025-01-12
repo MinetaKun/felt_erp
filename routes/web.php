@@ -20,7 +20,15 @@ Route::post('logout', [AuthController::class, 'logout']);
 
 Route::post('/user-registration', [UserController::class, 'registerUser']);
 
+// routes/api.php
+// routes/web.php
 Route::get('/users', [UserController::class, 'getAllUsers']);
+
+Route::get('/test-users', function () {
+    $users = App\Models\User::orderBy('created_at', 'DESC')->get();
+    dd($users); // This will dump and die, showing the raw data
+});
+
 
 Route::get('/order-management');
 

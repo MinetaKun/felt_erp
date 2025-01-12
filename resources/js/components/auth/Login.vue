@@ -1,57 +1,70 @@
 <template>
-  <div class="min-h-screen flex justify-center items-center bg-gray-100">
+  <div class="min-h-screen flex justify-center items-center bg-[#F3E9DC]">
     <!-- Main Container -->
     <div class="flex w-full max-w-4xl bg-white shadow-xl rounded-lg">
       <!-- Left Section (Company Description) -->
-      <div class="w-1/2 p-8 flex flex-col justify-center bg-blue-600 text-white">
-        <img src="" alt="Company Logo" class="mb-6 mx-auto w-24" />
+      <div class="w-1/2 p-8 flex flex-col justify-center bg-[#6A994E] text-white">
+        <img src="../../../../public/images/mbl.png" alt="Company Logo" class="mb-6 mx-auto w-50" />
         <h2 class="text-3xl font-semibold">Welcome to Our Platform</h2>
-        <p class="mt-4 text-lg">Sign in to manage your dashboard, view reports, and track performance.</p>
+        <p class="mt-4 text-lg italic text-[#333333] text-center">
+          "Artisans at Heart, Quality by Hand." 
+        </p>
+        <p class="mt-4 text-lg">
+          Sign in to manage your dashboard, view reports, and track performance.
+        </p>
       </div>
 
       <!-- Right Section (Login Form) -->
-      <div class="w-1/2 p-8 flex flex-col justify-center">
-        <h2 class="text-2xl font-semibold mb-4 text-gray-900">Sign in to your account</h2>
-        
+      <div class="w-1/2 p-8 flex flex-col justify-center bg-white rounded-r-lg">
+        <h2 class="text-2xl font-semibold mb-4 text-[#333333]">Sign in to your account</h2>
+
         <!-- Login Form -->
         <form @submit.prevent="loginUser" class="space-y-4">
           <div>
-            <label for="email" class="block text-sm font-medium text-gray-700">Email</label>
+            <label for="email" class="block text-sm font-medium text-[#333333]">
+              Email
+            </label>
             <input 
               type="email" 
               id="email" 
               v-model="email" 
-              class="w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-600" 
+              class="w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-[#FFB563]" 
               required 
             />
           </div>
-          
+
           <div>
-            <label for="password" class="block text-sm font-medium text-gray-700">Password</label>
+            <label for="password" class="block text-sm font-medium text-[#333333]">
+              Password
+            </label>
             <input 
               type="password" 
               id="password" 
               v-model="password" 
-              class="w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-600" 
+              class="w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-[#FFB563]" 
               required 
             />
           </div>
           <div>
-            <label for="confirm_password" class="block text-sm font-medium text-gray-700">Confirm Password</label>
+            <label for="confirm_password" class="block text-sm font-medium text-[#333333]">
+              Confirm Password
+            </label>
             <input 
               type="password" 
               id="confirm_password" 
               v-model="confirm_password" 
-              class="w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-600" 
+              class="w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-[#FFB563]" 
               required 
             />
           </div>
-          
+
           <div class="flex justify-between items-center">
-            <a href="#" class="text-sm text-blue-600 hover:underline">Forgot Password?</a>
+            <a href="#" class="text-sm text-[#F0C808] hover:underline">
+              Forgot Password?
+            </a>
             <button 
               type="submit" 
-              class="px-6 py-2 bg-blue-600 text-white rounded-lg focus:outline-none hover:bg-blue-700 transition duration-200"
+              class="px-6 py-2 bg-[#FFB563] text-white rounded-lg focus:outline-none hover:bg-[#F0C808] transition duration-200"
               :disabled="loading"
             >
               {{ loading ? 'Logging in...' : 'Sign In' }}
@@ -67,6 +80,7 @@
     </div>
   </div>
 </template>
+
 
 <script>
 import axios from 'axios';

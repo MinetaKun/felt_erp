@@ -1,60 +1,73 @@
 <template>
-    <div class="flex h-screen flex-col">
-      <!-- Navbar -->
-      <Navbar />
-      <!-- Main Content Section (Sidebar and Content) -->
-      <div class="flex flex-1">
-        <!-- Sidebar Component -->
-        <Sidebar class="h-full" />
-<div class="mt-8">
-    <h2 class="text-xl font-semibold mb-4">Users List</h2>
-    <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
-      <div
-        v-for="user in users"
-        :key="user.id"
-        class="p-4 border rounded shadow"
-      >
-        <h3 class="text-lg font-bold">{{ user.name }}</h3>
-        <p><strong>Email:</strong> {{ user.email }}</p>
-        <p><strong>Phone:</strong> {{ user.phone_number }}</p>
-        <p><strong>Address:</strong> {{ user.address }}</p>
-        <p><strong>Role:</strong> {{ user.role }}</p>
+  <div class="flex h-screen flex-col">
+    <Navbar />
+    <div class="flex flex-1">
+      <Sidebar class="h-full" />
+      <div class="mt-8 w-full px-4">
+        <h2 class="text-xl font-semibold mb-4">Users List</h2>
+
+        <!-- Debug info: Show raw response data -->
+        <div v-if="debug" class="mb-4 p-4 bg-gray-100">
+          Raw data: {{ JSON.stringify(users, null, 2) }}
+        </div>
+
+        <!-- Loading and error handling -->
+        <div v-if="loading" class="text-center">
+          Loading users...
+        </div>
+        <div v-else-if="error" class="text-red-500">
+          {{ error }}
+        </div>
+
       </div>
     </div>
   </div>
-  </div>
-  </div>
 </template>
 
-
 <script>
-  import axios from 'axios';
-  import Navbar from '../Navbar.vue';
-  import Sidebar from '../Sidebar.vue';
-  
-  export default {
-    name: 'Users_List',
-    components: {
-      Navbar,
-      Sidebar,
+import axios from 'axios';
+import Navbar from '../Navbar.vue';
+import Sidebar from '../Sidebar.vue';
+
+export default {
+  name: 'Users_List',
+  components: {
+    Navbar,
+    Sidebar,
+  },
+  data() {
+    return {
+      users: [],
+      loading: false,
+      error: null,
+      debug: true,  // Set to true for debugging
+    };
+  },
+  methods: {
+    async fetchUsers() {
+      this.loading = true;
+      this.error = null;
+      try {
+        console.log('Starting fetch...');
+        const response = await axios.get('http://localhost:8000/users'); // Full URL to your backend API
+        console.log('Raw response data:', response.data);  // Log the raw data
+
+        this.users = response.data;  // Directly assign the response data to users
+
+        if (!this.users || !this.users.length) {
+          this.error = 'No users found';
+        }
+      } catch (error) {
+        console.error('Fetch error:', error);
+        this.error = 'Failed to fetch users: ' + (error.response?.data?.message || error.message);
+      } finally {
+        this.loading = false;
+      }
     },
-    fetchUsers() {
-      axios
-        .get('/users') // Ensure this matches the backend endpoint
-        .then((response) => {
-          this.users = response.data; // Populate users data
-        })
-        .catch((error) => {
-          console.error('Error fetching users:', error);
-        });
-    },
+  },
   mounted() {
-    this.fetchUsers(); // Fetch users when the component is mounted
+    console.log('Component mounted');
+    this.fetchUsers();  // Fetch users when the component is mounted
   },
 };
-  </script>
-  
-  <style scoped>
-  /* Additional custom styles for the form can go here */
-  </style>
-  
+</script>

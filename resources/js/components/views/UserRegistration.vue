@@ -9,7 +9,7 @@
         
         <!-- Content -->
         <div class="flex-1 p-6 bg-gray-100">
-          <a href="/users-list" class="">
+          <a href="/users" class="">
             <!-- Payroll & Wages Icon -->
             <i class="fas fa-wallet mr-3"></i>
             <span>Users List</span>
@@ -100,7 +100,7 @@
   
             <!-- Success Message -->
             <div v-if="formSubmitted" class="mt-6 text-green-500">
-              <p>Form submitted successfully!</p>
+              <p>User Added Successfully!</p>
             </div>
            
           </div>
