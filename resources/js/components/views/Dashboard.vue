@@ -132,7 +132,7 @@ export default {
   name: 'Dashboard',
   components: {
     Sidebar,
-    Navbar
+    Navbar,
   },
   data() {
     return {

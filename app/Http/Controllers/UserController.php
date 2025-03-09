@@ -1,49 +1,59 @@
 <?php
 // app/Http/Controllers/UserController.php
-
 namespace App\Http\Controllers;
 
 use App\Models\User;
+use App\Models\Employee;
+use App\Models\Client;
+use App\Models\Supplier;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
-use Illuminate\Support\Facades\Validator;
-use Illuminate\Support\Facades\Log;
+use App\Http\Resources\UserResource;
 
 class UserController extends Controller
 {
-    // Register a new user
-    public function registerUser(Request $request)
+
+    public function index()
     {
-        // Validate the form fields
-        $validator = Validator::make($request->all(), [
-            'name' => 'required|string|max:255',
-            'email' => 'required|string|email|max:255|unique:users',
-            'password' => 'required|string|min:2',
-            'phone' => 'nullable|string|max:255',
-            'address' => 'nullable|string',
-        ]);
-
-        if ($validator->fails()) {
-            return response()->json(['errors' => $validator->errors()], 422);
-        }
-
-        // Create a new user
-        $user = new User();
-        $user->name = $request->input('name');
-        $user->email = $request->input('email');
-        $user->password = Hash::make($request->input('password'));
-        $user->role = $request->input('role');
-        $user->phone_number = $request->input('phone');
-        $user->address = $request->input('address');
-        $user->save();
-
-        return response()->json(['message' => 'User successfully registered']);
+        $users = User::paginate(10);
+        return UserResource::collection($users);
     }
 
-    public function getAllUsers()
+    public function store(Request $request)
     {
+        // Store profile photo if exists
+        $profilePhotoPath = $request->hasFile('profile_photo')
+            ? $request->file('profile_photo')->store('users/photos', 'public')
+            : null;
 
-        $users = User::orderBy('created_at', 'DESC')->get();
-        return response()->json(['data' => $users]);
+        // Create user
+        $user = User::create([
+            'username' => $request->username,
+            'password' => Hash::make($request->password),
+            'full_name' => $request->full_name,
+            'email' => $request->email,
+            'photo' => $profilePhotoPath,
+            'role' => $request->role,
+        ]);
+
+        // If user is an employee, store additional details
+        if ($request->role === 'employee') {
+            $citizenshipPhotoPath = $request->hasFile('citizenship_photo')
+                ? $request->file('citizenship_photo')->store('employees/citizenship', 'public')
+                : null;
+
+            Employee::create([
+                'user_id' => $user->id,
+                'employee_type' => $request->employee_type,
+                'department' => $request->department,
+                'join_date' => $request->join_date,
+                'citizenship_no' => $request->citizenship_no,
+                'pan_no' => $request->pan_no,
+                'citizenship_photo' => $citizenshipPhotoPath,
+                'skills' => json_encode($request->skills), // Store skills as JSON
+            ]);
+        }
+
+        return response()->json(['message' => 'User created successfully'], 201);
     }
 }

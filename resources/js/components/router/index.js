@@ -1,20 +1,26 @@
 import { createRouter, createWebHistory } from 'vue-router';
 import Dashboard from '../views/Dashboard.vue';
 import LoginView from '../views/LoginView.vue';
-import About from '../views/About.vue'; // Import About page
-import Artisan_Management from '../views/Artisan_Management.vue'; // Import Artisan Management page
-import UserRegistration from '../views/UserRegistration.vue'; // Import User Registration page
-import Order_Management from '../views/Order_Management.vue';
-import Payroll_Wages from '../views/Payroll_Wages.vue';
-import Petty_Cash from '../views/Petty_Cash.vue';
-import Users_List from '../users_components/UserLists.vue';
+import Create from '../views/Users/Create.vue'; 
+import View from '../views/Users/View.vue';
+import OrderManagement from '../views/Orders/Index.vue';
+import CreateOrder from '../views/Orders/Create.vue'; 
+import Profile from '../views/Users/Profile.vue';
+import QualityControl from '../views/Quality/Index.vue';
+import Suppliers from '../views/Suppliers/Index.vue';
+
+// 🔹 Import Petty Cash Views
+import PettyCashDashboard from '../views/PettyCash/PettyCashDashboard.vue';
+import PettyCashTransactions from '../views/PettyCash/PettyCashTransactions.vue';
+import AddTransaction from '../views/PettyCash/AddTransaction.vue';
+import ReportDownload from '../views/PettyCash/ReportDownload.vue';
 
 const routes = [
   {
     path: '/',
     name: 'dashboard',
     component: Dashboard,
-    meta: { requiresAuth: true },  // Protect this route
+    meta: { requiresAuth: true },
   },
   {
     path: '/login',
@@ -22,40 +28,64 @@ const routes = [
     component: LoginView
   },
   {
-    path: '/about', // Add the About route
-    name: 'about',
-    component: About
+    path: '/users/create',
+    name: 'create',
+    component: Create,
   },
   {
-    path: '/artisan-management', // Add the Artisan Management route
-    name: 'artisan',
-    component: Artisan_Management
+    path: '/users',
+    name: 'view',
+    component: View,
   },
   {
-    path: '/user-registration',  // Add the User Registration route
-    name: 'user-registration',
-    component: UserRegistration
+    path: '/order-management',
+    name: 'orders',
+    component: OrderManagement,
   },
   {
-    path: '/order-management',  // Add the Order Management Route
-    name: 'order-management',
-    component: Order_Management
+    path: '/orders/create',
+    name: 'create',
+    component: CreateOrder,
   },
   {
-    path: '/payroll-wages',  // Add the Payroll Wages route
-    name: 'payroll-wages',
-    component: Payroll_Wages
+    path: '/quality-control',
+    name: 'quality',
+    component: QualityControl,
   },
   {
-    path: '/petty-cash',  // Add the Petty Cash route
-    name: 'petty-cash',
-    component: Petty_Cash
+    path: "/users/:id",
+    name: 'Profile',
+    component: Profile,
+    props: true,
+    meta: { requiresAuth: true },
   },
   {
-    path: '/users',  // Added the User List Route
-    name: 'users-list',
-    component: Users_List
-  }
+    path: '/suppliers',
+    name: 'Suppliers',
+    component: Suppliers,
+  },
+
+  // 🔹 Petty Cash Routes
+  {
+    path: '/petty-cash',
+    name: 'PettyCashDashboard',
+    component: PettyCashDashboard,
+  },
+  {
+    path: '/petty-cash/transactions',
+    name: 'PettyCashTransactions',
+    component: PettyCashTransactions,
+  },
+  {
+    path: '/petty-cash/add',
+    name: 'AddTransaction',
+    component: AddTransaction,
+  },
+  {
+    path: '/petty-cash/reports',
+    name: 'ReportDownload',
+    component: ReportDownload,
+  },
 ];
 
 const router = createRouter({

@@ -1,95 +1,73 @@
 <template>
-    <div class="h-full bg-gray-800 text-white">
-      <ul class="space-y-4">
-        <li>
-          <a href="/" class="flex items-center hover:bg-blue-700 px-4 py-2 rounded-lg">
-            <!-- Dashboard Icon -->
-            <i class="fas fa-tachometer-alt mr-3"></i>
-            Dashboard
-          </a>
-        </li>
-        <li>
-          <a href="/order-management" class="flex items-center hover:bg-blue-700 px-4 py-2 rounded-lg">
-            <!-- Orders Icon -->
-            <i class="fas fa-box mr-3"></i>
-            Orders
-          </a>
-        </li>
-        <li>
-          <a href="#" class="flex items-center hover:bg-blue-700 px-4 py-2 rounded-lg">
-            <!-- Inventory Icon -->
-            <i class="fas fa-cogs mr-3"></i>
-            Inventory
-          </a>
-        </li>
-        
-        <li>
-        <router-link to="/user-registration" class="flex items-center hover:bg-blue-700 px-4 py-2 rounded-lg">
-    <!-- Reports Icon -->
-          <i class="fas fa-chart-line mr-3"></i>
-          User Management
-        </router-link>
-      </li>
-        <li>
-          <a href="/artisan-management" class="flex items-center hover:bg-blue-700 px-4 py-2 rounded-lg">
-            <!-- Artisan Management Icon -->
-            <i class="fas fa-users-cog mr-3"></i>
-            Artisan Management
-          </a>
-        </li>
-        <li>
-          <a href="#" class="flex items-center hover:bg-blue-700 px-4 py-2 rounded-lg">
-            <!-- Quality Control Icon -->
-            <i class="fas fa-check-circle mr-3"></i>
-            Quality Control
-          </a>
-        </li>
-        <li>
-          <a href="/payroll-wages" class="flex items-center hover:bg-blue-700 px-4 py-2 rounded-lg">
-            <!-- Payroll & Wages Icon -->
-            <i class="fas fa-wallet mr-3"></i>
-            Payroll & Wages
-          </a>
-        </li>
-        <li>
-          <a href="#" class="flex items-center hover:bg-blue-700 px-4 py-2 rounded-lg">
-            <!-- Reports Icon -->
-            <i class="fas fa-chart-line mr-3"></i>
-            Reports
-          </a>
-        </li>
-        <li>
-          <a href="/petty-cash" class="flex items-center hover:bg-blue-700 px-4 py-2 rounded-lg">
-            <!-- Petty Cash Icon -->
-            <i class="fas fa-money-bill-wave mr-3"></i>
-            Petty Cash
-          </a>
-        </li>
-        <li>
-          <a href="#" class="flex items-center hover:bg-blue-700 px-4 py-2 rounded-lg">
-            <!-- Suppliers Icon -->
-            <i class="fas fa-truck mr-3"></i>
-            Suppliers
-          </a>
-        </li>
-        <li>
-          <a href="#" class="flex items-center hover:bg-blue-700 px-4 py-2 rounded-lg">
-            <!-- Settings Icon -->
-            <i class="fas fa-cogs mr-3"></i>
-            Settings
-          </a>
-        </li>
-      </ul>
+  <div class="flex">
+    <!-- Sidebar -->
+    <div :class="sidebarOpen ? 'w-64' : 'w-20'" class="h-screen bg-gray-900 text-white transition-all duration-300">
+      <div class="flex items-center justify-between p-4">
+        <button @click="toggleSidebar" class="text-white focus:outline-none">
+          <i :class="sidebarOpen ? 'fas fa-arrow-left' : 'fas fa-bars'"></i>
+        </button>
+      </div>
+      <div class="flex items-center justify-between p-4">
+        <a href="/">
+          <i class="fas fa-users mr-3"></i>
+          <span v-if="sidebarOpen" class="text-xl font-bold">Dashboard</span>
+        </a>
+      </div>
+      <nav class="mt-4">
+        <a href="/users" class="flex items-center p-3 hover:bg-gray-700 rounded">
+          <i class="fas fa-users mr-3"></i>
+          <span v-if="sidebarOpen">Users</span>
+        </a>
+        <a href="/order-management" class="flex items-center p-3 hover:bg-gray-700 rounded">
+          <i class="fas fa-users mr-3"></i>
+          <span v-if="sidebarOpen">Order Management</span>
+        </a>
+        <a href="/quality-control" class="flex items-center p-3 hover:bg-gray-700 rounded">
+          <i class="fas fa-users mr-3"></i>
+          <span v-if="sidebarOpen">Quality Control</span>
+        </a>
+        <a href="/suppliers" class="flex items-center p-3 hover:bg-gray-700 rounded">
+          <i class="fas fa-users mr-3"></i>
+          <span v-if="sidebarOpen">Suppliers</span>
+        </a>
+
+        <!-- 🔹 Petty Cash Section -->
+        <div class="text-gray-400 text-sm px-3 mt-4 uppercase">Petty Cash</div>
+        <a href="/petty-cash" class="flex items-center p-3 hover:bg-gray-700 rounded">
+          <i class="fas fa-wallet mr-3"></i>
+          <span v-if="sidebarOpen">Dashboard</span>
+        </a>
+        <a href="/petty-cash/transactions" class="flex items-center p-3 hover:bg-gray-700 rounded">
+          <i class="fas fa-list mr-3"></i>
+          <span v-if="sidebarOpen">Transactions</span>
+        </a>
+        <a href="/petty-cash/add" class="flex items-center p-3 hover:bg-gray-700 rounded">
+          <i class="fas fa-plus-circle mr-3"></i>
+          <span v-if="sidebarOpen">Add Transaction</span>
+        </a>
+        <a href="/petty-cash/reports" class="flex items-center p-3 hover:bg-gray-700 rounded">
+          <i class="fas fa-file-download mr-3"></i>
+          <span v-if="sidebarOpen">Reports</span>
+        </a>
+      </nav>
     </div>
-  </template>
-  
-  <script>
-  export default {
-    name: 'Sidebar',
+
+    <!-- Main Content -->
+    
+  </div>
+</template>
+
+<script>
+export default {
+data() {
+  return {
+    sidebarOpen: true,
   };
-  </script>
-  
-  <style scoped>
-  /* Additional styles for the sidebar can go here */
-  </style>
-  
+},
+methods: {
+  toggleSidebar() {
+    this.sidebarOpen = !this.sidebarOpen;
+  },
+},
+};
+</script>

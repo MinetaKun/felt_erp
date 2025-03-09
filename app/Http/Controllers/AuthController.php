@@ -23,33 +23,33 @@ class AuthController extends Controller
         // Attempt to find the user by email
         $user = User::where('email', $credentials['email'])->first();
 
-        // if ($user && Hash::check($credentials['password'], $user->password)) {
-        //     // If passwords match, log the user in
-        //     Auth::login($user);
-
-        //     return response()->json([
-        //         'message' => 'Login successful',
-        //         'user' => Auth::user(),
-        //     ]);
-        // } else {
-        //     return response()->json([
-        //         'message' => 'Invalid credentials',
-        //     ], 401);
-        // }
-
-
-        if ($user && $user->password === $credentials['password']) {
-            // If passwords match (plain text), log the user in
+        if ($user && Hash::check($credentials['password'], $user->password)) {
+            // If passwords match, log the user in
             Auth::login($user);
 
             return response()->json([
                 'message' => 'Login successful',
                 'user' => Auth::user(),
             ]);
+        } else {
+            return response()->json([
+                'message' => 'Invalid credentials',
+            ], 401);
         }
 
+
+        // if ($user && $user->password === $credentials['password']) {
+        //     // If passwords match (plain text), log the user in
+        //     Auth::login($user);
+
+        //     return response()->json([
+        //         'message' => 'Login successful',
+        //         'user' => Auth::user(),
+        //     ]);
+        // }
+
         // Return error if credentials do not match
-        return response()->json(['message' => 'Invalid credentials'], 401);
+        // return response()->json(['message' => 'Invalid credentials'], 401);
     }
 
     public function logout(Request $request)
