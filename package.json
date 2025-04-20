@@ -1,0 +1,45 @@
+{
+    "private": true,
+    "type": "module",
+    "scripts": {
+        "dev": "vite",
+        "build": "vite build"
+    },
+    "devDependencies": {
+        "@prettier/plugin-php": "^0.21.0",
+        "@vitejs/plugin-vue": "^4.5.0",
+        "autoprefixer": "^10.4.16",
+        "axios": "^1.8.4",
+        "laravel-vite-plugin": "^0.8.0",
+        "postcss": "^8.4.31",
+        "prettier": "^3.1.0",
+        "tailwindcss": "^3.3.5",
+        "tailwindcss-animation-delay": "^1.2.0",
+        "vite": "^4.0.0"
+    },
+    "dependencies": {
+        "@fortawesome/fontawesome-free": "^6.7.2",
+        "@vuepic/vue-datepicker": "^11.0.2",
+        "apexcharts": "^4.5.0",
+        "chart": "^0.1.2",
+        "chart.js": "^4.4.9",
+        "dotenv": "^16.3.1",
+        "file-saver": "^2.0.5",
+        "laravel-vue-pagination": "^4.1.3",
+        "lodash": "^4.17.21",
+        "lucide-vue-next": "^0.483.0",
+        "papaparse": "^5.5.2",
+        "pinia": "^2.1.7",
+        "sweetalert2": "^11.17.2",
+        "tiny-emitter": "^2.1.0",
+        "uuid": "^9.0.1",
+        "vue": "^3.3.9",
+        "vue-chartjs": "^5.3.2",
+        "vue-loader": "^17.3.1",
+        "vue-router": "^4.2.5",
+        "vue-select": "^4.0.0-beta.6",
+        "vue-toastification": "^2.0.0-rc.5",
+        "vue3-apexcharts": "^1.8.0",
+        "yup": "^1.3.2"
+    }
+}
