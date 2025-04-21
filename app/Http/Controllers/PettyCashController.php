@@ -10,6 +10,7 @@ use Carbon\Carbon;
 use League\Csv\Reader;
 use League\Csv\Writer;
 use Illuminate\Support\Facades\Validator;
+use Illuminate\Support\Facades\Log;
 
 class PettyCashController extends Controller
 {
@@ -179,7 +180,7 @@ class PettyCashController extends Controller
         ]);
     }
 
-    public function update(Request $request, PettyCashTransaction $pettyCashTransaction)
+    public function update(Request $request, PettyCashTransaction $transaction)
     {
         $validated = $request->validate([
             'transaction_date' => 'required|date',
@@ -211,34 +212,36 @@ class PettyCashController extends Controller
             $validated['vat_amount'] = 0;
         }
 
-        $pettyCashTransaction->update($validated);
+        $transaction->update($validated);
 
         return response()->json([
             'message' => 'Transaction updated successfully',
-            'transaction' => $pettyCashTransaction->load(['category']),
+            'transaction' => $transaction->load(['category']),
         ]);
     }
 
-    public function destroy(PettyCashTransaction $pettyCashTransaction)
+    public function destroy(PettyCashTransaction $transaction)
     {
-        $pettyCashTransaction->delete();
+        $transaction->delete();
 
         return response()->json([
             'message' => 'Transaction deleted successfully',
         ]);
     }
 
-    public function show(PettyCashTransaction $pettyCashTransaction)
+    public function show(PettyCashTransaction $transaction)
     {
         return response()->json([
-            'transaction' => $pettyCashTransaction->load(['category']),
+            'transaction' => $transaction->load(['category']),
         ]);
     }
     public function export(Request $request)
     {
-        $query = PettyCashTransaction::with('category');
+        $query = PettyCashTransaction::with(['category'])
+            ->orderBy('transaction_date', 'desc')
+            ->orderBy('created_at', 'desc');
 
-        // Apply filters similar to index
+        // Apply filters (same as index method)
         if ($request->has('search') && $request->search != '') {
             $search = $request->search;
             $query->where(function ($q) use ($search) {
@@ -263,53 +266,74 @@ class PettyCashController extends Controller
             $query->whereBetween('transaction_date', [$startDate, $endDate]);
         }
 
-        $transactions = $query->orderBy('transaction_date', 'desc')->get();
+        try {
+            $transactions = $query->get();
 
-        $csv = Writer::createFromString();
-        $csv->insertOne([
-            'ID',
-            'Transaction Date',
-            'BS Date',
-            'PAN Bill No',
-            'Est Bill No',
-            'Category',
-            'Particulars',
-            'Cash In',
-            'Cash Out',
-            'VAT %',
-            'VAT Amount',
-            'VAT Included',
-            'Reference No',
-            'Notes',
-            'Created At',
-            'Updated At'
-        ]);
+            if ($transactions->isEmpty()) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'No transactions found to export'
+                ], 404);
+            }
 
-        foreach ($transactions as $transaction) {
+            $csv = Writer::createFromFileObject(new \SplTempFileObject());
+
+            // Insert CSV header
             $csv->insertOne([
-                $transaction->id,
-                $transaction->transaction_date,
-                $transaction->bs_date,
-                $transaction->pan_bill_no,
-                $transaction->est_bill_no,
-                $transaction->category ? $transaction->category->name : 'N/A',
-                $transaction->particulars,
-                $transaction->cash_in,
-                $transaction->cash_out,
-                $transaction->vat_percentage,
-                $transaction->vat_amount,
-                $transaction->is_vat_included ? 'Yes' : 'No',
-                $transaction->reference_no,
-                $transaction->notes,
-                $transaction->created_at,
-                $transaction->updated_at,
+                'ID',
+                'Transaction Date',
+                'BS Date',
+                'PAN Bill No',
+                'Est Bill No',
+                'Category',
+                'Particulars',
+                'Cash In',
+                'Cash Out',
+                'VAT %',
+                'VAT Amount',
+                'VAT Included',
+                'Reference No',
+                'Notes',
+                'Created At',
+                'Updated At'
             ]);
-        }
 
-        $filename = 'petty_cash_transactions_' . date('Y-m-d_H-i-s') . '.csv';
-        return response($csv->getContent(), 200)
-            ->header('Content-Type', 'text/csv')
-            ->header('Content-Disposition', "attachment; filename=\"$filename\"");
+            // Insert data rows
+            foreach ($transactions as $transaction) {
+                $csv->insertOne([
+                    $transaction->id,
+                    $transaction->transaction_date,
+                    $transaction->bs_date,
+                    $transaction->pan_bill_no,
+                    $transaction->est_bill_no,
+                    $transaction->category ? $transaction->category->name : 'N/A',
+                    $transaction->particulars,
+                    $transaction->cash_in,
+                    $transaction->cash_out,
+                    $transaction->vat_percentage,
+                    $transaction->vat_amount,
+                    $transaction->is_vat_included ? 'Yes' : 'No',
+                    $transaction->reference_no,
+                    $transaction->notes,
+                    $transaction->created_at,
+                    $transaction->updated_at,
+                ]);
+            }
+
+            $filename = 'petty_cash_transactions_' . date('Y-m-d_H-i-s') . '.csv';
+            $csvContent = (string) $csv;
+
+            return response($csvContent)
+                ->header('Content-Type', 'text/csv')
+                ->header('Content-Disposition', 'attachment; filename="' . $filename . '"')
+                ->header('Content-Length', strlen($csvContent));
+        } catch (\Exception $e) {
+            Log::error('CSV Export Error: ' . $e->getMessage());
+            return response()->json([
+                'success' => false,
+                'message' => 'Error generating CSV: ' . $e->getMessage()
+            ], 500);
+        }
     }
 
     public function import(Request $request)
