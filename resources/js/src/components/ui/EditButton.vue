@@ -5,3 +5,19 @@
         Edit
     </button>
 </template>
+
+<script>
+  
+export default {
+    props: {
+      loading: {
+        type: Boolean,
+        default: false,
+      },
+      disabled: {
+        type: Boolean,
+        default: false,
+      },
+    },
+  }
+  </script>

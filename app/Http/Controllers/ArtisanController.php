@@ -9,6 +9,10 @@ use App\Models\Department;
 use League\Csv\Reader;
 use League\Csv\Writer;
 use SplTempFileObject;
+use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Log;
+
+
 
 class ArtisanController extends Controller
 {
@@ -155,6 +159,7 @@ class ArtisanController extends Controller
     {
         $query = Artisan::with('department');
 
+        // Search filter
         if ($request->has('search') && !empty($request->search)) {
             $search = $request->search;
             $query->where(function ($q) use ($search) {
@@ -164,56 +169,216 @@ class ArtisanController extends Controller
             });
         }
 
+        // Department filter
         if ($request->has('department') && !empty($request->department)) {
             $query->where('department_id', $request->department);
         }
 
+        // Sorting
         if ($request->has('sort')) {
-            [$column, $direction] = explode(':', $request->sort);
-            $query->orderBy($column, $direction);
+            $sortParts = explode(':', $request->sort);
+            if (count($sortParts) === 2) {
+                $column = $sortParts[0];
+                $direction = $sortParts[1];
+                $query->orderBy($column, $direction);
+            }
         } else {
             $query->latest();
         }
 
-        $artisans = $query->get();
+        try {
+            $artisans = $query->get();
 
-        $csv = Writer::createFromFileObject(new SplTempFileObject());
+            if ($artisans->isEmpty()) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'No artisans found to export'
+                ], 404);
+            }
 
-        $csv->insertOne([
-            'ID',
-            'Name',
-            'Email',
-            'Phone Number',
-            'PAN Number',
-            'Basic Salary',
-            'Department',
-            'Profile Photo URL',
-            'Citizenship Photo URL',
-            'Join Date',
-            'Updated At'
+            $csv = Writer::createFromFileObject(new SplTempFileObject());
+
+            $csv->insertOne([
+                'ID',
+                'Name',
+                'Email',
+                'Phone Number',
+                'PAN Number',
+                'Basic Salary',
+                'Department',
+                'Join Date',
+            ]);
+
+            foreach ($artisans as $artisan) {
+                $csv->insertOne([
+                    $artisan->id,
+                    $artisan->name,
+                    $artisan->email,
+                    $artisan->phone_number,
+                    $artisan->pan_number,
+                    $artisan->basic_salary,
+                    $artisan->department ? $artisan->department->name : '',
+                    $artisan->created_at->format('Y-m-d'),
+                ]);
+            }
+
+            $filename = 'artisans_export_' . date('Y-m-d_H-i-s') . '.csv';
+            $csvContent = (string) $csv;
+
+            return response($csvContent)
+                ->header('Content-Type', 'text/csv')
+                ->header('Content-Disposition', 'attachment; filename="' . $filename . '"')
+                ->header('Content-Length', strlen($csvContent));
+        } catch (\Exception $e) {
+            Log::error('CSV Export Error: ' . $e->getMessage());
+            return response()->json([
+                'success' => false,
+                'message' => 'Error generating CSV: ' . $e->getMessage()
+            ], 500);
+        }
+    }
+
+    public function import(Request $request)
+    {
+        $request->validate([
+            'file' => 'required|file|mimes:csv,txt,xlsx,xls|max:2048',
         ]);
 
-        foreach ($artisans as $artisan) {
-            $csv->insertOne([
-                $artisan->id,
-                $artisan->name,
-                $artisan->email,
-                $artisan->phone_number,
-                $artisan->pan_number,
-                $artisan->basic_salary,
-                $artisan->department ? $artisan->department->name : '',
-                $artisan->profile_photo ? asset('storage/' . $artisan->profile_photo) : '',
-                $artisan->citizenship_photo ? asset('storage/' . $artisan->citizenship_photo) : '',
-                $artisan->created_at->format('Y-m-d H:i:s'),
-                $artisan->updated_at->format('Y-m-d H:i:s')
-            ]);
+        $file = $request->file('file');
+        $path = $file->getRealPath();
+
+        // Determine file type and process accordingly
+        $fileExtension = $file->getClientOriginalExtension();
+
+        if (in_array($fileExtension, ['xlsx', 'xls'])) {
+            // Process Excel file
+            $reader = new \PhpOffice\PhpSpreadsheet\Reader\Xlsx();
+            $spreadsheet = $reader->load($path);
+            $worksheet = $spreadsheet->getActiveSheet();
+            $rows = $worksheet->toArray();
+        } else {
+            // Process CSV file
+            $csv = Reader::createFromPath($path, 'r');
+            $csv->setHeaderOffset(0);
+            $rows = iterator_to_array($csv->getRecords());
         }
 
-        $filename = 'artisans_export_' . date('Y-m-d_H-i-s') . '.csv';
+        // Skip header row
+        $successCount = 0;
+        $errors = [];
 
-        return response((string) $csv, 200, [
-            'Content-Type' => 'text/csv',
-            'Content-Disposition' => 'attachment; filename="' . $filename . '"',
-        ]);
+        // Begin transaction
+        DB::beginTransaction();
+
+        try {
+            foreach ($rows as $index => $row) {
+                // Skip header row if processing Excel
+                if ($index === 0 && in_array($fileExtension, ['xlsx', 'xls'])) {
+                    continue;
+                }
+
+                // Map CSV columns to database fields
+                $data = [];
+
+                // For Excel files, use numeric indices
+                if (in_array($fileExtension, ['xlsx', 'xls'])) {
+                    $data = [
+                        'name' => $row[1] ?? null,
+                        'email' => $row[2] ?? null,
+                        'phone_number' => $row[3] ?? null,
+                        'basic_salary' => $row[5] ?? 0,
+                        'pan_number' => $row[4] ?? null,
+                        'department_id' => null,
+                    ];
+
+                    // Find department by name
+                    if (!empty($row[6])) {
+                        $department = Department::where('name', $row[6])->first();
+                        if ($department) {
+                            $data['department_id'] = $department->id;
+                        } else {
+                            $errors[] = "Row " . ($index + 1) . ": Department '{$row[6]}' not found";
+                            continue;
+                        }
+                    } else {
+                        $errors[] = "Row " . ($index + 1) . ": Department is required";
+                        continue;
+                    }
+                } else {
+                    // For CSV files, use associative array
+                    $data = [
+                        'name' => $row['Name'] ?? null,
+                        'email' => $row['Email'] ?? null,
+                        'phone_number' => $row['Phone Number'] ?? null,
+                        'basic_salary' => $row['Basic Salary'] ?? 0,
+                        'pan_number' => $row['PAN Number'] ?? null,
+                        'department_id' => null,
+                    ];
+
+                    // Find department by name
+                    if (!empty($row['Department'])) {
+                        $department = Department::where('name', $row['Department'])->first();
+                        if ($department) {
+                            $data['department_id'] = $department->id;
+                        } else {
+                            $errors[] = "Row " . ($index + 1) . ": Department '{$row['Department']}' not found";
+                            continue;
+                        }
+                    } else {
+                        $errors[] = "Row " . ($index + 1) . ": Department is required";
+                        continue;
+                    }
+                }
+
+                // Validate required fields
+                if (empty($data['name']) || empty($data['email']) || empty($data['phone_number']) || empty($data['pan_number'])) {
+                    $errors[] = "Row " . ($index + 1) . ": Missing required fields";
+                    continue;
+                }
+
+                // Check if email already exists
+                if (Artisan::where('email', $data['email'])->exists()) {
+                    $errors[] = "Row " . ($index + 1) . ": Email '{$data['email']}' already exists";
+                    continue;
+                }
+
+                // Check if PAN number already exists
+                if (Artisan::where('pan_number', $data['pan_number'])->exists()) {
+                    $errors[] = "Row " . ($index + 1) . ": PAN Number '{$data['pan_number']}' already exists";
+                    continue;
+                }
+
+                // Create artisan
+                Artisan::create($data);
+                $successCount++;
+            }
+
+            // Commit transaction if no errors or if some records were successful
+            if (empty($errors) || $successCount > 0) {
+                DB::commit();
+                $message = $successCount . " artisans imported successfully";
+                if (!empty($errors)) {
+                    $message .= " with some errors";
+                }
+                return response()->json([
+                    'success' => true,
+                    'message' => $message,
+                    'errors' => $errors
+                ]);
+            } else {
+                DB::rollBack();
+                return response()->json([
+                    'success' => false,
+                    'error' => 'No artisans were imported due to errors',
+                    'errors' => $errors
+                ], 422);
+            }
+        } catch (\Exception $e) {
+            DB::rollBack();
+            return response()->json([
+                'success' => false,
+                'error' => 'An error occurred during import: ' . $e->getMessage()
+            ], 500);
+        }
     }
 }

@@ -38,61 +38,92 @@
   </template>
   
   <script>
-  import axios from 'axios';
-  
+  import axios from "axios"
+  import useModalToast from "../composables/useModalToast"
+
   export default {
+    setup() {
+      const { showToast } = useModalToast()
+      return { showToast }
+    },
     data() {
       return {
         form: {
-          name: '',
+          name: "",
         },
+        errors: {},
         loading: false,
         isEdit: !!this.$route.params.id,
-      };
+      }
     },
     mounted() {
       if (this.isEdit) {
-        this.fetchDepartment();
+        this.fetchDepartment()
       }
     },
     methods: {
       async fetchDepartment() {
         try {
-          const response = await axios.get(`/departments/${this.$route.params.id}`);
-          this.form = response.data;
+          this.loading = true
+          const response = await axios.get(`/departments/${this.$route.params.id}`)
+          this.form = response.data
         } catch (error) {
-          console.error('Error fetching department:', error);
+          console.error("Error fetching department:", error)
+          this.showToast("Failed to load department details.", "error")
+          if (error.response && error.response.status === 404) {
+            this.$router.push("/departments")
+          }
+        } finally {
+          this.loading = false
         }
       },
+
       async submitForm() {
         if (!this.form.name.trim()) {
-          alert('Department name cannot be empty.');
-          return;
+          this.errors = { name: ["Department name cannot be empty."] }
+          return
         }
-  
-        this.loading = true;
-        const url = this.isEdit ? `/departments/${this.$route.params.id}` : '/departments';
-        const method = this.isEdit ? 'patch' : 'post';
-  
+
+        this.loading = true
+        this.errors = {}
+
+        const url = this.isEdit ? `/departments/${this.$route.params.id}` : "/departments"
+        const method = this.isEdit ? "patch" : "post"
+
         try {
           await axios({
             method,
             url,
             data: this.form,
-          });
-          this.$router.push('/departments');
+          })
+
+          this.showToast(`Department successfully ${this.isEdit ? "updated" : "created"}.`, "success")
+          this.$router.push("/departments")
         } catch (error) {
-          console.error('Error saving department:', error);
-          if (error.response) {
-            alert(error.response.data.message || 'Error saving department.');
+          console.error(`Error ${this.isEdit ? "updating" : "creating"} department:`, error)
+
+          if (error.response && error.response.data && error.response.data.errors) {
+            this.errors = error.response.data.errors
+          } else if (error.response && error.response.data && error.response.data.message) {
+            this.showToast(error.response.data.message, "error")
+          } else {
+            this.showToast(`Failed to ${this.isEdit ? "update" : "create"} department.`, "error")
           }
         } finally {
-          this.loading = false;
+          this.loading = false
         }
       },
+
       cancel() {
-        this.$router.push('/departments');
+        this.$router.push("/departments")
       },
     },
-  };
+    directives: {
+      focus: {
+        mounted(el) {
+          el.focus()
+        },
+      },
+    },
+  }
   </script>

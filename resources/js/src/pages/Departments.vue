@@ -134,7 +134,12 @@
                 <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">{{ department.name || 'N/A' }}</td>
                 <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
                   <div class="flex space-x-2">
-                    
+                    <button
+                      @click="editDepartment(department)"
+                      class="text-emerald-600 hover:text-emerald-800 px-2 py-1 rounded hover:bg-emerald-50 transition"
+                    >
+                      Edit
+                    </button>
                     <button
                       @click="deleteDepartment(department.id)"
                       :disabled="deleting === department.id"
@@ -190,137 +195,142 @@
 </template>
 
 <script>
-import axios from 'axios';
+import axios from "axios"
+import useModalToast from "../composables/useModalToast"
 
 export default {
+  setup() {
+    const { showToast } = useModalToast()
+    return { showToast }
+  },
   data() {
     return {
       departments: [],
       loading: false,
       deleting: null,
       error: null,
-      searchQuery: '',
-      sortField: 'id',
-      sortDirection: 'asc',
+      searchQuery: "",
+      sortField: "id",
+      sortDirection: "asc",
       showDeleteModal: false,
-      departmentToDelete: null
-    };
+      departmentToDelete: null,
+    }
   },
   computed: {
     filteredDepartments() {
       if (!this.searchQuery) {
-        return this.sortedDepartments;
+        return this.sortedDepartments
       }
-      
-      const query = this.searchQuery.toLowerCase();
-      return this.sortedDepartments.filter(dept => 
-        (dept.name && dept.name.toLowerCase().includes(query)) || 
-        (dept.id && dept.id.toString().includes(query))
-      );
+
+      const query = this.searchQuery.toLowerCase()
+      return this.sortedDepartments.filter(
+        (dept) =>
+          (dept.name && dept.name.toLowerCase().includes(query)) || (dept.id && dept.id.toString().includes(query)),
+      )
     },
     sortedDepartments() {
       return [...this.departments].sort((a, b) => {
-        let aValue = a[this.sortField];
-        let bValue = b[this.sortField];
-        
+        let aValue = a[this.sortField]
+        let bValue = b[this.sortField]
+
         // Handle undefined or null values
-        if (aValue === undefined || aValue === null) aValue = '';
-        if (bValue === undefined || bValue === null) bValue = '';
-        
+        if (aValue === undefined || aValue === null) aValue = ""
+        if (bValue === undefined || bValue === null) bValue = ""
+
         // String comparison
-        if (typeof aValue === 'string') {
-          aValue = aValue.toLowerCase();
-          bValue = bValue.toString().toLowerCase();
+        if (typeof aValue === "string") {
+          aValue = aValue.toLowerCase()
+          bValue = bValue.toString().toLowerCase()
         }
-        
-        if (this.sortDirection === 'asc') {
-          return aValue > bValue ? 1 : -1;
+
+        if (this.sortDirection === "asc") {
+          return aValue > bValue ? 1 : -1
         } else {
-          return aValue < bValue ? 1 : -1;
+          return aValue < bValue ? 1 : -1
         }
-      });
-    }
+      })
+    },
   },
   mounted() {
-    this.fetchDepartments();
+    this.fetchDepartments()
   },
   methods: {
     async fetchDepartments() {
-      if (this.loading) return;
-      this.loading = true;
-      this.error = null;
-      
+      if (this.loading) return
+      this.loading = true
+      this.error = null
+
       try {
-        const response = await axios.get('/departments');
-        this.departments = Array.isArray(response.data) ? response.data : [];
+        const response = await axios.get("/departments")
+        this.departments = Array.isArray(response.data) ? response.data : []
       } catch (error) {
-        console.error('Error fetching departments:', error);
-        this.error = 'Failed to load departments. Please try again later.';
-        this.departments = [];
+        console.error("Error fetching departments:", error)
+        this.error = "Failed to load departments. Please try again later."
+        this.departments = []
       } finally {
-        this.loading = false;
+        this.loading = false
       }
     },
-    
+
     editDepartment(department) {
-      this.$router.push(`/departments/${department.id}/edit`);
+      this.$router.push(`/departments/${department.id}/edit`)
     },
-    
+
     deleteDepartmentPrompt(id) {
-      this.departmentToDelete = id;
-      this.showDeleteModal = true;
+      this.departmentToDelete = id
+      this.showDeleteModal = true
     },
-    
+
     cancelDelete() {
-      this.showDeleteModal = false;
-      this.departmentToDelete = null;
+      this.showDeleteModal = false
+      this.departmentToDelete = null
     },
-    
+
     async confirmDelete() {
-      if (!this.departmentToDelete) return;
-      await this.deleteDepartment(this.departmentToDelete);
-      this.showDeleteModal = false;
-      this.departmentToDelete = null;
+      if (!this.departmentToDelete) return
+      await this.deleteDepartment(this.departmentToDelete)
+      this.showDeleteModal = false
+      this.departmentToDelete = null
     },
-    
+
     async deleteDepartment(id) {
-      if (this.deleting) return;
+      if (this.deleting) return
       if (!id) {
-        console.error('Cannot delete department: ID is undefined');
-        this.$toast.error('Error: Department ID is missing.');
-        return;
+        console.error("Cannot delete department: ID is undefined")
+        this.showToast("Error: Department ID is missing.", "error")
+        return
       }
 
-      this.deleting = id;
+      this.deleting = id
       try {
-        await axios.delete(`/departments/${id}`);
-        this.departments = this.departments.filter(dept => dept.id !== id);
-        this.$toast.success('Department successfully deleted');
+        await axios.delete(`/departments/${id}`)
+        this.departments = this.departments.filter((dept) => dept.id !== id)
+        this.showToast("Department successfully deleted", "success")
       } catch (error) {
-        console.error('Error deleting department:', error);
-        
+        console.error("Error deleting department:", error)
+
         if (error.response && error.response.status === 400) {
-          this.$toast.error('Cannot delete department with assigned artisans.');
+          this.showToast("Cannot delete department with assigned artisans.", "error")
         } else {
-          this.$toast.error('Failed to delete department. Please try again.');
+          this.showToast("Failed to delete department. Please try again.", "error")
         }
-        
-        await this.fetchDepartments();
+
+        await this.fetchDepartments()
       } finally {
-        this.deleting = null;
+        this.deleting = null
       }
     },
-    
+
     sort(field) {
       if (this.sortField === field) {
         // Toggle direction if already sorting by this field
-        this.sortDirection = this.sortDirection === 'asc' ? 'desc' : 'asc';
+        this.sortDirection = this.sortDirection === "asc" ? "desc" : "asc"
       } else {
         // Default to ascending for new sort field
-        this.sortField = field;
-        this.sortDirection = 'asc';
+        this.sortField = field
+        this.sortDirection = "asc"
       }
-    }
-  }
-};
+    },
+  },
+}
 </script>

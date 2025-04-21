@@ -110,6 +110,14 @@ Route::middleware('auth:sanctum')->group(function () {
      */
     Route::get('artisans', [\App\Http\Controllers\ArtisanController::class, 'index'])
         ->middleware('permission:artisans-all|artisans-view');
+
+    // IMPORTANT: Specific routes must come before wildcard routes
+    Route::get('artisans/export', [\App\Http\Controllers\ArtisanController::class, 'export'])
+        ->middleware('permission:artisans-all|artisans-view');
+    Route::post('artisans/import', [\App\Http\Controllers\ArtisanController::class, 'import'])
+        ->middleware('permission:artisans-all|artisans-create');
+
+    // Wildcard routes come after specific routes
     Route::get('artisans/{artisanId}', [\App\Http\Controllers\ArtisanController::class, 'show'])
         ->middleware('permission:artisans-all|artisans-view');
     Route::post('artisans', [\App\Http\Controllers\ArtisanController::class, 'store'])
@@ -118,9 +126,6 @@ Route::middleware('auth:sanctum')->group(function () {
         ->middleware('permission:artisans-all|artisans-edit');
     Route::delete('artisans/{artisanId}', [\App\Http\Controllers\ArtisanController::class, 'destroy'])
         ->middleware('permission:artisans-all|artisans-delete');
-    Route::get('artisans/export', [\App\Http\Controllers\ArtisanController::class, 'export'])
-        ->middleware('permission:artisans-all|artisans-view');
-    Route::post('artisans/import', [\App\Http\Controllers\ArtisanController::class, 'import']);
 
     /**
      * ------------------------------------------------------------------------
