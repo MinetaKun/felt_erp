@@ -19,7 +19,7 @@ class Order extends Model
         'due_date',
         'status',
         'wages_per_unit',
-        'client_details',
+        'client_name',
         'notes',
         'product_photo',
     ];
@@ -28,7 +28,6 @@ class Order extends Model
         'due_date' => 'date',
         'weight' => 'decimal:2',
         'wages_per_unit' => 'decimal:2',
-        'client_details' => 'array',
     ];
 
     // Relationships

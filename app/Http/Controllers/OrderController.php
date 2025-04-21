@@ -74,7 +74,7 @@ class OrderController extends Controller
             'total_quantity' => 'required|integer|min:1',
             'due_date' => 'required|date',
             'wages_per_unit' => 'required|numeric|min:0',
-            'client_details' => 'nullable|string',
+            'client_name' => 'nullable|string',
             'notes' => 'nullable|string',
             'product_photo' => 'nullable|image|max:2048',
         ]);
@@ -139,7 +139,7 @@ class OrderController extends Controller
             'due_date' => 'sometimes|required|date',
             'status' => 'sometimes|required|in:pending,in_production,approved,dispatched',
             'wages_per_unit' => 'sometimes|required|numeric|min:0',
-            'client_details' => 'nullable|string',
+            'client_name' => 'nullable|string',
             'notes' => 'nullable|string',
             'product_photo' => 'nullable|image|max:2048',
         ]);

@@ -113,9 +113,9 @@
             </p>
           </div>
           
-          <div v-if="order.client_details" class="mt-4">
-            <p class="text-sm font-medium text-gray-500 dark:text-gray-400">Client Details:</p>
-            <p class="text-sm text-gray-900 dark:text-white">{{ order.client_details }}</p>
+          <div v-if="order.client_name" class="mt-4">
+            <p class="text-sm font-medium text-gray-500 dark:text-gray-400">Client Name:</p>
+            <p class="text-sm text-gray-900 dark:text-white">{{ order.client_name }}</p>
           </div>
         </div>
       </div>

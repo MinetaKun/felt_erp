@@ -162,20 +162,19 @@
           </div>
           
           <!-- Client Details -->
-          <div>
-            <label for="client_details" class="block text-sm font-medium text-gray-700 dark:text-gray-300">
-              Client Details
-            </label>
-            <textarea
-              id="client_details"
-              v-model="formData.client_details"
-              rows="3"
-              class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-emerald-500 focus:ring-emerald-500"
-              :class="{ 'border-red-500': errors.client_details }"
-              placeholder="Enter client name, contact info, etc."
-            ></textarea>
-            <p v-if="errors.client_details" class="mt-1 text-sm text-red-600">{{ errors.client_details[0] }}</p>
-          </div>
+          <label for="client_name" class="block text-sm font-medium text-gray-700 dark:text-gray-300">
+                Client Name
+                </label>
+                <input
+                id="client_name"
+                v-model="formData.client_name"
+                type="text"
+                required
+                class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-emerald-500 focus:ring-emerald-500"
+                :class="{ 'border-red-500': errors.client_name }"
+                />
+                <p v-if="errors.client_name" class="mt-1 text-sm text-red-600">{{ errors.client_name[0] }}</p>
+
           
           <!-- Notes -->
           <div>
@@ -252,7 +251,7 @@
         total_quantity: '',
         due_date: '',
         wages_per_unit: '',
-        client_details: '',
+        client_name: '',
         notes: '',
         product_photo: null
       });
