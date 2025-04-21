@@ -180,4 +180,62 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::put('/{transaction}', [\App\Http\Controllers\PettyCashController::class, 'update']);
         Route::delete('/{transaction}', [\App\Http\Controllers\PettyCashController::class, 'destroy']);
     });
+
+    /**
+     * ------------------------------------------------------------------------
+     * orders routes
+     * ------------------------------------------------------------------------
+     */
+    Route::prefix('orders')->group(function () {
+        Route::get('/', [\App\Http\Controllers\OrderController::class, 'index'])
+            ->middleware('permission:orders-all|orders-view');
+        Route::post('/', [\App\Http\Controllers\OrderController::class, 'store'])
+            ->middleware('permission:orders-all|orders-create');
+        Route::get('/available-artisans', [\App\Http\Controllers\OrderController::class, 'getAvailableArtisans'])
+            ->middleware('permission:orders-all|orders-view');
+        Route::get('/{id}', [\App\Http\Controllers\OrderController::class, 'show'])
+            ->middleware('permission:orders-all|orders-view');
+        Route::put('/{id}', [\App\Http\Controllers\OrderController::class, 'update'])
+            ->middleware('permission:orders-all|orders-edit');
+        Route::patch('/{id}/status', [\App\Http\Controllers\OrderController::class, 'updateStatus'])
+            ->middleware('permission:orders-all|orders-edit');
+        Route::delete('/{id}', [\App\Http\Controllers\OrderController::class, 'destroy'])
+            ->middleware('permission:orders-all|orders-delete');
+    });
+
+    /**
+     * ------------------------------------------------------------------------
+     * order assignments routes
+     * ------------------------------------------------------------------------
+     */
+    Route::prefix('order-assignments')->group(function () {
+        Route::get('/', [\App\Http\Controllers\OrderAssignmentController::class, 'index'])
+            ->middleware('permission:orders-all|orders-view');
+        Route::post('/assign', [\App\Http\Controllers\OrderAssignmentController::class, 'assign'])
+            ->middleware('permission:orders-all|orders-edit');
+        Route::patch('/{id}/complete', [\App\Http\Controllers\OrderAssignmentController::class, 'markCompleted'])
+            ->middleware('permission:orders-all|orders-edit');
+        Route::patch('/{id}/approve-reject', [\App\Http\Controllers\OrderAssignmentController::class, 'approveOrReject'])
+            ->middleware('permission:orders-all|orders-edit');
+        Route::patch('/{id}/dispatch', [\App\Http\Controllers\OrderAssignmentController::class, 'markDispatched'])
+            ->middleware('permission:orders-all|orders-edit');
+        Route::post('/bulk-approve', [\App\Http\Controllers\OrderAssignmentController::class, 'bulkApprove'])
+            ->middleware('permission:orders-all|orders-edit');
+        Route::post('/bulk-dispatch', [\App\Http\Controllers\OrderAssignmentController::class, 'bulkDispatch'])
+            ->middleware('permission:orders-all|orders-edit');
+    });
+
+    /**
+     * ------------------------------------------------------------------------
+     * Order routes
+     * ------------------------------------------------------------------------
+     */
+    // Order routes
+    Route::get('/orders', [\App\Http\Controllers\OrderController::class, 'index']);
+    Route::post('/orders', [\App\Http\Controllers\OrderController::class, 'store']);
+    Route::get('/orders/{id}', [\App\Http\Controllers\OrderController::class, 'show']);
+    Route::put('/orders/{id}', [\App\Http\Controllers\OrderController::class, 'update']);
+    Route::delete('/orders/{id}', [\App\Http\Controllers\OrderController::class, 'destroy']);
+    Route::get('/orders/{id}/available-artisans', [\App\Http\Controllers\OrderController::class, 'getAvailableArtisans']);
+    Route::patch('/orders/{id}/status', [\App\Http\Controllers\OrderController::class, 'updateStatus']);
 });

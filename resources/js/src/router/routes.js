@@ -38,7 +38,7 @@ export default [
         permissions: ["permissions-all", "permissions-view"],
       },
     },
-    // New artisan routes
+    // Artisan routes
     {
       path: "/artisans",
       name: "artisans",
@@ -75,7 +75,7 @@ export default [
         permissions: ["artisans-all", "artisans-edit"],
       },
     },
-    // New attendance routes
+    // Attendance routes
     {
       path: "/artisans/:artisanId/attendance/create",
       name: "attendance.create",
@@ -94,7 +94,7 @@ export default [
         permissions: ["attendance-all", "attendance-edit"],
       },
     },
-    // New department routes
+    // Department routes
     {
       path: "/departments",
       name: "departments",
@@ -122,6 +122,7 @@ export default [
         permissions: ["departments-all", "departments-edit"],
       },
     },
+    // Petty Cash routes
     {
       path: "/petty-cash",
       name: "petty-cash.dashboard",
@@ -165,6 +166,72 @@ export default [
       meta: {
         layout: "dashboard",
         permissions: ["petty-cash-manage-categories"],
+      },
+    },
+    // Orders routes
+    {
+      path: "/orders",
+      name: "orders",
+      component: () => import("../pages/orders/Orders.vue"),
+      meta: {
+        requiresAuth: true,
+        layout: "dashboard",
+        permissions: ["orders-all", "orders-view"],
+      },
+    },
+    {
+      path: "/orders/create",
+      name: "orders.create",
+      component: () => import("../pages/orders/OrderForm.vue"),
+      meta: {
+        layout: "dashboard",
+        permissions: ["orders-all", "orders-create"],
+      },
+    },
+    {
+      path: "/orders/:id",
+      name: "orders.show",
+      component: () => import("../pages/orders/OrderDetails.vue"),
+      meta: {
+        layout: "dashboard",
+        permissions: ["orders-all", "orders-view"],
+      },
+    },
+    {
+      path: "/orders/:id/edit",
+      name: "orders.edit",
+      component: () => import("../pages/orders/OrderForm.vue"),
+      meta: {
+        layout: "dashboard",
+        permissions: ["orders-all", "orders-edit"],
+      },
+    },
+    {
+      path: "/orders/:id/assign",
+      name: "orders.assign",
+      component: () => import("../pages/orders/OrderAssignmentForm.vue"),
+      meta: {
+        layout: "dashboard",
+        permissions: ["orders-all", "orders-assign"],
+      },
+    },
+    // New routes for assignments and dispatch
+    {
+      path: "/orders/assignments",
+      name: "orders.assignments",
+      component: () => import("../pages/orders/OrderAssignments.vue"),
+      meta: {
+        layout: "dashboard",
+        permissions: ["orders-all", "orders-view"],
+      },
+    },
+    {
+      path: "/orders/dispatch",
+      name: "orders.dispatch",
+      component: () => import("../pages/orders/OrderDispatch.vue"),
+      meta: {
+        layout: "dashboard",
+        permissions: ["orders-all", "orders-view"],
       },
     },
   ]
