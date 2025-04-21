@@ -237,37 +237,44 @@ class PettyCashController extends Controller
     }
     public function export(Request $request)
     {
-        $query = PettyCashTransaction::with(['category'])
-            ->orderBy('transaction_date', 'desc')
-            ->orderBy('created_at', 'desc');
-
-        // Apply filters (same as index method)
-        if ($request->has('search') && $request->search != '') {
-            $search = $request->search;
-            $query->where(function ($q) use ($search) {
-                $q->where('particulars', 'like', "%$search%")
-                    ->orWhere('pan_bill_no', 'like', "%$search%")
-                    ->orWhere('est_bill_no', 'like', "%$search%")
-                    ->orWhere('reference_no', 'like', "%$search%")
-                    ->orWhereHas('category', function ($q) use ($search) {
-                        $q->where('name', 'like', "%$search%");
-                    });
-            });
-        }
-
-        if ($request->has('category_id') && $request->category_id != '') {
-            $query->where('category_id', $request->category_id);
-        }
-
-        if ($request->has('date_range') && $request->date_range != '') {
-            $dates = explode(' to ', $request->date_range);
-            $startDate = $dates[0];
-            $endDate = $dates[1] ?? $dates[0];
-            $query->whereBetween('transaction_date', [$startDate, $endDate]);
-        }
-
         try {
+            // Log the request for debugging
+            Log::info('Export request received', ['params' => $request->all()]);
+
+            $query = PettyCashTransaction::with(['category']);
+
+            // Apply filters
+            if ($request->has('search') && !empty($request->search)) {
+                $search = $request->search;
+                $query->where(function ($q) use ($search) {
+                    $q->where('particulars', 'like', "%{$search}%")
+                        ->orWhere('pan_bill_no', 'like', "%{$search}%")
+                        ->orWhere('est_bill_no', 'like', "%{$search}%")
+                        ->orWhere('reference_no', 'like', "%{$search}%")
+                        ->orWhereHas('category', function ($q) use ($search) {
+                            $q->where('name', 'like', "%{$search}%");
+                        });
+                });
+            }
+
+            if ($request->has('category_id') && !empty($request->category_id)) {
+                $query->where('category_id', $request->category_id);
+            }
+
+            if ($request->has('date_range') && !empty($request->date_range)) {
+                $dates = explode(' to ', $request->date_range);
+                $startDate = $dates[0];
+                $endDate = $dates[1] ?? $dates[0];
+                $query->whereBetween('transaction_date', [$startDate, $endDate]);
+            }
+
+            // Order by transaction date and created_at
+            $query->orderBy('transaction_date', 'desc')
+                ->orderBy('created_at', 'desc');
+
             $transactions = $query->get();
+
+            Log::info('Found transactions for export', ['count' => $transactions->count()]);
 
             if ($transactions->isEmpty()) {
                 return response()->json([
@@ -323,17 +330,29 @@ class PettyCashController extends Controller
             $filename = 'petty_cash_transactions_' . date('Y-m-d_H-i-s') . '.csv';
             $csvContent = (string) $csv;
 
+            Log::info('CSV generated successfully', ['size' => strlen($csvContent)]);
+
             return response($csvContent)
                 ->header('Content-Type', 'text/csv')
                 ->header('Content-Disposition', 'attachment; filename="' . $filename . '"')
                 ->header('Content-Length', strlen($csvContent));
         } catch (\Exception $e) {
-            Log::error('CSV Export Error: ' . $e->getMessage());
+            Log::error('CSV Export Error', [
+                'message' => $e->getMessage(),
+                'trace' => $e->getTraceAsString()
+            ]);
+
             return response()->json([
                 'success' => false,
                 'message' => 'Error generating CSV: ' . $e->getMessage()
             ], 500);
         }
+    }
+
+    // Remove the apiExport method as it's no longer needed
+    public function apiExport(Request $request)
+    {
+        return $this->export($request);
     }
 
     public function import(Request $request)
@@ -348,7 +367,6 @@ class PettyCashController extends Controller
 
         $header = $csv->getHeader();
         $expectedHeader = [
-            'ID',
             'Transaction Date',
             'BS Date',
             'PAN Bill No',
@@ -361,79 +379,319 @@ class PettyCashController extends Controller
             'VAT Amount',
             'VAT Included',
             'Reference No',
-            'Notes',
-            'Created At',
-            'Updated At'
+            'Notes'
         ];
 
-        if (array_diff($expectedHeader, $header)) {
-            return response()->json(['error' => 'Invalid CSV header'], 400);
+        // Check if the header matches the expected format
+        $missingColumns = array_diff($expectedHeader, $header);
+        if (!empty($missingColumns)) {
+            return response()->json([
+                'success' => false,
+                'error' => 'Invalid CSV header. Missing columns: ' . implode(', ', $missingColumns)
+            ], 400);
         }
 
         $records = $csv->getRecords();
         $errors = [];
         $successCount = 0;
+        $rowNumber = 1; // Start at row 1 (after header)
 
-        foreach ($records as $index => $record) {
-            $validator = Validator::make($record, [
-                'Transaction Date' => 'required|date',
-                'BS Date' => 'nullable|date',
-                'PAN Bill No' => 'nullable|string|max:50',
-                'Est Bill No' => 'nullable|string|max:50',
-                'Category' => 'required|string|exists:petty_cash_categories,name',
-                'Particulars' => 'required|string|max:255',
-                'Cash In' => 'required_without:Cash Out|numeric|min:0',
-                'Cash Out' => 'required_without:Cash In|numeric|min:0',
-                'VAT %' => 'nullable|numeric|min:0|max:100',
-                'VAT Amount' => 'nullable|numeric|min:0',
-                'VAT Included' => 'nullable|in:Yes,No,yes,no',
-                'Reference No' => 'nullable|string|max:50',
-                'Notes' => 'nullable|string',
+        DB::beginTransaction();
+
+        try {
+            foreach ($records as $record) {
+                $rowNumber++;
+
+                // Validate required fields
+                if (empty($record['Transaction Date'])) {
+                    $errors[] = "Row {$rowNumber}: Transaction Date is required";
+                    continue;
+                }
+
+                if (empty($record['Category'])) {
+                    $errors[] = "Row {$rowNumber}: Category is required";
+                    continue;
+                }
+
+                if (empty($record['Particulars'])) {
+                    $errors[] = "Row {$rowNumber}: Particulars is required";
+                    continue;
+                }
+
+                if (empty($record['Cash In']) && empty($record['Cash Out'])) {
+                    $errors[] = "Row {$rowNumber}: Either Cash In or Cash Out must have a value";
+                    continue;
+                }
+
+                if (!empty($record['Cash In']) && !empty($record['Cash Out'])) {
+                    $errors[] = "Row {$rowNumber}: Cannot have both Cash In and Cash Out values";
+                    continue;
+                }
+
+                // Find category
+                $category = PettyCashCategory::where('name', $record['Category'])->first();
+                if (!$category) {
+                    $errors[] = "Row {$rowNumber}: Category '{$record['Category']}' not found";
+                    continue;
+                }
+
+                // Parse dates
+                try {
+                    $transactionDate = Carbon::parse($record['Transaction Date']);
+                } catch (\Exception $e) {
+                    $errors[] = "Row {$rowNumber}: Invalid Transaction Date format";
+                    continue;
+                }
+
+                $bsDate = null;
+                if (!empty($record['BS Date'])) {
+                    try {
+                        $bsDate = Carbon::parse($record['BS Date']);
+                    } catch (\Exception $e) {
+                        $errors[] = "Row {$rowNumber}: Invalid BS Date format";
+                        continue;
+                    }
+                }
+
+                // Parse numeric values
+                $cashIn = !empty($record['Cash In']) ? (float)$record['Cash In'] : 0;
+                $cashOut = !empty($record['Cash Out']) ? (float)$record['Cash Out'] : 0;
+                $vatPercentage = !empty($record['VAT %']) ? (float)$record['VAT %'] : null;
+                $vatAmount = !empty($record['VAT Amount']) ? (float)$record['VAT Amount'] : 0;
+                $isVatIncluded = !empty($record['VAT Included']) && strtolower($record['VAT Included']) === 'yes';
+
+                // Create transaction
+                try {
+                    PettyCashTransaction::create([
+                        'transaction_date' => $transactionDate,
+                        'bs_date' => $bsDate,
+                        'pan_bill_no' => $record['PAN Bill No'] ?? null,
+                        'est_bill_no' => $record['Est Bill No'] ?? null,
+                        'category_id' => $category->id,
+                        'particulars' => $record['Particulars'],
+                        'cash_in' => $cashIn,
+                        'cash_out' => $cashOut,
+                        'vat_percentage' => $vatPercentage,
+                        'vat_amount' => $vatAmount,
+                        'is_vat_included' => $isVatIncluded,
+                        'reference_no' => $record['Reference No'] ?? null,
+                        'notes' => $record['Notes'] ?? null,
+                    ]);
+
+                    $successCount++;
+                } catch (\Exception $e) {
+                    $errors[] = "Row {$rowNumber}: " . $e->getMessage();
+                }
+            }
+
+            if ($successCount > 0) {
+                DB::commit();
+                $message = "{$successCount} transactions imported successfully";
+                if (!empty($errors)) {
+                    $message .= " with some errors";
+                }
+
+                return response()->json([
+                    'success' => true,
+                    'message' => $message,
+                    'errors' => $errors
+                ], !empty($errors) ? 206 : 200); // 206 Partial Content if there are errors
+            } else {
+                DB::rollBack();
+                return response()->json([
+                    'success' => false,
+                    'error' => 'No transactions were imported due to errors',
+                    'errors' => $errors
+                ], 422);
+            }
+        } catch (\Exception $e) {
+            DB::rollBack();
+            Log::error('CSV Import Error', [
+                'message' => $e->getMessage(),
+                'trace' => $e->getTraceAsString()
             ]);
 
-            if ($validator->fails()) {
-                $errors[] = "Row " . ($index + 2) . ": " . implode(', ', $validator->errors()->all());
-                continue;
-            }
-
-            $category = PettyCashCategory::where('name', $record['Category'])->first();
-            if (!$category) {
-                $errors[] = "Row " . ($index + 2) . ": Category '" . $record['Category'] . "' not found";
-                continue;
-            }
-
-            $data = [
-                'transaction_date' => $record['Transaction Date'],
-                'bs_date' => $record['BS Date'] ?: null,
-                'pan_bill_no' => $record['PAN Bill No'] ?: null,
-                'est_bill_no' => $record['Est Bill No'] ?: null,
-                'category_id' => $category->id,
-                'particulars' => $record['Particulars'],
-                'cash_in' => $record['Cash In'] ?: 0,
-                'cash_out' => $record['Cash Out'] ?: 0,
-                'vat_percentage' => $record['VAT %'] ?: null,
-                'vat_amount' => $record['VAT Amount'] ?: 0,
-                'is_vat_included' => in_array(strtolower($record['VAT Included']), ['yes', 'y']) ? 1 : 0,
-                'reference_no' => $record['Reference No'] ?: null,
-                'notes' => $record['Notes'] ?: null,
-                'created_at' => $record['Created At'] ?: now(),
-                'updated_at' => $record['Updated At'] ?: now(),
-            ];
-
-            try {
-                PettyCashTransaction::updateOrCreate(
-                    ['id' => $record['ID'] ?: null], // Update if ID exists, create if not
-                    $data
-                );
-                $successCount++;
-            } catch (\Exception $e) {
-                $errors[] = "Row " . ($index + 2) . ": " . $e->getMessage();
-            }
+            return response()->json([
+                'success' => false,
+                'error' => 'An error occurred during import: ' . $e->getMessage()
+            ], 500);
         }
+    }
 
-        return response()->json([
-            'message' => "Imported $successCount transactions successfully",
-            'errors' => $errors,
-        ], $errors ? 206 : 200); // 206 Partial Content if there are errors
+    // Add this new method for API export:
+
+    // Add this method at the end of the class
+    public function exportFallback(Request $request)
+    {
+        // This is a fallback method that will be called if the main export method fails
+        Log::info('Export fallback method called', ['params' => $request->all()]);
+
+        try {
+            // Get all transactions without any filters
+            $transactions = PettyCashTransaction::with(['category'])->get();
+
+            if ($transactions->isEmpty()) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'No transactions found to export'
+                ], 404);
+            }
+
+            $csv = Writer::createFromFileObject(new \SplTempFileObject());
+
+            // Insert CSV header
+            $csv->insertOne([
+                'ID',
+                'Transaction Date',
+                'BS Date',
+                'PAN Bill No',
+                'Est Bill No',
+                'Category',
+                'Particulars',
+                'Cash In',
+                'Cash Out',
+                'VAT %',
+                'VAT Amount',
+                'VAT Included',
+                'Reference No',
+                'Notes'
+            ]);
+
+            // Insert data rows
+            foreach ($transactions as $transaction) {
+                $csv->insertOne([
+                    $transaction->id,
+                    $transaction->transaction_date,
+                    $transaction->bs_date,
+                    $transaction->pan_bill_no,
+                    $transaction->est_bill_no,
+                    $transaction->category ? $transaction->category->name : 'N/A',
+                    $transaction->particulars,
+                    $transaction->cash_in,
+                    $transaction->cash_out,
+                    $transaction->vat_percentage,
+                    $transaction->vat_amount,
+                    $transaction->is_vat_included ? 'Yes' : 'No',
+                    $transaction->reference_no,
+                    $transaction->notes
+                ]);
+            }
+
+            $filename = 'petty_cash_transactions_' . date('Y-m-d_H-i-s') . '.csv';
+            $csvContent = (string) $csv;
+
+            return response($csvContent)
+                ->header('Content-Type', 'text/csv')
+                ->header('Content-Disposition', 'attachment; filename="' . $filename . '"')
+                ->header('Content-Length', strlen($csvContent));
+        } catch (\Exception $e) {
+            Log::error('CSV Export Fallback Error', [
+                'message' => $e->getMessage(),
+                'trace' => $e->getTraceAsString()
+            ]);
+
+            return response()->json([
+                'success' => false,
+                'message' => 'Error generating CSV: ' . $e->getMessage()
+            ], 500);
+        }
+    }
+
+    // Add this method to the PettyCashController class
+    public function getSampleImport()
+    {
+        try {
+            $csv = Writer::createFromFileObject(new \SplTempFileObject());
+
+            // Insert CSV header
+            $csv->insertOne([
+                'Transaction Date',
+                'BS Date',
+                'PAN Bill No',
+                'Est Bill No',
+                'Category',
+                'Particulars',
+                'Cash In',
+                'Cash Out',
+                'VAT %',
+                'VAT Amount',
+                'VAT Included',
+                'Reference No',
+                'Notes'
+            ]);
+
+            // Get some category names for the sample
+            $categories = PettyCashCategory::pluck('name')->take(3)->toArray();
+            if (empty($categories)) {
+                $categories = ['Office Supplies', 'Utilities', 'Salary'];
+            }
+
+            // Insert sample data rows
+            $csv->insertOne([
+                date('Y-m-d'), // Today's date
+                '', // BS Date (empty)
+                'PAN-12345', // Sample PAN Bill No
+                'EST-001', // Sample Est Bill No
+                $categories[0], // First category
+                'Office supplies purchase', // Sample particulars
+                '', // Cash In (empty for expense)
+                '1500.00', // Cash Out
+                '13', // VAT %
+                '195.00', // VAT Amount
+                'Yes', // VAT Included
+                'REF-001', // Reference No
+                'Monthly office supplies' // Notes
+            ]);
+
+            $csv->insertOne([
+                date('Y-m-d', strtotime('-1 day')), // Yesterday's date
+                '', // BS Date (empty)
+                '', // PAN Bill No (empty)
+                '', // Est Bill No (empty)
+                $categories[count($categories) > 1 ? 1 : 0], // Second category or first if only one exists
+                'Electricity bill payment', // Sample particulars
+                '', // Cash In (empty for expense)
+                '2500.00', // Cash Out
+                '', // VAT % (empty)
+                '', // VAT Amount (empty)
+                'No', // VAT Included
+                'REF-002', // Reference No
+                'Monthly electricity bill' // Notes
+            ]);
+
+            $csv->insertOne([
+                date('Y-m-d', strtotime('-2 days')), // 2 days ago
+                '', // BS Date (empty)
+                '', // PAN Bill No (empty)
+                '', // Est Bill No (empty)
+                $categories[count($categories) > 2 ? 2 : 0], // Third category or first if only one exists
+                'Client payment received', // Sample particulars
+                '5000.00', // Cash In
+                '', // Cash Out (empty for income)
+                '', // VAT % (empty)
+                '', // VAT Amount (empty)
+                'No', // VAT Included
+                'REF-003', // Reference No
+                'Payment for invoice #123' // Notes
+            ]);
+
+            $filename = 'petty_cash_import_sample.csv';
+            $csvContent = (string) $csv;
+
+            return response($csvContent)
+                ->header('Content-Type', 'text/csv')
+                ->header('Content-Disposition', 'attachment; filename="' . $filename . '"')
+                ->header('Content-Length', strlen($csvContent));
+        } catch (\Exception $e) {
+            Log::error('Sample CSV Generation Error', [
+                'message' => $e->getMessage(),
+                'trace' => $e->getTraceAsString()
+            ]);
+
+            return response()->json([
+                'success' => false,
+                'message' => 'Error generating sample CSV: ' . $e->getMessage()
+            ], 500);
+        }
     }
 }

@@ -147,8 +147,11 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::patch('/departments/{department}', [\App\Http\Controllers\DepartmentController::class, 'update']);
     Route::delete('/departments/{department}', [\App\Http\Controllers\DepartmentController::class, 'destroy']);
 
-
-
+    /**
+     * ------------------------------------------------------------------------
+     * petty cash routes
+     * ------------------------------------------------------------------------
+     */
     Route::prefix('petty-cash')->group(function () {
         // Categories
         Route::prefix('categories')->group(function () {
@@ -159,20 +162,22 @@ Route::middleware('auth:sanctum')->group(function () {
             Route::delete('/{category}', [\App\Http\Controllers\PettyCashCategoryController::class, 'destroy']);
         });
 
-        // Transactions
+        // Main routes
         Route::get('/', [\App\Http\Controllers\PettyCashController::class, 'index']);
         Route::get('/dashboard', [\App\Http\Controllers\PettyCashController::class, 'dashboard']);
         Route::post('/', [\App\Http\Controllers\PettyCashController::class, 'store']);
-        Route::get('/{transaction}', [\App\Http\Controllers\PettyCashController::class, 'show']);
-        Route::put('/{transaction}', [\App\Http\Controllers\PettyCashController::class, 'update']);
-        Route::delete('/{transaction}', [\App\Http\Controllers\PettyCashController::class, 'destroy']);
 
-        // Export/Import
+        // IMPORTANT: Specific routes must come before wildcard routes
         Route::get('/export', [\App\Http\Controllers\PettyCashController::class, 'export']);
         Route::post('/import', [\App\Http\Controllers\PettyCashController::class, 'import']);
 
         // PDF Reports
         Route::post('/reports/pdf/download', [\App\Http\Controllers\PettyCashController::class, 'generatePdfReport']);
         Route::post('/reports/pdf/preview', [\App\Http\Controllers\PettyCashController::class, 'previewPdfReport']);
+
+        // Wildcard routes come after specific routes
+        Route::get('/{transaction}', [\App\Http\Controllers\PettyCashController::class, 'show']);
+        Route::put('/{transaction}', [\App\Http\Controllers\PettyCashController::class, 'update']);
+        Route::delete('/{transaction}', [\App\Http\Controllers\PettyCashController::class, 'destroy']);
     });
 });

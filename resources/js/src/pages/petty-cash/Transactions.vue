@@ -164,19 +164,19 @@
 </template>
 
 <script>
-import { ref, onMounted } from 'vue';
-import axios from 'axios';
-import Swal from 'sweetalert2';
+import { ref, onMounted } from "vue"
+import axios from "axios"
+import Swal from "sweetalert2"
 
 export default {
   setup() {
-    const transactions = ref({ data: [], current_page: 1, last_page: 1, prev_page_url: null, next_page_url: null });
-    const categories = ref([]);
-    const search = ref('');
-    const categoryId = ref('');
-    const dateRange = ref('');
-    const dateRangeStart = ref('');
-    const dateRangeEnd = ref('');
+    const transactions = ref({ data: [], current_page: 1, last_page: 1, prev_page_url: null, next_page_url: null })
+    const categories = ref([])
+    const search = ref("")
+    const categoryId = ref("")
+    const dateRange = ref("")
+    const dateRangeStart = ref("")
+    const dateRangeEnd = ref("")
 
     const fetchTransactions = async (page = 1) => {
       try {
@@ -185,135 +185,203 @@ export default {
           search: search.value,
           category_id: categoryId.value,
           date_range: dateRange.value,
-        };
+        }
 
-        const response = await axios.get('/petty-cash', { params });
-        transactions.value = response.data.transactions;
-        categories.value = response.data.categories;
+        const response = await axios.get("/petty-cash", { params })
+        transactions.value = response.data.transactions
+        categories.value = response.data.categories
       } catch (error) {
-        console.error('Error fetching petty cash transactions:', error);
-        Swal.fire('Error!', 'Failed to load transactions.', 'error');
+        console.error("Error fetching petty cash transactions:", error)
+        Swal.fire("Error!", "Failed to load transactions.", "error")
       }
-    };
+    }
 
     const exportTransactions = async () => {
       try {
+        Swal.fire({
+          title: "Exporting...",
+          text: "Please wait while we generate your file.",
+          allowOutsideClick: false,
+          didOpen: () => {
+            Swal.showLoading()
+          },
+        })
+
         const params = {
           search: search.value,
           category_id: categoryId.value,
           date_range: dateRange.value,
-        };
+        }
 
-        const response = await axios.get('/petty-cash/export', {
+        // Use the correct API endpoint
+        const response = await axios.get("/petty-cash/export", {
           params,
-          responseType: 'blob', // Important for file download
-        });
+          responseType: "blob",
+        })
 
-        const url = window.URL.createObjectURL(new Blob([response.data]));
-        const link = document.createElement('a');
-        link.href = url;
-        link.setAttribute('download', `petty_cash_transactions_${new Date().toISOString().slice(0,10)}.csv`);
-        document.body.appendChild(link);
-        link.click();
-        document.body.removeChild(link);
-        Swal.fire('Success!', 'Transactions exported successfully.', 'success');
+        // Check if the response is JSON (error message)
+        const contentType = response.headers["content-type"]
+
+        if (contentType.includes("application/json")) {
+          // Convert blob to JSON to read the error message
+          const text = await response.data.text()
+          const error = JSON.parse(text)
+          throw new Error(error.message || "Export failed")
+        }
+
+        // Process the CSV file
+        const blob = new Blob([response.data], { type: contentType })
+        const url = window.URL.createObjectURL(blob)
+        const link = document.createElement("a")
+        link.href = url
+        link.setAttribute("download", `petty_cash_transactions_${new Date().toISOString().slice(0, 10)}.csv`)
+        document.body.appendChild(link)
+        link.click()
+        document.body.removeChild(link)
+        window.URL.revokeObjectURL(url)
+
+        Swal.fire({
+          icon: "success",
+          title: "Success!",
+          text: "Transactions exported successfully.",
+          timer: 2000,
+          showConfirmButton: false,
+        })
       } catch (error) {
-        console.error('Error exporting transactions:', error);
-        Swal.fire('Error!', 'Failed to export transactions.', 'error');
+        console.error("Error exporting transactions:", error)
+        let errorMessage = "Failed to export transactions."
+
+        if (error.response?.status === 403) {
+          errorMessage = "You do not have permission to export transactions."
+        } else if (error.response?.status === 404) {
+          errorMessage = "No transactions found to export."
+        } else if (error.response?.data) {
+          try {
+            // Try to read the response data as text
+            const reader = new FileReader()
+            reader.onload = () => {
+              try {
+                const jsonResponse = JSON.parse(reader.result)
+                errorMessage = jsonResponse.message || errorMessage
+              } catch (e) {
+                // Not JSON, use default message
+              }
+
+              Swal.fire({
+                icon: "error",
+                title: "Export Failed",
+                text: errorMessage,
+              })
+            }
+            reader.readAsText(error.response.data)
+            return // Early return to prevent showing the alert twice
+          } catch (e) {
+            // If we can't read as text, use the error message
+            errorMessage = error.message || errorMessage
+          }
+        } else {
+          errorMessage = error.message || errorMessage
+        }
+
+        Swal.fire({
+          icon: "error",
+          title: "Export Failed",
+          text: errorMessage,
+        })
       }
-    };
+    }
 
     const importTransactions = async (event) => {
-      const file = event.target.files[0];
-      if (!file) return;
+      const file = event.target.files[0]
+      if (!file) return
 
-      const formData = new FormData();
-      formData.append('file', file);
+      const formData = new FormData()
+      formData.append("file", file)
 
       try {
-        const response = await axios.post('/petty-cash/import', formData, {
-          headers: { 'Content-Type': 'multipart/form-data' }
-        });
+        const response = await axios.post("/petty-cash/import", formData, {
+          headers: { "Content-Type": "multipart/form-data" },
+        })
 
         if (response.data.errors && response.data.errors.length > 0) {
           Swal.fire({
-            title: 'Import Partially Successful',
-            text: `${response.data.message}\nErrors:\n${response.data.errors.join('\n')}`,
-            icon: 'warning',
-          });
+            title: "Import Partially Successful",
+            text: `${response.data.message}\nErrors:\n${response.data.errors.join("\n")}`,
+            icon: "warning",
+          })
         } else {
-          Swal.fire('Success!', response.data.message, 'success');
+          Swal.fire("Success!", response.data.message, "success")
         }
-        fetchTransactions(); // Refresh the list
+        fetchTransactions() // Refresh the list
       } catch (error) {
-        console.error('Error importing transactions:', error);
-        Swal.fire('Error!', error.response?.data?.error || 'Failed to import transactions.', 'error');
+        console.error("Error importing transactions:", error)
+        Swal.fire("Error!", error.response?.data?.error || "Failed to import transactions.", "error")
       }
-    };
+    }
 
     const deleteTransaction = async (id) => {
       try {
         const result = await Swal.fire({
-          title: 'Are you sure?',
+          title: "Are you sure?",
           text: "You won't be able to revert this!",
-          icon: 'warning',
+          icon: "warning",
           showCancelButton: true,
-          confirmButtonColor: '#3085d6',
-          cancelButtonColor: '#d33',
-          confirmButtonText: 'Yes, delete it!'
-        });
+          confirmButtonColor: "#3085d6",
+          cancelButtonColor: "#d33",
+          confirmButtonText: "Yes, delete it!",
+        })
 
         if (result.isConfirmed) {
-          await axios.delete(`/petty-cash/${id}`);
-          await fetchTransactions(transactions.value.current_page);
-          Swal.fire('Deleted!', 'Transaction has been deleted.', 'success');
+          await axios.delete(`/petty-cash/${id}`)
+          await fetchTransactions(transactions.value.current_page)
+          Swal.fire("Deleted!", "Transaction has been deleted.", "success")
         }
       } catch (error) {
         if (error.response && error.response.status === 403) {
-          Swal.fire('Forbidden!', 'You do not have permission to delete this transaction.', 'error');
+          Swal.fire("Forbidden!", "You do not have permission to delete this transaction.", "error")
         } else {
-          Swal.fire('Error!', 'Failed to delete transaction.', 'error');
+          Swal.fire("Error!", "Failed to delete transaction.", "error")
         }
       }
-    };
+    }
 
     const updateDateRange = () => {
       if (dateRangeStart.value && dateRangeEnd.value) {
-        dateRange.value = `${dateRangeStart.value} to ${dateRangeEnd.value}`;
+        dateRange.value = `${dateRangeStart.value} to ${dateRangeEnd.value}`
       } else {
-        dateRange.value = '';
+        dateRange.value = ""
       }
-      fetchTransactions();
-    };
+      fetchTransactions()
+    }
 
     const resetFilters = () => {
-      search.value = '';
-      categoryId.value = '';
-      dateRange.value = '';
-      dateRangeStart.value = '';
-      dateRangeEnd.value = '';
-      fetchTransactions();
-    };
+      search.value = ""
+      categoryId.value = ""
+      dateRange.value = ""
+      dateRangeStart.value = ""
+      dateRangeEnd.value = ""
+      fetchTransactions()
+    }
 
     const formatCurrency = (value) => {
-      return new Intl.NumberFormat('en-NP', {
-        style: 'currency',
-        currency: 'NPR',
-      }).format(value);
-    };
+      return new Intl.NumberFormat("en-NP", {
+        style: "currency",
+        currency: "NPR",
+      }).format(value)
+    }
 
     const formatDate = (dateString) => {
-      const date = new Date(dateString);
-      return date.toLocaleDateString('en-US', {
-        year: 'numeric',
-        month: 'short',
-        day: 'numeric',
-      });
-    };
+      const date = new Date(dateString)
+      return date.toLocaleDateString("en-US", {
+        year: "numeric",
+        month: "short",
+        day: "numeric",
+      })
+    }
 
     onMounted(() => {
-      fetchTransactions();
-    });
+      fetchTransactions()
+    })
 
     return {
       transactions,
@@ -331,7 +399,8 @@ export default {
       resetFilters,
       formatCurrency,
       formatDate,
-    };
+    }
   },
-};
+}
+
 </script>
