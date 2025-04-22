@@ -289,5 +289,24 @@ export default [
         permissions: ["wool-all", "wool-view"],
       },
     },
+    // Wage Calculation routes
+    {
+      path: "/wages/calculations",
+      name: "wages.calculations",
+      component: () => import("../pages/wages/WageCalculations.vue"),
+      meta: {
+        layout: "dashboard",
+        permissions: ["orders-all", "orders-view"],
+      },
+    },
+    {
+      path: "/wages/reports",
+      name: "wages.reports",
+      component: () => import("../pages/wages/WagesReport.vue"),
+      meta: {
+        layout: "dashboard",
+        permissions: ["orders-all", "orders-view"],
+      },
+    },
   ]
   

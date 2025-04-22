@@ -307,4 +307,10 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::post('/stock/export', [\App\Http\Controllers\WoolStockController::class, 'export'])
             ->middleware('permission:wool-all|wool-view');
     });
+
+    // Wage Calculation Routes
+    Route::prefix('wages')->group(function () {
+        Route::get('/calculations', [\App\Http\Controllers\WageController::class, 'calculations']);
+        Route::post('/export', [\App\Http\Controllers\WageController::class, 'export']);
+    });
 });
