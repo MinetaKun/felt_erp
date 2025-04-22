@@ -77,43 +77,52 @@
         <div class="overflow-x-auto">
           <table class="min-w-full border-collapse">
             <thead>
-              <tr class="bg-gray-100">
-                <th class="p-3 text-left border-b-2 border-gray-200">Photo</th>
-                <th class="p-3 text-left border-b-2 border-gray-200">Name</th>
-                <th class="p-3 text-left border-b-2 border-gray-200">Department</th>
-                <th class="p-3 text-left border-b-2 border-gray-200">Phone</th>
-                <th class="p-3 text-left border-b-2 border-gray-200">PAN Number</th>
-                <th class="p-3 text-left border-b-2 border-gray-200">Salary</th>
-                <th class="p-3 text-left border-b-2 border-gray-200">Join Date</th>
-                <th class="p-3 text-left border-b-2 border-gray-200">Actions</th>
-              </tr>
-            </thead>
-            <tbody>
-              <tr v-for="artisan in artisans.data" :key="artisan.id" class="hover:bg-gray-50">
-                <td class="p-3 border-t">
-                  <div class="flex-shrink-0 h-10 w-10">
-                    <img v-if="artisan.profile_photo" 
-                         :src="'/storage/' + artisan.profile_photo" 
-                         class="h-10 w-10 rounded-full object-cover"
-                         :alt="artisan.name">
-                    <div v-else class="h-10 w-10 rounded-full bg-gray-200 flex items-center justify-center">
-                      <i class="fas fa-user text-gray-400"></i>
-                    </div>
+            <tr class="bg-gray-100">
+              <th class="p-3 text-left border-b-2 border-gray-200">Photo</th>
+              <th class="p-3 text-left border-b-2 border-gray-200">Name</th>
+              <th class="p-3 text-left border-b-2 border-gray-200">Department</th>
+              <th class="p-3 text-left border-b-2 border-gray-200">Phone</th>
+              <th class="p-3 text-left border-b-2 border-gray-200">PAN Number</th>
+              <th class="p-3 text-left border-b-2 border-gray-200">Salary</th>
+              <th class="p-3 text-left border-b-2 border-gray-200">Status</th>
+              <th class="p-3 text-left border-b-2 border-gray-200">Join Date</th>
+              <th class="p-3 text-left border-b-2 border-gray-200">Actions</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr v-for="artisan in artisans.data" :key="artisan.id" class="hover:bg-gray-50">
+              <td class="p-3 border-t">
+                <div class="flex-shrink-0 h-10 w-10">
+                  <img v-if="artisan.profile_photo" 
+                      :src="'/storage/' + artisan.profile_photo" 
+                      class="h-10 w-10 rounded-full object-cover"
+                      :alt="artisan.name">
+                  <div v-else class="h-10 w-10 rounded-full bg-gray-200 flex items-center justify-center">
+                    <i class="fas fa-user text-gray-400"></i>
                   </div>
-                </td>
-                <td class="p-3 border-t">{{ artisan.name || 'N/A' }}</td>
-                <td class="p-3 border-t">
-                  <span :class="[
-                    'inline-block px-2 py-1 text-xs font-semibold rounded',
-                    getDepartmentColor(artisan.department ? artisan.department.name : '')
-                  ]">
-                    {{ artisan.department ? artisan.department.name : 'N/A' }}
-                  </span>
-                </td>
-                <td class="p-3 border-t">{{ artisan.phone_number || 'N/A' }}</td>
-                <td class="p-3 border-t">{{ artisan.pan_number || 'N/A' }}</td>
-                <td class="p-3 border-t">{{ formatCurrency(artisan.basic_salary) }}</td>
-                <td class="p-3 border-t">{{ formatDate(artisan.created_at) }}</td>
+                </div>
+              </td>
+              <td class="p-3 border-t">{{ artisan.name || 'N/A' }}</td>
+              <td class="p-3 border-t">
+                <span :class="[
+                  'inline-block px-2 py-1 text-xs font-semibold rounded',
+                  getDepartmentColor(artisan.department ? artisan.department.name : '')
+                ]">
+                  {{ artisan.department ? artisan.department.name : 'N/A' }}
+                </span>
+              </td>
+              <td class="p-3 border-t">{{ artisan.phone_number || 'N/A' }}</td>
+              <td class="p-3 border-t">{{ artisan.pan_number || 'N/A' }}</td>
+              <td class="p-3 border-t">{{ formatCurrency(artisan.basic_salary) }}</td>
+              <td class="p-3 border-t">
+                <span :class="[
+                  'inline-block px-2 py-1 text-xs font-semibold rounded',
+                  artisan.status === 'active' ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'
+                ]">
+                  {{ artisan.status || 'inactive' }}
+                </span>
+              </td>
+              <td class="p-3 border-t">{{ formatDate(artisan.created_at) }}</td>
                 <td class="p-3 border-t">
                   <router-link
                     :to="`/artisans/${artisan.id}`"

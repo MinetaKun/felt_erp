@@ -225,6 +225,10 @@ Route::middleware('auth:sanctum')->group(function () {
             ->middleware('permission:orders-all|orders-edit');
     });
 
+    // Add the missing route for order assignments
+    Route::post('/orders/{id}/assignments', [\App\Http\Controllers\OrderAssignmentController::class, 'assignToOrder'])
+        ->middleware('permission:orders-all|orders-edit');
+
     /**
      * ------------------------------------------------------------------------
      * Order routes

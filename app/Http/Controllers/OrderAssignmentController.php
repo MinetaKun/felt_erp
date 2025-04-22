@@ -3,8 +3,8 @@
 namespace App\Http\Controllers;
 
 use App\Models\Order;
-use App\Models\OrderAssignment;
 use App\Models\Artisan;
+use App\Models\OrderAssignment;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
@@ -12,16 +12,13 @@ use Illuminate\Support\Facades\Auth;
 
 class OrderAssignmentController extends Controller
 {
-    /**
-     * Display a listing of assignments.
-     */
     public function index(Request $request)
     {
         $query = OrderAssignment::with(['order', 'artisan']);
 
-        // Add approved_by and dispatched_by relationships only when needed
-        if ($request->has('status') && ($request->status === 'approved' || $request->status === 'dispatched')) {
-            $query->with(['approvedByUser', 'dispatchedByUser']);
+        // Filter by artisan
+        if ($request->has('artisan_id') && !empty($request->artisan_id)) {
+            $query->where('artisan_id', $request->artisan_id);
         }
 
         // Filter by order
@@ -29,17 +26,34 @@ class OrderAssignmentController extends Controller
             $query->where('order_id', $request->order_id);
         }
 
-        // Filter by artisan
-        if ($request->has('artisan_id') && !empty($request->artisan_id)) {
-            $query->where('artisan_id', $request->artisan_id);
-        }
-
         // Filter by status
         if ($request->has('status') && !empty($request->status)) {
             $query->where('status', $request->status);
         }
 
-        // Sort assignments
+        // Filter by department
+        if ($request->has('department_id') && !empty($request->department_id)) {
+            $query->whereHas('artisan', function ($q) use ($request) {
+                $q->where('department_id', $request->department_id);
+            });
+        }
+
+        // Search
+        if ($request->has('search') && !empty($request->search)) {
+            $search = $request->search;
+            $query->where(function ($q) use ($search) {
+                $q->whereHas('order', function ($q) use ($search) {
+                    $q->where('order_id', 'like', "%{$search}%")
+                        ->orWhere('product_name', 'like', "%{$search}%");
+                })
+                    ->orWhereHas('artisan', function ($q) use ($search) {
+                        $q->where('name', 'like', "%{$search}%")
+                            ->orWhere('email', 'like', "%{$search}%");
+                    });
+            });
+        }
+
+        // Sorting
         if ($request->has('sort')) {
             $sortParts = explode(':', $request->sort);
             if (count($sortParts) === 2) {
@@ -51,143 +65,94 @@ class OrderAssignmentController extends Controller
             $query->latest();
         }
 
-        // Paginate results
-        $perPage = $request->has('per_page') ? $request->per_page : 15;
-        $assignments = $query->paginate($perPage);
+        $assignments = $query->paginate($request->per_page ?? 15);
 
         return response()->json($assignments);
     }
 
-    /**
-     * Assign orders to artisans.
-     */
     public function assign(Request $request)
     {
         $validated = $request->validate([
-            'assignments' => 'required|array',
-            'assignments.*.order_id' => 'required|exists:orders,id',
-            'assignments.*.artisan_id' => 'required|exists:artisans,id',
-            'assignments.*.assigned_quantity' => 'required|integer|min:1',
+            'order_id' => 'required|exists:orders,id',
+            'artisan_id' => 'required|exists:artisans,id',
+            'assigned_quantity' => 'required|integer|min:1',
+            'status' => 'required|in:pending,in_production,completed,approved,dispatched',
+            'notes' => 'nullable|string',
         ]);
 
         DB::beginTransaction();
         try {
-            $createdAssignments = [];
+            $assignment = new OrderAssignment([
+                'order_id' => $validated['order_id'],
+                'artisan_id' => $validated['artisan_id'],
+                'assigned_quantity' => $validated['assigned_quantity'],
+                'completed_quantity' => 0,
+                'approved_quantity' => 0,
+                'rejected_quantity' => 0,
+                'status' => $validated['status'],
+                'notes' => $validated['notes'] ?? null,
+            ]);
 
-            foreach ($validated['assignments'] as $assignment) {
-                $order = Order::findOrFail($assignment['order_id']);
-                $artisan = Artisan::findOrFail($assignment['artisan_id']);
+            $assignment->save();
 
-                // Check if the order has enough remaining quantity
-                if ($order->remaining_quantity < $assignment['assigned_quantity']) {
-                    throw new \Exception("Order {$order->order_id} does not have enough remaining quantity.");
-                }
-
-                // Create the assignment
-                $newAssignment = OrderAssignment::create([
-                    'order_id' => $assignment['order_id'],
-                    'artisan_id' => $assignment['artisan_id'],
-                    'assigned_quantity' => $assignment['assigned_quantity'],
-                    'completed_quantity' => 0,
-                    'approved_quantity' => 0,
-                    'rejected_quantity' => 0,
-                    'status' => 'pending',
-                ]);
-
-                $createdAssignments[] = $newAssignment;
-
-                // Update order status to in_production if it was pending
-                if ($order->status === 'pending') {
-                    $order->update(['status' => 'in_production']);
-                }
+            // Update artisan status to active
+            $artisan = Artisan::find($validated['artisan_id']);
+            if ($artisan && $artisan->status !== 'active') {
+                $artisan->status = 'active';
+                $artisan->save();
             }
 
             DB::commit();
-
             return response()->json([
                 'success' => true,
-                'message' => 'Orders assigned successfully',
-                'data' => $createdAssignments
+                'data' => $assignment,
+                'message' => 'Order assigned successfully'
             ], 201);
         } catch (\Exception $e) {
             DB::rollBack();
-            Log::error('Order assignment failed: ' . $e->getMessage());
-
+            Log::error('Failed to assign order: ' . $e->getMessage());
             return response()->json([
                 'success' => false,
-                'message' => 'Failed to assign orders',
-                'error' => $e->getMessage()
+                'error' => 'Failed to assign order: ' . $e->getMessage()
             ], 500);
         }
     }
 
-    /**
-     * Update assignment status (mark as completed).
-     */
     public function markCompleted(Request $request, $id)
     {
         $assignment = OrderAssignment::findOrFail($id);
 
         $validated = $request->validate([
             'completed_quantity' => 'required|integer|min:1|max:' . $assignment->assigned_quantity,
+            'notes' => 'nullable|string',
         ]);
 
         DB::beginTransaction();
         try {
-            $assignment->update([
-                'completed_quantity' => $validated['completed_quantity'],
-                'status' => 'completed',
-            ]);
-
-            // Check if all assignments for this order are completed
-            $order = $assignment->order;
-            $allCompleted = true;
-
-            foreach ($order->assignments as $orderAssignment) {
-                if ($orderAssignment->status !== 'completed' && $orderAssignment->status !== 'approved' && $orderAssignment->status !== 'dispatched') {
-                    $allCompleted = false;
-                    break;
-                }
-            }
-
-            // If all assignments are completed, update order status
-            if ($allCompleted) {
-                $order->update(['status' => 'completed']);
-            }
+            $assignment->completed_quantity = $validated['completed_quantity'];
+            $assignment->notes = $validated['notes'] ?? $assignment->notes;
+            $assignment->status = 'completed';
+            $assignment->save();
 
             DB::commit();
-
             return response()->json([
                 'success' => true,
-                'message' => 'Assignment marked as completed',
-                'data' => $assignment->fresh()
+                'data' => $assignment,
+                'message' => 'Assignment marked as completed'
             ]);
         } catch (\Exception $e) {
             DB::rollBack();
-            Log::error('Assignment completion failed: ' . $e->getMessage());
-
+            Log::error('Failed to mark assignment as completed: ' . $e->getMessage());
             return response()->json([
                 'success' => false,
-                'message' => 'Failed to mark assignment as completed',
-                'error' => $e->getMessage()
+                'error' => 'Failed to mark assignment as completed: ' . $e->getMessage()
             ], 500);
         }
     }
 
-    /**
-     * Approve or reject completed assignments.
-     */
     public function approveOrReject(Request $request, $id)
     {
         $assignment = OrderAssignment::findOrFail($id);
-
-        // Ensure the assignment is in completed status
-        if ($assignment->status !== 'completed') {
-            return response()->json([
-                'success' => false,
-                'message' => 'Only completed assignments can be approved or rejected'
-            ], 422);
-        }
 
         $validated = $request->validate([
             'action' => 'required|in:approve,reject',
@@ -199,80 +164,85 @@ class OrderAssignmentController extends Controller
         DB::beginTransaction();
         try {
             if ($validated['action'] === 'approve') {
-                $assignment->update([
-                    'approved_quantity' => $validated['approved_quantity'],
-                    'rejected_quantity' => $assignment->completed_quantity - $validated['approved_quantity'],
-                    'approved_at' => now(),
-                    'approved_by' => Auth::id(),
-                    'status' => 'approved',
-                ]);
+                $assignment->approved_quantity = $validated['approved_quantity'];
+                $assignment->rejected_quantity = $assignment->completed_quantity - $validated['approved_quantity'];
+
+                if ($validated['approved_quantity'] > 0) {
+                    $assignment->status = 'approved';
+                    $assignment->approved_at = now();
+                    $assignment->approved_by = Auth::id();
+                }
+
+                if ($assignment->rejected_quantity > 0 && isset($validated['rejection_reason'])) {
+                    $assignment->rejection_reason = $validated['rejection_reason'];
+                }
             } else {
-                $assignment->update([
-                    'rejected_quantity' => $validated['rejected_quantity'],
-                    'rejection_reason' => $validated['rejection_reason'],
-                    'status' => 'rejected',
-                ]);
-            }
+                $assignment->rejected_quantity = $validated['rejected_quantity'];
+                $assignment->approved_quantity = $assignment->completed_quantity - $validated['rejected_quantity'];
+                $assignment->rejection_reason = $validated['rejection_reason'];
 
-            // Check if all assignments for this order are approved
-            $order = $assignment->order;
-            $allApproved = true;
-
-            foreach ($order->assignments as $orderAssignment) {
-                if ($orderAssignment->status !== 'approved' && $orderAssignment->status !== 'dispatched') {
-                    $allApproved = false;
-                    break;
+                if ($assignment->approved_quantity > 0) {
+                    $assignment->status = 'approved';
+                    $assignment->approved_at = now();
+                    $assignment->approved_by = Auth::id();
+                } else {
+                    $assignment->status = 'rejected';
                 }
             }
 
-            // If all assignments are approved, update order status
-            if ($allApproved) {
-                $order->update(['status' => 'approved']);
+            $assignment->save();
+
+            // Update artisan status
+            $artisan = $assignment->artisan;
+            if ($artisan) {
+                $artisan->updateStatus();
             }
 
             DB::commit();
-
             return response()->json([
                 'success' => true,
-                'message' => 'Assignment ' . ($validated['action'] === 'approve' ? 'approved' : 'rejected'),
-                'data' => $assignment->fresh()
+                'data' => $assignment,
+                'message' => 'Assignment ' . ($validated['action'] === 'approve' ? 'approved' : 'rejected')
             ]);
         } catch (\Exception $e) {
             DB::rollBack();
-            Log::error('Assignment approval/rejection failed: ' . $e->getMessage());
-
+            Log::error('Failed to process assignment: ' . $e->getMessage());
             return response()->json([
                 'success' => false,
-                'message' => 'Failed to process assignment',
-                'error' => $e->getMessage()
+                'error' => 'Failed to process assignment: ' . $e->getMessage()
             ], 500);
         }
     }
 
-    /**
-     * Mark assignments as dispatched.
-     */
-    public function markDispatched(Request $request, $id)
+    public function dispatch(Request $request, $id)
     {
         $assignment = OrderAssignment::findOrFail($id);
 
-        // Ensure the assignment is in approved status
+        // Can only dispatch approved assignments
         if ($assignment->status !== 'approved') {
             return response()->json([
                 'success' => false,
-                'message' => 'Only approved assignments can be dispatched'
+                'error' => 'Only approved assignments can be dispatched'
             ], 422);
         }
 
+        $validated = $request->validate([
+            'dispatch_date' => 'required|date',
+            'dispatch_method' => 'required|string|in:vehicle,runner,courier,pickup',
+            'notes' => 'nullable|string',
+        ]);
+
         DB::beginTransaction();
         try {
-            $assignment->update([
-                'dispatched_at' => now(),
-                'dispatched_by' => Auth::id(),
-                'status' => 'dispatched',
-            ]);
+            $assignment->status = 'dispatched';
+            $assignment->dispatched_at = now();
+            $assignment->dispatched_by = Auth::id();
+            $assignment->dispatch_date = $validated['dispatch_date'];
+            $assignment->dispatch_method = $validated['dispatch_method'];
+            $assignment->dispatch_notes = $validated['notes'] ?? null;
+            $assignment->save();
 
-            // Check if all assignments for this order are dispatched
+            // Update order status if all assignments are dispatched
             $order = $assignment->order;
             $allDispatched = true;
 
@@ -283,160 +253,177 @@ class OrderAssignmentController extends Controller
                 }
             }
 
-            // If all assignments are dispatched, update order status
             if ($allDispatched) {
-                $order->update(['status' => 'dispatched']);
+                $order->status = 'dispatched';
+                $order->save();
             }
 
             DB::commit();
-
             return response()->json([
                 'success' => true,
-                'message' => 'Assignment marked as dispatched',
-                'data' => $assignment->fresh()
+                'data' => $assignment,
+                'message' => 'Assignment dispatched successfully'
             ]);
         } catch (\Exception $e) {
             DB::rollBack();
-            Log::error('Assignment dispatch failed: ' . $e->getMessage());
-
+            Log::error('Failed to dispatch assignment: ' . $e->getMessage());
             return response()->json([
                 'success' => false,
-                'message' => 'Failed to mark assignment as dispatched',
-                'error' => $e->getMessage()
+                'error' => 'Failed to dispatch assignment: ' . $e->getMessage()
             ], 500);
         }
     }
 
-    /**
-     * Bulk approve assignments.
-     */
-    public function bulkApprove(Request $request)
-    {
-        $validated = $request->validate([
-            'assignment_ids' => 'required|array',
-            'assignment_ids.*' => 'required|exists:order_assignments,id',
-        ]);
-
-        DB::beginTransaction();
-        try {
-            $approvedAssignments = [];
-
-            foreach ($validated['assignment_ids'] as $assignmentId) {
-                $assignment = OrderAssignment::findOrFail($assignmentId);
-
-                // Skip if not in completed status
-                if ($assignment->status !== 'completed') {
-                    continue;
-                }
-
-                $assignment->update([
-                    'approved_quantity' => $assignment->completed_quantity,
-                    'rejected_quantity' => 0,
-                    'approved_at' => now(),
-                    'approved_by' => Auth::id(),
-                    'status' => 'approved',
-                ]);
-
-                $approvedAssignments[] = $assignment;
-
-                // Check if all assignments for this order are approved
-                $order = $assignment->order;
-                $allApproved = true;
-
-                foreach ($order->assignments as $orderAssignment) {
-                    if ($orderAssignment->status !== 'approved' && $orderAssignment->status !== 'dispatched') {
-                        $allApproved = false;
-                        break;
-                    }
-                }
-
-                // If all assignments are approved, update order status
-                if ($allApproved) {
-                    $order->update(['status' => 'approved']);
-                }
-            }
-
-            DB::commit();
-
-            return response()->json([
-                'success' => true,
-                'message' => count($approvedAssignments) . ' assignments approved successfully',
-                'data' => $approvedAssignments
-            ]);
-        } catch (\Exception $e) {
-            DB::rollBack();
-            Log::error('Bulk approval failed: ' . $e->getMessage());
-
-            return response()->json([
-                'success' => false,
-                'message' => 'Failed to approve assignments',
-                'error' => $e->getMessage()
-            ], 500);
-        }
-    }
-
-    /**
-     * Bulk dispatch assignments.
-     */
     public function bulkDispatch(Request $request)
     {
         $validated = $request->validate([
             'assignment_ids' => 'required|array',
             'assignment_ids.*' => 'required|exists:order_assignments,id',
+            'dispatch_date' => 'required|date',
+            'dispatch_method' => 'required|string|in:vehicle,runner,courier,pickup',
+            'notes' => 'nullable|string',
         ]);
 
         DB::beginTransaction();
         try {
-            $dispatchedAssignments = [];
+            $dispatchedCount = 0;
+            $artisanIds = [];
+            $orderIds = [];
 
             foreach ($validated['assignment_ids'] as $assignmentId) {
-                $assignment = OrderAssignment::findOrFail($assignmentId);
+                $assignment = OrderAssignment::find($assignmentId);
+                if ($assignment && $assignment->status === 'approved') {
+                    $assignment->status = 'dispatched';
+                    $assignment->dispatched_at = now();
+                    $assignment->dispatched_by = Auth::id();
+                    $assignment->dispatch_date = $validated['dispatch_date'];
+                    $assignment->dispatch_method = $validated['dispatch_method'];
+                    $assignment->dispatch_notes = $validated['notes'] ?? null;
+                    $assignment->save();
+                    $dispatchedCount++;
 
-                // Skip if not in approved status
-                if ($assignment->status !== 'approved') {
-                    continue;
-                }
+                    // Collect artisan IDs to update their status later
+                    if (!in_array($assignment->artisan_id, $artisanIds)) {
+                        $artisanIds[] = $assignment->artisan_id;
+                    }
 
-                $assignment->update([
-                    'dispatched_at' => now(),
-                    'dispatched_by' => Auth::id(),
-                    'status' => 'dispatched',
-                ]);
-
-                $dispatchedAssignments[] = $assignment;
-
-                // Check if all assignments for this order are dispatched
-                $order = $assignment->order;
-                $allDispatched = true;
-
-                foreach ($order->assignments as $orderAssignment) {
-                    if ($orderAssignment->status !== 'dispatched') {
-                        $allDispatched = false;
-                        break;
+                    // Collect order IDs to check if they should be marked as dispatched
+                    if (!in_array($assignment->order_id, $orderIds)) {
+                        $orderIds[] = $assignment->order_id;
                     }
                 }
+            }
 
-                // If all assignments are dispatched, update order status
-                if ($allDispatched) {
-                    $order->update(['status' => 'dispatched']);
+            // Update status for all affected artisans
+            foreach ($artisanIds as $artisanId) {
+                $artisan = Artisan::find($artisanId);
+                if ($artisan) {
+                    $artisan->updateStatus();
+                }
+            }
+
+            // Check if any orders should be marked as dispatched
+            foreach ($orderIds as $orderId) {
+                $order = Order::find($orderId);
+                if ($order) {
+                    $allDispatched = true;
+
+                    foreach ($order->assignments as $assignment) {
+                        if ($assignment->status !== 'dispatched') {
+                            $allDispatched = false;
+                            break;
+                        }
+                    }
+
+                    if ($allDispatched) {
+                        $order->status = 'dispatched';
+                        $order->save();
+                    }
                 }
             }
 
             DB::commit();
-
             return response()->json([
                 'success' => true,
-                'message' => count($dispatchedAssignments) . ' assignments dispatched successfully',
-                'data' => $dispatchedAssignments
+                'message' => "$dispatchedCount assignments dispatched successfully",
             ]);
         } catch (\Exception $e) {
             DB::rollBack();
-            Log::error('Bulk dispatch failed: ' . $e->getMessage());
-
+            Log::error('Failed to bulk dispatch assignments: ' . $e->getMessage());
             return response()->json([
                 'success' => false,
-                'message' => 'Failed to dispatch assignments',
-                'error' => $e->getMessage()
+                'error' => 'Failed to dispatch assignments: ' . $e->getMessage()
+            ], 500);
+        }
+    }
+
+    // Update the assignToOrder method to ensure proper validation of the status field
+    public function assignToOrder(Request $request, $id)
+    {
+        $order = Order::findOrFail($id);
+
+        // Validate the assignments array with explicit status validation
+        $request->validate([
+            'assignments' => 'required|array',
+            'assignments.*.artisan_id' => 'required|exists:artisans,id',
+            'assignments.*.assigned_quantity' => 'required|integer|min:1',
+            'assignments.*.status' => 'required|string|in:pending,in_production,completed,approved,dispatched',
+            'assignments.*.notes' => 'nullable|string',
+        ]);
+
+        DB::beginTransaction();
+        try {
+            $createdAssignments = [];
+            $artisanIds = [];
+
+            foreach ($request->assignments as $assignmentData) {
+                $assignment = new OrderAssignment([
+                    'order_id' => $id,
+                    'artisan_id' => $assignmentData['artisan_id'],
+                    'assigned_quantity' => $assignmentData['assigned_quantity'],
+                    'completed_quantity' => 0,
+                    'approved_quantity' => 0,
+                    'rejected_quantity' => 0,
+                    'status' => $assignmentData['status'],
+                    'notes' => $assignmentData['notes'] ?? null,
+                ]);
+
+                $assignment->save();
+                $createdAssignments[] = $assignment;
+
+                // Collect artisan IDs to update their status later
+                if (!in_array($assignmentData['artisan_id'], $artisanIds)) {
+                    $artisanIds[] = $assignmentData['artisan_id'];
+                }
+            }
+
+            // Update status for all affected artisans
+            foreach ($artisanIds as $artisanId) {
+                $artisan = Artisan::find($artisanId);
+                if ($artisan && $artisan->status !== 'active') {
+                    $artisan->status = 'active';
+                    $artisan->save();
+                }
+            }
+
+            // Update order status if needed
+            if ($order->status === 'pending') {
+                $order->status = 'in_production';
+                $order->save();
+            }
+
+            DB::commit();
+            return response()->json([
+                'success' => true,
+                'data' => $createdAssignments,
+                'message' => count($createdAssignments) . ' assignments created successfully'
+            ], 201);
+        } catch (\Exception $e) {
+            DB::rollBack();
+            Log::error('Failed to assign order: ' . $e->getMessage());
+            return response()->json([
+                'success' => false,
+                'error' => 'Failed to assign order: ' . $e->getMessage()
             ], 500);
         }
     }

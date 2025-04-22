@@ -35,6 +35,11 @@ class ArtisanController extends Controller
             $query->where('department_id', $request->department);
         }
 
+        // Status filter
+        if ($request->has('status') && !empty($request->status)) {
+            $query->where('status', $request->status);
+        }
+
         // Sorting
         if ($request->has('sort')) {
             $sortParts = explode(':', $request->sort);
@@ -63,7 +68,13 @@ class ArtisanController extends Controller
             'basic_salary' => 'required|numeric',
             'pan_number' => 'required|string|max:20|unique:artisans,pan_number',
             'department_id' => 'required|exists:departments,id',
+            'status' => 'sometimes|in:active,inactive',
         ]);
+
+        // Set default status if not provided
+        if (!isset($validated['status'])) {
+            $validated['status'] = 'inactive';
+        }
 
         if ($request->hasFile('profile_photo')) {
             $validated['profile_photo'] = $request->file('profile_photo')->store('photos', 'public');
@@ -96,6 +107,7 @@ class ArtisanController extends Controller
             'basic_salary' => $artisan->basic_salary,
             'pan_number' => $artisan->pan_number,
             'department' => $artisan->department,
+            'status' => $artisan->status,
             'profile_photo_url' => $artisan->profile_photo ? asset('storage/' . $artisan->profile_photo) : null,
             'citizenship_photo_url' => $artisan->citizenship_photo ? asset('storage/' . $artisan->citizenship_photo) : null,
             'created_at' => $artisan->created_at,
@@ -119,6 +131,7 @@ class ArtisanController extends Controller
             'basic_salary' => 'sometimes|required|numeric',
             'pan_number' => 'sometimes|required|string|max:20|unique:artisans,pan_number,' . $artisan->id,
             'department_id' => 'sometimes|required|exists:departments,id',
+            'status' => 'sometimes|in:active,inactive',
             'profile_photo' => 'sometimes|image|max:2048',
             'citizenship_photo' => 'sometimes|image|max:2048'
         ]);
@@ -155,6 +168,18 @@ class ArtisanController extends Controller
         return response()->json($attendance);
     }
 
+    public function updateStatus($id)
+    {
+        $artisan = Artisan::findOrFail($id);
+        $status = $artisan->updateStatus();
+
+        return response()->json([
+            'success' => true,
+            'status' => $status,
+            'message' => 'Artisan status updated successfully'
+        ]);
+    }
+
     public function export(Request $request)
     {
         $query = Artisan::with('department');
@@ -172,6 +197,11 @@ class ArtisanController extends Controller
         // Department filter
         if ($request->has('department') && !empty($request->department)) {
             $query->where('department_id', $request->department);
+        }
+
+        // Status filter
+        if ($request->has('status') && !empty($request->status)) {
+            $query->where('status', $request->status);
         }
 
         // Sorting
@@ -206,6 +236,7 @@ class ArtisanController extends Controller
                 'PAN Number',
                 'Basic Salary',
                 'Department',
+                'Status',
                 'Join Date',
             ]);
 
@@ -218,6 +249,7 @@ class ArtisanController extends Controller
                     $artisan->pan_number,
                     $artisan->basic_salary,
                     $artisan->department ? $artisan->department->name : '',
+                    $artisan->status,
                     $artisan->created_at->format('Y-m-d'),
                 ]);
             }
@@ -289,6 +321,7 @@ class ArtisanController extends Controller
                         'basic_salary' => $row[5] ?? 0,
                         'pan_number' => $row[4] ?? null,
                         'department_id' => null,
+                        'status' => $row[7] ?? 'inactive',
                     ];
 
                     // Find department by name
@@ -313,6 +346,7 @@ class ArtisanController extends Controller
                         'basic_salary' => $row['Basic Salary'] ?? 0,
                         'pan_number' => $row['PAN Number'] ?? null,
                         'department_id' => null,
+                        'status' => $row['Status'] ?? 'inactive',
                     ];
 
                     // Find department by name
@@ -346,6 +380,11 @@ class ArtisanController extends Controller
                 if (Artisan::where('pan_number', $data['pan_number'])->exists()) {
                     $errors[] = "Row " . ($index + 1) . ": PAN Number '{$data['pan_number']}' already exists";
                     continue;
+                }
+
+                // Validate status
+                if (!in_array($data['status'], ['active', 'inactive'])) {
+                    $data['status'] = 'inactive'; // Default to inactive if invalid
                 }
 
                 // Create artisan

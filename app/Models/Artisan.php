@@ -19,6 +19,7 @@ class Artisan extends Model
         'department_id',
         'profile_photo',
         'citizenship_photo',
+        'status',
     ];
 
     public function department()
@@ -29,6 +30,25 @@ class Artisan extends Model
     public function attendance()
     {
         return $this->hasMany(Attendance::class);
+    }
+
+    public function orderAssignments()
+    {
+        return $this->hasMany(OrderAssignment::class);
+    }
+
+    public function updateStatus()
+    {
+        // Check if artisan has any active assignments
+        $hasActiveAssignments = $this->orderAssignments()
+            ->whereIn('status', ['pending', 'in_production', 'completed', 'approved'])
+            ->exists();
+
+        // Update status based on assignments
+        $this->status = $hasActiveAssignments ? 'active' : 'inactive';
+        $this->save();
+
+        return $this->status;
     }
 
     public function resolveRouteBinding($value, $field = null)
