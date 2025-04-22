@@ -264,4 +264,47 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::delete('/orders/{id}', [\App\Http\Controllers\OrderController::class, 'destroy']);
     Route::get('/orders/{id}/available-artisans', [\App\Http\Controllers\OrderController::class, 'getAvailableArtisans']);
     Route::patch('/orders/{id}/status', [\App\Http\Controllers\OrderController::class, 'updateStatus']);
+
+    /**
+     * ------------------------------------------------------------------------
+     * wool management routes
+     * ------------------------------------------------------------------------
+     */
+    Route::prefix('wool')->group(function () {
+        // Suppliers routes
+        Route::get('/suppliers', [\App\Http\Controllers\WoolSupplierController::class, 'index'])
+            ->middleware('permission:wool-all|wool-view');
+        Route::post('/suppliers', [\App\Http\Controllers\WoolSupplierController::class, 'store'])
+            ->middleware('permission:wool-all|wool-create');
+        Route::get('/suppliers/{id}', [\App\Http\Controllers\WoolSupplierController::class, 'show'])
+            ->middleware('permission:wool-all|wool-view');
+        Route::put('/suppliers/{id}', [\App\Http\Controllers\WoolSupplierController::class, 'update'])
+            ->middleware('permission:wool-all|wool-edit');
+        Route::delete('/suppliers/{id}', [\App\Http\Controllers\WoolSupplierController::class, 'destroy'])
+            ->middleware('permission:wool-all|wool-delete');
+        Route::post('/suppliers/{id}/restore', [\App\Http\Controllers\WoolSupplierController::class, 'restore'])
+            ->middleware('permission:wool-all|wool-edit');
+
+        // Orders routes
+        Route::get('/orders', [\App\Http\Controllers\WoolOrderController::class, 'index'])
+            ->middleware('permission:wool-all|wool-view');
+        Route::post('/orders', [\App\Http\Controllers\WoolOrderController::class, 'store'])
+            ->middleware('permission:wool-all|wool-create');
+        Route::get('/orders/{id}', [\App\Http\Controllers\WoolOrderController::class, 'show'])
+            ->middleware('permission:wool-all|wool-view');
+        Route::put('/orders/{id}', [\App\Http\Controllers\WoolOrderController::class, 'update'])
+            ->middleware('permission:wool-all|wool-edit');
+        Route::delete('/orders/{id}', [\App\Http\Controllers\WoolOrderController::class, 'destroy'])
+            ->middleware('permission:wool-all|wool-delete');
+
+        // Stock routes
+        Route::get('/stock', [\App\Http\Controllers\WoolStockController::class, 'index'])
+            ->middleware('permission:wool-all|wool-view');
+        Route::put('/stock/{id}', [\App\Http\Controllers\WoolStockController::class, 'update'])
+            ->middleware('permission:wool-all|wool-edit');
+        Route::delete('/stock/{id}', [\App\Http\Controllers\WoolStockController::class, 'destroy'])
+            ->middleware('permission:wool-all|wool-delete');
+        Route::post('/stock/export', [\App\Http\Controllers\WoolStockController::class, 'export'])
+            ->middleware('permission:wool-all|wool-view');
+    });
 });

@@ -261,6 +261,33 @@ export default [
         permissions: ["orders-all", "orders-view"],
       },
     },
-     
+    // Wool Management routes
+    {
+      path: "/wool/suppliers",
+      name: "wool.suppliers",
+      component: () => import("../pages/wool/WoolSuppliers.vue"),
+      meta: {
+        layout: "dashboard",
+        permissions: ["wool-all", "wool-view"],
+      },
+    },
+    {
+      path: "/wool/orders",
+      name: "wool.orders",
+      component: () => import("../pages/wool/WoolOrders.vue"),
+      meta: {
+        layout: "dashboard",
+        permissions: ["wool-all", "wool-view"],
+      },
+    },
+    {
+      path: "/wool/stock",
+      name: "wool.stock",
+      component: () => import("../pages/wool/WoolStock.vue"),
+      meta: {
+        layout: "dashboard",
+        permissions: ["wool-all", "wool-view"],
+      },
+    },
   ]
   

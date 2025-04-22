@@ -37,20 +37,23 @@ class WoolOrderController extends Controller
             return response()->json(['errors' => $validator->errors()], 422);
         }
 
+        // Calculate total amount from items
+        $totalAmount = 0;
+        foreach ($request->items as $item) {
+            $totalAmount += $item['quantity'] * $item['unit_price'];
+        }
+
         $order = WoolOrder::create([
             'wool_supplier_id' => $request->wool_supplier_id,
             'order_number' => 'WO-' . Str::random(8),
             'order_date' => $request->order_date,
             'expected_delivery_date' => $request->expected_delivery_date,
+            'total_amount' => $totalAmount,
             'notes' => $request->notes,
             'status' => 'pending'
         ]);
 
-        $totalAmount = 0;
         foreach ($request->items as $item) {
-            $totalPrice = $item['quantity'] * $item['unit_price'];
-            $totalAmount += $totalPrice;
-
             WoolOrderItem::create([
                 'wool_order_id' => $order->id,
                 'wool_type' => $item['wool_type'],
@@ -58,12 +61,10 @@ class WoolOrderController extends Controller
                 'quantity' => $item['quantity'],
                 'unit' => $item['unit'],
                 'unit_price' => $item['unit_price'],
-                'total_price' => $totalPrice,
+                'total_price' => $item['quantity'] * $item['unit_price'],
                 'specifications' => $item['specifications'] ?? null
             ]);
         }
-
-        $order->update(['total_amount' => $totalAmount]);
 
         return response()->json($order->load('items'), 201);
     }

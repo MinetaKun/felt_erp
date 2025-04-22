@@ -218,6 +218,37 @@
             </div>
         </li>
                     
+          <!-- Wool Management Section -->
+          <li v-if="hasPermission(['wool-all', 'wool-view'])" class="mb-2">
+            <div>
+              <button @click="toggleDropdown('wool')" 
+                      class="w-full flex items-center p-3 text-gray-300 hover:bg-gray-700 rounded-lg transition-colors"
+                      :class="{ 'justify-center': isCollapsed, 'bg-gray-700': isActive('/wool') }">
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" 
+                        d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4" />
+                </svg>
+                <span v-if="!isCollapsed" class="ml-3 flex-1 text-left">Wool Management</span>
+                <svg v-if="!isCollapsed" xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 transition-transform"
+                     :class="{ 'rotate-180': dropdownOpen.wool || shouldOpenDropdown.wool }"
+                     fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" />
+                </svg>
+              </button>
+              
+              <div v-if="(!isCollapsed && (dropdownOpen.wool || shouldOpenDropdown.wool))" class="ml-8 mt-2 space-y-2">
+                <router-link to="/wool/suppliers" class="block p-2 text-gray-400 hover:text-white hover:bg-gray-700 rounded-lg transition-colors">
+                  Suppliers
+                </router-link>
+                <router-link to="/wool/orders" class="block p-2 text-gray-400 hover:text-white hover:bg-gray-700 rounded-lg transition-colors">
+                  Orders
+                </router-link>
+                <router-link to="/wool/stock" class="block p-2 text-gray-400 hover:text-white hover:bg-gray-700 rounded-lg transition-colors">
+                  Stock
+                </router-link>
+              </div>
+            </div>
+          </li>
           
           <!-- Logout Button -->
           <li class="mt-8">
@@ -268,27 +299,29 @@ const hasPermission = (permissions) => {
   return (userStore.user?.permissions || []).some((permission) => permissions.includes(permission?.name))
 }
 
-// Update the dropdownOpen ref to include attendance
+// Update the dropdownOpen ref to include wool
 const dropdownOpen = ref({
   pettyCash: false,
   orders: false,
   artisans: false,
   payroll: false,
-  attendance: false, // Add attendance dropdown state
+  attendance: false,
+  wool: false, // Add wool dropdown state
 })
 
 const toggleDropdown = (section) => {
   dropdownOpen.value[section] = !dropdownOpen.value[section]
 }
 
-// Update the shouldOpenDropdown computed property to include attendance
+// Update the shouldOpenDropdown computed property to include wool
 const shouldOpenDropdown = computed(() => {
   return {
     pettyCash: isActive("/petty-cash"),
     orders: isActive("/orders"),
     artisans: isActive("/artisans"),
     payroll: isActive("/payroll"),
-    attendance: isActive("/attendance"), // Add attendance check
+    attendance: isActive("/attendance"),
+    wool: isActive("/wool"), // Add wool check
   }
 })
 
@@ -303,7 +336,7 @@ const logout = async () => {
   }
 }
 
-// Update the watch function to include attendance
+// Update the watch function to include wool
 watch(
   () => router.currentRoute.value.path,
   () => {
@@ -313,19 +346,21 @@ watch(
       orders: isActive("/orders"),
       artisans: isActive("/artisans"),
       payroll: isActive("/payroll"),
-      attendance: isActive("/attendance"), // Add attendance check
+      attendance: isActive("/attendance"),
+      wool: isActive("/wool"), // Add wool check
     }
   },
 )
 
-// Update the onMounted function to include attendance
+// Update the onMounted function to include wool
 onMounted(() => {
   dropdownOpen.value = {
     pettyCash: isActive("/petty-cash"),
     orders: isActive("/orders"),
     artisans: isActive("/artisans"),
     payroll: isActive("/payroll"),
-    attendance: isActive("/attendance"), // Add attendance check
+    attendance: isActive("/attendance"),
+    wool: isActive("/wool"), // Add wool check
   }
 })
   </script>
