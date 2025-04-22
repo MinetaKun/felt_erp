@@ -77,23 +77,50 @@ export default [
     },
     // Attendance routes
     {
-      path: "/artisans/:artisanId/attendance/create",
-      name: "attendance.create",
-      component: () => import("../pages/artisans/AttendanceForm.vue"),
+      path: "/attendance",
+      name: "attendance.index",
+      component: () => import("../pages/attendance/AttendanceIndex.vue"),
+      meta: {
+        layout: "dashboard",
+        permissions: ["attendance-all", "attendance-view"],
+      },
+    },
+    {
+      path: "/attendance/check",
+      name: "attendance.check",
+      component: () => import("../pages/attendance/AttendanceCheck.vue"),
       meta: {
         layout: "dashboard",
         permissions: ["attendance-all", "attendance-create"],
       },
     },
     {
-      path: "/attendance/:id/edit",
-      name: "attendance.edit",
-      component: () => import("../pages/artisans/AttendanceForm.vue"),
+      path: "/attendance/reports",
+      name: "attendance.reports",
+      component: () => import("../pages/attendance/AttendanceReports.vue"),
       meta: {
         layout: "dashboard",
-        permissions: ["attendance-all", "attendance-edit"],
+        permissions: ["attendance-all", "attendance-view"],
       },
     },
+    // {
+    //   path: "/attendance/create",
+    //   name: "attendance.create",
+    //   component: () => import("../pages/attendance/AttendanceForm.vue"),
+    //   meta: {
+    //     layout: "dashboard",
+    //     permissions: ["attendance-all", "attendance-create"],
+    //   },
+    // },
+    // {
+    //   path: "/attendance/:id/edit",
+    //   name: "attendance.edit",
+    //   component: () => import("../pages/attendance/AttendanceForm.vue"),
+    //   meta: {
+    //     layout: "dashboard",
+    //     permissions: ["attendance-all", "attendance-edit"],
+    //   },
+    // },
     // Department routes
     {
       path: "/departments",
@@ -234,5 +261,6 @@ export default [
         permissions: ["orders-all", "orders-view"],
       },
     },
+     
   ]
   

@@ -1,11 +1,12 @@
 <script setup>
-import { computed, ref, watch } from 'vue';
+import { computed, ref, watch, onMounted } from 'vue';
 import Slider from '../ui/Slider.vue';
 import FormInput from '../ui/FormInput.vue';
 import FormLabelError from '../ui/FormLabelError.vue';
 import VSelect from 'vue-select';
 import Button from '../ui/Button.vue';
 import AuthorizationFallback from '../../components/page/AuthorizationFallback.vue';
+import axios from 'axios';
 
 import useRoleStore from '../../store/useRoleStore';
 import useUserStore from '../../store/useUserStore';
@@ -61,6 +62,7 @@ const initialFormData = () => {
         roles: [],
         phone_number: null,
         profile_photo: null,
+        department_id: null,
     };
 };
 
@@ -238,6 +240,17 @@ const onSubmit = async () => {
         emit('hide');
     }
 };
+
+const departments = ref([]);
+
+onMounted(async () => {
+  try {
+    const response = await axios.get('/departments');
+    departments.value = response.data || [];
+  } catch (error) {
+    console.error('Error fetching departments:', error);
+  }
+});
 </script>
 
 <template>
@@ -362,6 +375,17 @@ const onSubmit = async () => {
                                 </span>
                             </div>
                         </li>
+
+                        <!-- Department Selection -->
+                        <select
+                            v-model="formData.department_id"
+                            class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-indigo-500 focus:border-indigo-500"
+                        >
+                            <option value="">Select Department</option>
+                            <option v-for="dept in departments" :key="dept.id" :value="dept.id">
+                                {{ dept.name }}
+                            </option>
+                        </select>
 
                         <!-- Submit Button -->
                         <Button

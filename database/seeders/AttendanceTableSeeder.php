@@ -5,45 +5,70 @@ namespace Database\Seeders;
 use Illuminate\Database\Seeder;
 use App\Models\Attendance;
 use App\Models\Artisan;
+use App\Models\Department;
+use Carbon\Carbon;
 
 class AttendanceTableSeeder extends Seeder
 {
     public function run()
     {
-        $artisans = Artisan::all();
-
-        if ($artisans->count() < 3) {
-            throw new \Exception('Not enough artisans to seed attendance table. Please seed artisans first.');
+        // Check if we have a department, if not create one
+        $department = Department::first();
+        if (!$department) {
+            $department = Department::create([
+                'name' => 'Default Department',
+                'description' => 'Default department for testing'
+            ]);
         }
 
-        Attendance::create([
-            'artisan_id' => $artisans[0]->id, // John Doe
-            'date' => '2025-03-23',
-            'check_in' => '08:00:00',
-            'check_out' => '17:00:00',
-            'status' => 'present',
-            'created_at' => now(),
-            'updated_at' => now(),
-        ]);
+        // Ensure we have artisans
+        $artisan = Artisan::first();
+        if (!$artisan) {
+            $artisan = Artisan::create([
+                'name' => 'Test Artisan',
+                'email' => 'artisan@example.com',
+                'phone_number' => '1234567890',
+                'department_id' => $department->id
+            ]);
+        }
 
-        Attendance::create([
-            'artisan_id' => $artisans[1]->id, // Jane Smith
-            'date' => '2025-03-23',
-            'check_in' => '09:30:00',
-            'check_out' => '17:00:00',
-            'status' => 'late',
-            'created_at' => now(),
-            'updated_at' => now(),
-        ]);
+        // Generate attendance for the last 30 days
+        $startDate = Carbon::now()->subDays(30);
+        $endDate = Carbon::now();
 
-        Attendance::create([
-            'artisan_id' => $artisans[2]->id, // Mike Johnson
-            'date' => '2025-03-23',
-            'check_in' => null,
-            'check_out' => null,
-            'status' => 'absent',
-            'created_at' => now(),
-            'updated_at' => now(),
-        ]);
+        for ($date = $startDate; $date <= $endDate; $date->addDay()) {
+            // Skip weekends
+            if ($date->isWeekend()) {
+                continue;
+            }
+
+            // Create attendance for artisan
+            Attendance::create([
+                'attendanceable_id' => $artisan->id,
+                'attendanceable_type' => Artisan::class,
+                'date' => $date->format('Y-m-d'),
+                'status' => $this->getRandomStatus(),
+                'remarks' => $this->getRandomRemarks()
+            ]);
+        }
+    }
+
+    private function getRandomStatus()
+    {
+        $statuses = ['present', 'absent', 'late'];
+        return $statuses[array_rand($statuses)];
+    }
+
+    private function getRandomRemarks()
+    {
+        $remarks = [
+            'On time',
+            'Late due to traffic',
+            'Sick leave',
+            'Personal leave',
+            'Work from home',
+            null
+        ];
+        return $remarks[array_rand($remarks)];
     }
 }

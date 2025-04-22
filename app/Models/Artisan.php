@@ -20,6 +20,18 @@ class Artisan extends Model
         'profile_photo',
         'citizenship_photo',
         'status',
+        'bank_account_number',
+    ];
+
+    public static $rules = [
+        'name' => 'required|string|max:255',
+        'email' => 'required|email|unique:artisans,email',
+        'phone_number' => 'required|string|max:20',
+        'basic_salary' => 'required|numeric',
+        'pan_number' => 'required|string|max:20|unique:artisans,pan_number',
+        'bank_account_number' => 'required|string|max:50|unique:artisans,bank_account_number',
+        'department_id' => 'required|exists:departments,id',
+        'status' => 'sometimes|in:active,inactive',
     ];
 
     public function department()
@@ -27,9 +39,9 @@ class Artisan extends Model
         return $this->belongsTo(Department::class);
     }
 
-    public function attendance()
+    public function attendances()
     {
-        return $this->hasMany(Attendance::class);
+        return $this->morphMany(Attendance::class, 'attendanceable');
     }
 
     public function orderAssignments()

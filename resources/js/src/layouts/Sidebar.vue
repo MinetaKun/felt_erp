@@ -158,6 +158,66 @@
               </div>
             </div>
           </li>
+
+          <!-- Attendance Section -->
+          <li v-if="hasPermission(['attendance-all', 'attendance-view'])" class="mb-2">
+            <div>
+              <button @click="toggleDropdown('attendance')" 
+                      class="w-full flex items-center p-3 text-gray-300 hover:bg-gray-700 rounded-lg transition-colors"
+                      :class="{ 'justify-center': isCollapsed, 'bg-gray-700': isActive('/attendance') }">
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" 
+                        d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                </svg>
+                <span v-if="!isCollapsed" class="ml-3 flex-1 text-left">Attendance</span>
+                <svg v-if="!isCollapsed" xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 transition-transform"
+                     :class="{ 'rotate-180': dropdownOpen.attendance || shouldOpenDropdown.attendance }"
+                     fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" />
+                </svg>
+              </button>
+              
+              <div v-if="(!isCollapsed && (dropdownOpen.attendance || shouldOpenDropdown.attendance))" class="ml-8 mt-2 space-y-2">
+                <router-link to="/attendance" class="block p-2 text-gray-400 hover:text-white hover:bg-gray-700 rounded-lg transition-colors">
+                  All Records
+                </router-link>
+                <router-link to="/attendance/reports" class="block p-2 text-gray-400 hover:text-white hover:bg-gray-700 rounded-lg transition-colors">
+                  Reports
+                </router-link>
+              </div>
+            </div>
+          </li>
+
+          <li v-if="hasPermission(['payroll-all', 'payroll-view'])" class="mb-2">
+            <div>
+                <button @click="toggleDropdown('payroll')" 
+                        class="w-full flex items-center p-3 text-gray-300 hover:bg-gray-700 rounded-lg transition-colors"
+                        :class="{ 'justify-center': isCollapsed, 'bg-gray-700': isActive('/payroll') }">
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" 
+                        d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                </svg>
+                <span v-if="!isCollapsed" class="ml-3 flex-1 text-left">Payroll</span>
+                <svg v-if="!isCollapsed" xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 transition-transform"
+                    :class="{ 'rotate-180': dropdownOpen.payroll || shouldOpenDropdown.payroll }"
+                    fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" />
+                </svg>
+                </button>
+                
+                <div v-if="(!isCollapsed && (dropdownOpen.payroll || shouldOpenDropdown.payroll))" class="ml-8 mt-2 space-y-2">
+                <router-link to="/payroll" class="block p-2 text-gray-400 hover:text-white hover:bg-gray-700 rounded-lg transition-colors"
+                            :class="{ 'bg-gray-700': isActive('/payroll') && !isActive('/payroll/artisan') }">
+                    Payroll List
+                </router-link>
+                <!-- <router-link to="/payroll/reports" class="block p-2 text-gray-400 hover:text-white hover:bg-gray-700 rounded-lg transition-colors"
+                            :class="{ 'bg-gray-700': isActive('/payroll/reports') }">
+                    Payroll Reports
+                </router-link> -->
+                </div>
+            </div>
+        </li>
+                    
           
           <!-- Logout Button -->
           <li class="mt-8">
@@ -177,85 +237,96 @@
   
   <script setup>
   import { ref, computed, onMounted, watch } from "vue"
-  import { useRouter } from "vue-router"
-  import useUserStore from "../store/useUserStore"
-  import axios from "axios"
-  
-  const props = defineProps({
-    collapsed: {
-        type: Boolean,
-        default: true, // Change default to true to match LayoutDashboard
-    },
-});
-  
-  const emit = defineEmits(["toggle-collapse"])
-  const router = useRouter()
-  const userStore = useUserStore()
-  
-  const isCollapsed = ref(props.collapsed)
-  
-  const toggleCollapse = () => {
-    isCollapsed.value = !isCollapsed.value
-    emit("toggle-collapse", isCollapsed.value)
+import { useRouter } from "vue-router"
+import useUserStore from "../store/useUserStore"
+import axios from "axios"
+
+const props = defineProps({
+  collapsed: {
+    type: Boolean,
+    default: true, // Change default to true to match LayoutDashboard
+  },
+})
+
+const emit = defineEmits(["toggle-collapse"])
+const router = useRouter()
+const userStore = useUserStore()
+
+const isCollapsed = ref(props.collapsed)
+
+const toggleCollapse = () => {
+  isCollapsed.value = !isCollapsed.value
+  emit("toggle-collapse", isCollapsed.value)
+}
+
+const isActive = (path) => {
+  return router.currentRoute.value.path.startsWith(path)
+}
+
+const hasPermission = (permissions) => {
+  if (!permissions || !permissions.length) return true
+  return (userStore.user?.permissions || []).some((permission) => permissions.includes(permission?.name))
+}
+
+// Update the dropdownOpen ref to include attendance
+const dropdownOpen = ref({
+  pettyCash: false,
+  orders: false,
+  artisans: false,
+  payroll: false,
+  attendance: false, // Add attendance dropdown state
+})
+
+const toggleDropdown = (section) => {
+  dropdownOpen.value[section] = !dropdownOpen.value[section]
+}
+
+// Update the shouldOpenDropdown computed property to include attendance
+const shouldOpenDropdown = computed(() => {
+  return {
+    pettyCash: isActive("/petty-cash"),
+    orders: isActive("/orders"),
+    artisans: isActive("/artisans"),
+    payroll: isActive("/payroll"),
+    attendance: isActive("/attendance"), // Add attendance check
   }
-  
-  const isActive = (path) => {
-    return router.currentRoute.value.path.startsWith(path)
+})
+
+// Add logout method
+const logout = async () => {
+  try {
+    await axios.get("/logout")
+    userStore.setUser(null)
+    router.push("/login")
+  } catch (error) {
+    console.error("Logout failed:", error)
   }
-  
-  const hasPermission = (permissions) => {
-    if (!permissions || !permissions.length) return true
-    return (userStore.user?.permissions || []).some((permission) => permissions.includes(permission?.name))
-  }
-  
-  // Add dropdown state for menu sections
-  const dropdownOpen = ref({
-    pettyCash: false,
-    orders: false,
-    artisans: false,
-  })
-  
-  const toggleDropdown = (section) => {
-    dropdownOpen.value[section] = !dropdownOpen.value[section]
-  }
-  
-  // Auto-open dropdown when a child route is active
-  const shouldOpenDropdown = computed(() => {
-    return {
-      pettyCash: isActive("/petty-cash"),
-      orders: isActive("/orders"),
-      artisans: isActive("/artisans"),
-    }
-  })
-  
-  // Add logout method
-  const logout = async () => {
-    try {
-      await axios.get("/api/logout")
-      userStore.setUser(null)
-      router.push("/login")
-    } catch (error) {
-      console.error("Logout failed:", error)
-    }
-  }
-  
-  // Watch for route changes to update dropdown state
-  watch(() => router.currentRoute.value.path, () => {
+}
+
+// Update the watch function to include attendance
+watch(
+  () => router.currentRoute.value.path,
+  () => {
     // Auto-open dropdown based on current route
     dropdownOpen.value = {
       pettyCash: isActive("/petty-cash"),
       orders: isActive("/orders"),
       artisans: isActive("/artisans"),
+      payroll: isActive("/payroll"),
+      attendance: isActive("/attendance"), // Add attendance check
     }
-  })
-  
-  // Initialize dropdown state based on current route
-  onMounted(() => {
-    dropdownOpen.value = {
-      pettyCash: isActive("/petty-cash"),
-      orders: isActive("/orders"),
-      artisans: isActive("/artisans"),
-    }
-  })
+  },
+)
+
+// Update the onMounted function to include attendance
+onMounted(() => {
+  dropdownOpen.value = {
+    pettyCash: isActive("/petty-cash"),
+    orders: isActive("/orders"),
+    artisans: isActive("/artisans"),
+    payroll: isActive("/payroll"),
+    attendance: isActive("/attendance"), // Add attendance check
+  }
+})
   </script>
   

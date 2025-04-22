@@ -37,13 +37,13 @@
 
         <!-- Remarks Input -->
         <div>
-          <label for="remarks" class="block text-sm font-medium text-gray-700">Remarks (Optional)</label>
+          <label for="remarks" class="block text-sm font-medium text-gray-700">Remarks</label>
           <textarea
             v-model="form.remarks"
             id="remarks"
             rows="3"
             class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-            placeholder="Add any remarks or notes..."
+            placeholder="Optional remarks..."
           ></textarea>
         </div>
 
@@ -71,7 +71,7 @@ export default {
   data() {
     return {
       form: {
-        date: new Date().toISOString().split('T')[0],
+        date: '',
         status: 'present',
         remarks: '',
       },
@@ -88,17 +88,13 @@ export default {
     async fetchAttendance() {
       try {
         const response = await axios.get(`/attendance/${this.$route.params.id}`);
-        this.form = {
-          date: response.data.date,
-          status: response.data.status,
-          remarks: response.data.remarks || '',
-        };
+        this.form = response.data;
       } catch (error) {
         console.error('Error fetching attendance:', error);
         Swal.fire({
           icon: 'error',
           title: 'Error',
-          text: 'Failed to fetch attendance record',
+          text: 'Failed to fetch attendance data',
         });
       }
     },
@@ -106,7 +102,7 @@ export default {
       this.loading = true;
       const url = this.isEdit
         ? `/attendance/${this.$route.params.id}`
-        : `/artisans/${this.$route.params.artisanId}/attendance`;
+        : '/attendance';
       const method = this.isEdit ? 'patch' : 'post';
 
       try {
@@ -114,15 +110,17 @@ export default {
         Swal.fire({
           icon: 'success',
           title: 'Success',
-          text: `Attendance ${this.isEdit ? 'updated' : 'added'} successfully`,
+          text: this.isEdit ? 'Attendance updated successfully' : 'Attendance recorded successfully',
+          timer: 2000,
+          showConfirmButton: false,
         });
-        this.$router.push(`/artisans/${this.$route.params.artisanId || this.$route.params.id}`);
+        this.$router.push('/attendance');
       } catch (error) {
         console.error('Error saving attendance:', error);
         Swal.fire({
           icon: 'error',
           title: 'Error',
-          text: `Failed to ${this.isEdit ? 'update' : 'add'} attendance record`,
+          text: error.response?.data?.message || 'Failed to save attendance',
         });
       } finally {
         this.loading = false;
@@ -130,8 +128,4 @@ export default {
     },
   },
 };
-</script>
-
-<style scoped>
-/* Add custom styles or animations here if needed */
-</style>
+</script> 

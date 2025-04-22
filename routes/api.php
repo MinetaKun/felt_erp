@@ -129,17 +129,36 @@ Route::middleware('auth:sanctum')->group(function () {
 
     /**
      * ------------------------------------------------------------------------
-     * attendance routes (nested under artisans)
+     * attendance routes
      * ------------------------------------------------------------------------
      */
-    Route::get('artisans/{artisanId}/attendance', [\App\Http\Controllers\AttendanceController::class, 'index'])
-        ->middleware('permission:attendance-all|attendance-view');
-    Route::post('artisans/{artisanId}/attendance', [\App\Http\Controllers\AttendanceController::class, 'store'])
-        ->middleware('permission:attendance-all|attendance-create');
-    Route::patch('attendance/{attendanceId}', [\App\Http\Controllers\AttendanceController::class, 'update'])
-        ->middleware('permission:attendance-all|attendance-edit');
-    Route::delete('attendance/{attendanceId}', [\App\Http\Controllers\AttendanceController::class, 'destroy'])
-        ->middleware('permission:attendance-all|attendance-delete');
+    Route::prefix('attendance')->group(function () {
+        // Main attendance routes
+        Route::get('/', [\App\Http\Controllers\AttendanceController::class, 'index'])
+            ->middleware('permission:attendance-all|attendance-view');
+        Route::post('/', [\App\Http\Controllers\AttendanceController::class, 'store'])
+            ->middleware('permission:attendance-all|attendance-create');
+        Route::get('/{id}', [\App\Http\Controllers\AttendanceController::class, 'show'])
+            ->middleware('permission:attendance-all|attendance-view');
+        Route::patch('/{id}', [\App\Http\Controllers\AttendanceController::class, 'update'])
+            ->middleware('permission:attendance-all|attendance-edit');
+        Route::delete('/{id}', [\App\Http\Controllers\AttendanceController::class, 'destroy'])
+            ->middleware('permission:attendance-all|attendance-delete');
+
+        // Check in/out routes
+        Route::post('/check-in', [\App\Http\Controllers\AttendanceController::class, 'checkIn'])
+            ->middleware('permission:attendance-all|attendance-create');
+        Route::post('/check-out', [\App\Http\Controllers\AttendanceController::class, 'checkOut'])
+            ->middleware('permission:attendance-all|attendance-edit');
+
+        // Reports routes
+        Route::get('/reports/daily', [\App\Http\Controllers\AttendanceController::class, 'dailyReport'])
+            ->middleware('permission:attendance-all|attendance-view');
+        Route::get('/reports/monthly', [\App\Http\Controllers\AttendanceController::class, 'monthlyReport'])
+            ->middleware('permission:attendance-all|attendance-view');
+        Route::get('/reports/export', [\App\Http\Controllers\AttendanceController::class, 'export'])
+            ->middleware('permission:attendance-all|attendance-view');
+    });
 
     Route::get('/departments', [\App\Http\Controllers\DepartmentController::class, 'index']);
     Route::post('/departments', [\App\Http\Controllers\DepartmentController::class, 'store']);
@@ -223,6 +242,9 @@ Route::middleware('auth:sanctum')->group(function () {
             ->middleware('permission:orders-all|orders-edit');
         Route::post('/bulk-dispatch', [\App\Http\Controllers\OrderAssignmentController::class, 'bulkDispatch'])
             ->middleware('permission:orders-all|orders-edit');
+        // Add new route for downloading dispatch challan
+        Route::get('/{id}/challan', [\App\Http\Controllers\OrderAssignmentController::class, 'downloadDispatchChallan'])
+            ->middleware('permission:orders-all|orders-view');
     });
 
     // Add the missing route for order assignments

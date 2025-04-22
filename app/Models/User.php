@@ -25,6 +25,7 @@ class User extends Authenticatable
         'phone_number',
         'profile_photo',
         'password',
+        'department_id',
     ];
 
     /**
@@ -50,5 +51,15 @@ class User extends Authenticatable
     public function roles()
     {
         return $this->belongsToMany(Role::class, 'role_user', 'user_id', 'role_id');
+    }
+
+    public function attendances()
+    {
+        return $this->morphMany(Attendance::class, 'attendanceable');
+    }
+
+    public function department()
+    {
+        return $this->belongsTo(Department::class);
     }
 }

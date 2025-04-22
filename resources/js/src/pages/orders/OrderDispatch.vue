@@ -33,7 +33,7 @@
               class="w-full px-3 py-2 border border-gray-300 rounded-md"
             />
           </div>
-          <div>
+          <!-- <div>
             <label class="block text-sm font-medium text-gray-700 mb-1">Department</label>
             <select
               v-model="filters.department_id"
@@ -45,7 +45,7 @@
                 {{ dept.name }}
               </option>
             </select>
-          </div>
+          </div> -->
           <div>
             <label class="block text-sm font-medium text-gray-700 mb-1">Status</label>
             <select
@@ -94,9 +94,9 @@
                 <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                   Artisan
                 </th>
-                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                <!-- <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                   Department
-                </th>
+                </th> -->
                 <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                   Quantity
                 </th>
@@ -146,9 +146,9 @@
                 <td class="px-6 py-4 whitespace-nowrap">
                   {{ assignment.artisan?.name || 'N/A' }}
                 </td>
-                <td class="px-6 py-4 whitespace-nowrap">
+                <!-- <td class="px-6 py-4 whitespace-nowrap">
                   {{ assignment.artisan?.department?.name || 'N/A' }}
-                </td>
+                </td> -->
                 <td class="px-6 py-4 whitespace-nowrap">
                   {{ assignment.approved_quantity }}
                 </td>
@@ -175,9 +175,9 @@
                     </button>
                     <button
                       v-if="assignment.status === 'dispatched'"
-                      @click="downloadInvoice(assignment)"
+                      @click="downloadChallan(assignment)"
                       class="text-green-600 hover:text-green-900"
-                      title="Download Invoice"
+                      title="Download Challan"
                     >
                       <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
                         <path fill-rule="evenodd" d="M6 2a2 2 0 00-2 2v12a2 2 0 002 2h8a2 2 0 002-2V7.414A2 2 0 0015.414 6L12 2.586A2 2 0 0010.586 2H6zm5 6a1 1 0 10-2 0v3.586l-1.293-1.293a1 1 0 10-1.414 1.414l3 3a1 1 0 001.414 0l3-3a1 1 0 00-1.414-1.414L11 11.586V8z" clip-rule="evenodd" />
@@ -328,7 +328,7 @@
   </template>
   
   <script>
-  import { ref, reactive, onMounted, computed } from "vue"
+  import { ref, reactive, onMounted } from "vue"
   import axios from "axios"
   import Swal from "sweetalert2"
   
@@ -348,7 +348,7 @@
       const filters = reactive({
         search: "",
         department_id: "",
-        status: "approved", // Default to show only approved assignments
+        status: "", // Default to show only approved assignments
         page: 1,
         per_page: 15,
       })
@@ -523,10 +523,10 @@
         })
       }
   
-      // Download invoice for a dispatched assignment
-      const downloadInvoice = async (assignment) => {
+      // Download challan for a dispatched assignment
+      const downloadChallan = async (assignment) => {
         try {
-          const response = await axios.get(`/orders/${assignment.order_id}/invoice`, {
+          const response = await axios.get(`/order-assignments/${assignment.id}/challan`, {
             responseType: "blob",
           })
   
@@ -535,14 +535,14 @@
           const url = window.URL.createObjectURL(blob)
           const link = document.createElement("a")
           link.href = url
-          link.setAttribute("download", `invoice-${assignment.order.order_id}.pdf`)
+          link.setAttribute("download", `challan-${assignment.order.order_id}-${assignment.id}.pdf`)
           document.body.appendChild(link)
           link.click()
           document.body.removeChild(link)
           window.URL.revokeObjectURL(url)
         } catch (error) {
-          console.error("Error downloading invoice:", error)
-          Swal.fire("Error!", "Failed to download invoice.", "error")
+          console.error("Error downloading challan:", error)
+          Swal.fire("Error!", "Failed to download challan.", "error")
         }
       }
   
@@ -623,7 +623,7 @@
         toggleSelectAll,
         openDispatchModal,
         confirmDispatch,
-        downloadInvoice,
+        downloadChallan,
         bulkDispatch,
         viewDetails,
         debounceSearch,
@@ -634,4 +634,5 @@
       }
     },
   }
-</script>
+  </script>
+  

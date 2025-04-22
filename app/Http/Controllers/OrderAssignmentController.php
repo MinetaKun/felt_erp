@@ -9,6 +9,7 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Auth;
+use App\Models\User;
 
 class OrderAssignmentController extends Controller
 {
@@ -252,6 +253,90 @@ class OrderAssignmentController extends Controller
         }
     }
 
+
+    public function bulkDispatch(Request $request)
+    {
+        $validated = $request->validate([
+            'assignment_ids' => 'required|array',
+            'assignment_ids.*' => 'required|exists:order_assignments,id',
+            'dispatch_date' => 'required|date',
+            'dispatch_method' => 'required|string|in:vehicle,runner,courier,pickup',
+            'notes' => 'nullable|string',
+        ]);
+
+        DB::beginTransaction();
+        try {
+            $dispatchedCount = 0;
+            $artisanIds = [];
+            $orderIds = [];
+
+            foreach ($validated['assignment_ids'] as $assignmentId) {
+                $assignment = OrderAssignment::find($assignmentId);
+                if ($assignment && $assignment->status === 'approved') {
+                    $assignment->status = 'dispatched';
+                    $assignment->dispatched_at = now();
+                    $assignment->dispatched_by = Auth::id();
+                    $assignment->dispatch_date = $validated['dispatch_date'];
+                    $assignment->dispatch_method = $validated['dispatch_method'];
+                    $assignment->dispatch_notes = $validated['notes'] ?? null;
+                    $assignment->save();
+                    $dispatchedCount++;
+
+                    // Collect artisan IDs to update their status later
+                    if (!in_array($assignment->artisan_id, $artisanIds)) {
+                        $artisanIds[] = $assignment->artisan_id;
+                    }
+
+                    // Collect order IDs to check if they should be marked as dispatched
+                    if (!in_array($assignment->order_id, $orderIds)) {
+                        $orderIds[] = $assignment->order_id;
+                    }
+                }
+            }
+
+            // Update status for all affected artisans
+            foreach ($artisanIds as $artisanId) {
+                $artisan = Artisan::find($artisanId);
+                if ($artisan) {
+                    $artisan->updateStatus();
+                }
+            }
+
+            // Check if any orders should be marked as dispatched
+            foreach ($orderIds as $orderId) {
+                $order = Order::find($orderId);
+                if ($order) {
+                    $allDispatched = true;
+
+                    foreach ($order->assignments as $assignment) {
+                        if ($assignment->status !== 'dispatched') {
+                            $allDispatched = false;
+                            break;
+                        }
+                    }
+
+                    if ($allDispatched) {
+                        $order->status = 'dispatched';
+                        $order->save();
+                    }
+                }
+            }
+
+            DB::commit();
+            return response()->json([
+                'success' => true,
+                'message' => "$dispatchedCount assignments dispatched successfully",
+            ]);
+        } catch (\Exception $e) {
+            DB::rollBack();
+            Log::error('Failed to bulk dispatch assignments: ' . $e->getMessage());
+            return response()->json([
+                'success' => false,
+                'error' => 'Failed to dispatch assignments: ' . $e->getMessage()
+            ], 500);
+        }
+    }
+
     /**
      * Bulk approve or reject assignments.
      */
@@ -444,6 +529,56 @@ class OrderAssignmentController extends Controller
             return response()->json([
                 'success' => false,
                 'error' => 'Failed to assign order: ' . $e->getMessage()
+            ], 500);
+        }
+    }
+
+    /**
+     * Generate and download a dispatch challan for a specific assignment.
+     */
+    public function downloadDispatchChallan($id)
+    {
+        try {
+            // Find the assignment with related data
+            $assignment = OrderAssignment::with(['order', 'artisan'])->findOrFail($id);
+
+            // Check if the assignment is dispatched
+            if ($assignment->status !== 'dispatched') {
+                return response()->json([
+                    'success' => false,
+                    'error' => 'Cannot generate challan for non-dispatched assignment'
+                ], 422);
+            }
+
+            // Get the users who approved and dispatched
+            $approvedBy = null;
+            $dispatchedBy = null;
+
+            if ($assignment->approved_by) {
+                $approvedBy = User::find($assignment->approved_by);
+            }
+
+            if ($assignment->dispatched_by) {
+                $dispatchedBy = User::find($assignment->dispatched_by);
+            }
+
+            // Generate PDF
+            $pdf = \Barryvdh\DomPDF\Facade\Pdf::loadView('pdf.dispatch-challan', [
+                'assignment' => $assignment,
+                'approvedBy' => $approvedBy,
+                'dispatchedBy' => $dispatchedBy
+            ]);
+
+            // Set filename
+            $filename = 'dispatch_challan_' . $assignment->id . '_' . date('Ymd') . '.pdf';
+
+            // Return the PDF for download
+            return $pdf->download($filename);
+        } catch (\Exception $e) {
+            Log::error('Failed to generate dispatch challan: ' . $e->getMessage());
+            return response()->json([
+                'success' => false,
+                'error' => 'Failed to generate dispatch challan: ' . $e->getMessage()
             ], 500);
         }
     }

@@ -54,9 +54,19 @@ class PettyCashController extends Controller
 
     public function dashboard(Request $request)
     {
-        $balance = PettyCashTransaction::sum(DB::raw('cash_in - cash_out'));
+        // Calculate totals with date range filter
+        $totalsQuery = PettyCashTransaction::query();
+        if ($request->has('start_date') && $request->has('end_date')) {
+            $totalsQuery->whereBetween('transaction_date', [
+                $request->start_date,
+                $request->end_date,
+            ]);
+        }
+        $totalIncome = $totalsQuery->sum('cash_in');
+        $totalExpenses = $totalsQuery->sum('cash_out');
+        $balance = $totalIncome - $totalExpenses;
 
-        // Category-wise totals - fixed version
+        // Category-wise totals
         $categoryTotals = PettyCashCategory::with(['transactions' => function ($query) use ($request) {
             if ($request->has('start_date') && $request->has('end_date')) {
                 $query->whereBetween('transaction_date', [
@@ -102,19 +112,6 @@ class PettyCashController extends Controller
             ];
         }
 
-        // Top 10 expenses
-        $topExpenses = PettyCashTransaction::with(['category'])
-            ->where('cash_out', '>', 0)
-            ->when($request->has('start_date') && $request->has('end_date'), function ($query) use ($request) {
-                $query->whereBetween('transaction_date', [
-                    $request->start_date,
-                    $request->end_date,
-                ]);
-            })
-            ->orderBy('cash_out', 'desc')
-            ->limit(10)
-            ->get();
-
         // Recent transactions
         $recentTransactions = PettyCashTransaction::with(['category'])
             ->when($request->has('start_date') && $request->has('end_date'), function ($query) use ($request) {
@@ -130,9 +127,10 @@ class PettyCashController extends Controller
 
         return response()->json([
             'balance' => $balance,
+            'total_income' => $totalIncome,
+            'total_expenses' => $totalExpenses,
             'category_totals' => $categoryTotals,
             'monthly_data' => $monthlyData,
-            'top_expenses' => $topExpenses,
             'recent_transactions' => $recentTransactions,
         ]);
     }
@@ -362,10 +360,39 @@ class PettyCashController extends Controller
         ]);
 
         $file = $request->file('file');
-        $csv = Reader::createFromPath($file->getRealPath(), 'r');
-        $csv->setHeaderOffset(0); // First row is header
 
-        $header = $csv->getHeader();
+        // Read the file content first
+        $content = file_get_contents($file->getRealPath());
+        Log::info('Raw CSV Content', ['content' => $content]);
+
+        // Clean the content by removing outer quotes and newlines
+        $content = trim($content, "\"\n\r");
+        $content = str_replace("\r\n", "\n", $content);
+        $content = str_replace("\r", "\n", $content);
+
+        // Split into lines
+        $lines = explode("\n", $content);
+        if (count($lines) < 2) {
+            return response()->json([
+                'success' => false,
+                'error' => 'Invalid CSV format. File must contain at least a header row and one data row.'
+            ], 400);
+        }
+
+        // Process headers
+        $headerLine = trim($lines[0], "\"");
+        $header = explode(',', $headerLine);
+        $header = array_map(function ($item) {
+            return trim($item, "\" ");
+        }, $header);
+
+        Log::info('Processed Headers', [
+            'headers' => $header,
+            'headers_count' => count($header),
+            'first_header' => $header[0] ?? null,
+            'headers_array' => $header
+        ]);
+
         $expectedHeader = [
             'Transaction Date',
             'BS Date',
@@ -382,16 +409,72 @@ class PettyCashController extends Controller
             'Notes'
         ];
 
-        // Check if the header matches the expected format
-        $missingColumns = array_diff($expectedHeader, $header);
-        if (!empty($missingColumns)) {
+        // Clean and normalize headers
+        $normalizedHeader = array_map(function ($item) {
+            // Remove BOM and other invisible characters
+            $item = preg_replace('/[\x{FEFF}\x{200B}-\x{200D}\x{FFFE}]/u', '', $item);
+            // Remove quotes and trim
+            $item = trim($item, '"\' ');
+            // Convert to lowercase and remove any extra spaces
+            $item = strtolower(preg_replace('/\s+/', ' ', $item));
+            return $item;
+        }, $header);
+
+        $normalizedExpectedHeader = array_map(function ($item) {
+            return strtolower(trim($item));
+        }, $expectedHeader);
+
+        Log::info('Normalized Headers Comparison', [
+            'normalized_actual' => $normalizedHeader,
+            'normalized_expected' => $normalizedExpectedHeader,
+            'missing_headers' => array_diff($normalizedExpectedHeader, $normalizedHeader),
+            'header_mapping' => array_combine($normalizedHeader, $header)
+        ]);
+
+        // Check for missing headers with more detailed logging
+        $missingHeaders = array_diff($normalizedExpectedHeader, $normalizedHeader);
+        if (!empty($missingHeaders)) {
+            Log::error('Missing CSV Headers', [
+                'missing_headers' => $missingHeaders,
+                'actual_headers' => $header,
+                'expected_headers' => $expectedHeader,
+                'normalized_actual' => $normalizedHeader,
+                'normalized_expected' => $normalizedExpectedHeader,
+                'header_mapping' => array_combine($normalizedHeader, $header),
+                'raw_content' => $content
+            ]);
+
+            // Convert normalized headers back to original format for error message
+            $missingOriginalHeaders = array_map(function ($normalizedHeader) use ($expectedHeader, $normalizedExpectedHeader) {
+                return $expectedHeader[array_search($normalizedHeader, $normalizedExpectedHeader)];
+            }, $missingHeaders);
+
             return response()->json([
                 'success' => false,
-                'error' => 'Invalid CSV header. Missing columns: ' . implode(', ', $missingColumns)
+                'error' => 'Invalid CSV header. Missing columns: ' . implode(', ', $missingOriginalHeaders),
+                'details' => [
+                    'actual_headers' => $header,
+                    'expected_headers' => $expectedHeader,
+                    'normalized_actual' => $normalizedHeader,
+                    'normalized_expected' => $normalizedExpectedHeader
+                ]
             ], 400);
         }
 
-        $records = $csv->getRecords();
+        // Process data rows
+        $records = [];
+        for ($i = 1; $i < count($lines); $i++) {
+            $line = trim($lines[$i], "\"");
+            $values = explode(',', $line);
+            $values = array_map(function ($item) {
+                return trim($item, "\" ");
+            }, $values);
+
+            if (count($values) === count($header)) {
+                $records[] = array_combine($header, $values);
+            }
+        }
+
         $errors = [];
         $successCount = 0;
         $rowNumber = 1; // Start at row 1 (after header)
@@ -402,51 +485,75 @@ class PettyCashController extends Controller
             foreach ($records as $record) {
                 $rowNumber++;
 
+                // Log the raw record data
+                Log::info('Processing CSV Row', [
+                    'row_number' => $rowNumber,
+                    'raw_record' => $record,
+                    'transaction_date' => $record['Transaction Date'] ?? null,
+                    'record_keys' => array_keys($record),
+                    'record_values' => array_values($record)
+                ]);
+
+                // Clean and normalize the record data
+                $cleanedRecord = [];
+                foreach ($record as $key => $value) {
+                    // Remove quotes and trim
+                    $cleanedKey = trim($key, '"\' ');
+                    $cleanedValue = trim($value, '"\' ');
+                    $cleanedRecord[$cleanedKey] = $cleanedValue;
+                }
+
                 // Validate required fields
-                if (empty($record['Transaction Date'])) {
+                if (empty($cleanedRecord['Transaction Date'])) {
                     $errors[] = "Row {$rowNumber}: Transaction Date is required";
+                    Log::error('Missing Transaction Date', [
+                        'row_number' => $rowNumber,
+                        'record' => $cleanedRecord,
+                        'record_keys' => array_keys($cleanedRecord),
+                        'record_values' => array_values($cleanedRecord)
+                    ]);
                     continue;
                 }
 
-                if (empty($record['Category'])) {
+                if (empty($cleanedRecord['Category'])) {
                     $errors[] = "Row {$rowNumber}: Category is required";
                     continue;
                 }
 
-                if (empty($record['Particulars'])) {
+                if (empty($cleanedRecord['Particulars'])) {
                     $errors[] = "Row {$rowNumber}: Particulars is required";
                     continue;
                 }
 
-                if (empty($record['Cash In']) && empty($record['Cash Out'])) {
+                if (empty($cleanedRecord['Cash In']) && empty($cleanedRecord['Cash Out'])) {
                     $errors[] = "Row {$rowNumber}: Either Cash In or Cash Out must have a value";
                     continue;
                 }
 
-                if (!empty($record['Cash In']) && !empty($record['Cash Out'])) {
+                if (!empty($cleanedRecord['Cash In']) && !empty($cleanedRecord['Cash Out'])) {
                     $errors[] = "Row {$rowNumber}: Cannot have both Cash In and Cash Out values";
                     continue;
                 }
 
                 // Find category
-                $category = PettyCashCategory::where('name', $record['Category'])->first();
+                $category = PettyCashCategory::where('name', $cleanedRecord['Category'])->first();
                 if (!$category) {
-                    $errors[] = "Row {$rowNumber}: Category '{$record['Category']}' not found";
+                    $errors[] = "Row {$rowNumber}: Category '{$cleanedRecord['Category']}' not found";
                     continue;
                 }
 
                 // Parse dates
                 try {
-                    $transactionDate = Carbon::parse($record['Transaction Date']);
+                    $transactionDate = Carbon::parse($cleanedRecord['Transaction Date']);
                 } catch (\Exception $e) {
                     $errors[] = "Row {$rowNumber}: Invalid Transaction Date format";
                     continue;
                 }
 
                 $bsDate = null;
-                if (!empty($record['BS Date'])) {
+                if (!empty($cleanedRecord['BS Date'])) {
                     try {
-                        $bsDate = Carbon::parse($record['BS Date']);
+                        $bsDate = Carbon::parse($cleanedRecord['BS Date']);
                     } catch (\Exception $e) {
                         $errors[] = "Row {$rowNumber}: Invalid BS Date format";
                         continue;
@@ -454,28 +561,28 @@ class PettyCashController extends Controller
                 }
 
                 // Parse numeric values
-                $cashIn = !empty($record['Cash In']) ? (float)$record['Cash In'] : 0;
-                $cashOut = !empty($record['Cash Out']) ? (float)$record['Cash Out'] : 0;
-                $vatPercentage = !empty($record['VAT %']) ? (float)$record['VAT %'] : null;
-                $vatAmount = !empty($record['VAT Amount']) ? (float)$record['VAT Amount'] : 0;
-                $isVatIncluded = !empty($record['VAT Included']) && strtolower($record['VAT Included']) === 'yes';
+                $cashIn = !empty($cleanedRecord['Cash In']) ? (float)$cleanedRecord['Cash In'] : 0;
+                $cashOut = !empty($cleanedRecord['Cash Out']) ? (float)$cleanedRecord['Cash Out'] : 0;
+                $vatPercentage = !empty($cleanedRecord['VAT %']) ? (float)$cleanedRecord['VAT %'] : null;
+                $vatAmount = !empty($cleanedRecord['VAT Amount']) ? (float)$cleanedRecord['VAT Amount'] : 0;
+                $isVatIncluded = !empty($cleanedRecord['VAT Included']) && strtolower($cleanedRecord['VAT Included']) === 'yes';
 
                 // Create transaction
                 try {
                     PettyCashTransaction::create([
                         'transaction_date' => $transactionDate,
                         'bs_date' => $bsDate,
-                        'pan_bill_no' => $record['PAN Bill No'] ?? null,
-                        'est_bill_no' => $record['Est Bill No'] ?? null,
+                        'pan_bill_no' => $cleanedRecord['PAN Bill No'] ?? null,
+                        'est_bill_no' => $cleanedRecord['Est Bill No'] ?? null,
                         'category_id' => $category->id,
-                        'particulars' => $record['Particulars'],
+                        'particulars' => $cleanedRecord['Particulars'],
                         'cash_in' => $cashIn,
                         'cash_out' => $cashOut,
                         'vat_percentage' => $vatPercentage,
                         'vat_amount' => $vatAmount,
                         'is_vat_included' => $isVatIncluded,
-                        'reference_no' => $record['Reference No'] ?? null,
-                        'notes' => $record['Notes'] ?? null,
+                        'reference_no' => $cleanedRecord['Reference No'] ?? null,
+                        'notes' => $cleanedRecord['Notes'] ?? null,
                     ]);
 
                     $successCount++;
