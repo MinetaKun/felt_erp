@@ -9,7 +9,6 @@ use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
-use Barryvdh\DomPDF\Facade\Pdf as PDF;
 
 class OrderController extends Controller
 {
@@ -40,7 +39,7 @@ class OrderController extends Controller
             $query->where('due_date', '>=', $request->start_date);
         }
         if ($request->has('end_date') && !empty($request->end_date)) {
-            $query->where('due_date', '&lt;=', $request->end_date);
+            $query->where('due_date', '<=', $request->end_date);
         }
 
         // Sort orders
@@ -138,7 +137,7 @@ class OrderController extends Controller
             'weight' => 'nullable|numeric',
             'total_quantity' => 'sometimes|required|integer|min:1',
             'due_date' => 'sometimes|required|date',
-            'status' => 'sometimes|required|in:pending,in_production,completed,approved,dispatched',
+            'status' => 'sometimes|required|in:pending,in_production,approved,dispatched',
             'wages_per_unit' => 'sometimes|required|numeric|min:0',
             'client_name' => 'nullable|string',
             'notes' => 'nullable|string',
@@ -239,29 +238,22 @@ class OrderController extends Controller
     }
 
     /**
-     * Generate invoice for an order.
+     * Update order status.
      */
-    public function generateInvoice($id)
+    public function updateStatus(Request $request, $id)
     {
-        $order = Order::with(['assignments.artisan'])->findOrFail($id);
+        $order = Order::findOrFail($id);
 
-        // Check if order is dispatched
-        if ($order->status !== 'dispatched') {
-            return response()->json([
-                'success' => false,
-                'message' => 'Invoice can only be generated for dispatched orders'
-            ], 422);
-        }
+        $validated = $request->validate([
+            'status' => 'required|in:pending,in_production,approved,dispatched',
+        ]);
 
-        $data = [
-            'order' => $order,
-            'invoice_number' => 'INV-' . strtoupper(Str::random(8)),
-            'invoice_date' => now()->format('Y-m-d'),
-            'total_amount' => $order->total_approved_quantity * $order->wages_per_unit,
-        ];
+        $order->update(['status' => $validated['status']]);
 
-        $pdf = PDF::loadView('pdf.invoice', $data);
-
-        return $pdf->download('invoice-' . $order->order_id . '.pdf');
+        return response()->json([
+            'success' => true,
+            'message' => 'Order status updated successfully',
+            'data' => $order->fresh()
+        ]);
     }
 }

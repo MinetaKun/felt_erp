@@ -142,9 +142,9 @@
                   <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
                     Artisan
                   </th>
-                  <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
+                  <!-- <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
                     Department
-                  </th>
+                  </th> -->
                   <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
                     Assigned
                   </th>
@@ -168,11 +168,11 @@
                       </div>
                     </div>
                   </td>
-                  <td class="px-6 py-4 whitespace-nowrap">
+                  <!-- <td class="px-6 py-4 whitespace-nowrap">
                     <div class="text-sm text-gray-500 dark:text-gray-400">
                       {{ assignment.artisan.department ? assignment.artisan.department.name : 'N/A' }}
                     </div>
-                  </td>
+                  </td> -->
                   <td class="px-6 py-4 whitespace-nowrap">
                     <div class="text-sm text-gray-900 dark:text-white">
                       {{ assignment.assigned_quantity }}

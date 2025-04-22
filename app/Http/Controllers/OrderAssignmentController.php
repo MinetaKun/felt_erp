@@ -76,7 +76,6 @@ class OrderAssignmentController extends Controller
             'order_id' => 'required|exists:orders,id',
             'artisan_id' => 'required|exists:artisans,id',
             'assigned_quantity' => 'required|integer|min:1',
-            'status' => 'required|in:pending,in_production,completed,approved,dispatched',
             'notes' => 'nullable|string',
         ]);
 
@@ -86,14 +85,20 @@ class OrderAssignmentController extends Controller
                 'order_id' => $validated['order_id'],
                 'artisan_id' => $validated['artisan_id'],
                 'assigned_quantity' => $validated['assigned_quantity'],
-                'completed_quantity' => 0,
                 'approved_quantity' => 0,
                 'rejected_quantity' => 0,
-                'status' => $validated['status'],
+                'status' => 'in_production', // Always set to in_production when assigned
                 'notes' => $validated['notes'] ?? null,
             ]);
 
             $assignment->save();
+
+            // Update order status to in_production
+            $order = Order::find($validated['order_id']);
+            if ($order) {
+                $order->status = 'in_production';
+                $order->save();
+            }
 
             // Update artisan status to active
             $artisan = Artisan::find($validated['artisan_id']);
@@ -117,104 +122,7 @@ class OrderAssignmentController extends Controller
             ], 500);
         }
     }
-
-    public function markCompleted(Request $request, $id)
-    {
-        $assignment = OrderAssignment::findOrFail($id);
-
-        $validated = $request->validate([
-            'completed_quantity' => 'required|integer|min:1|max:' . $assignment->assigned_quantity,
-            'notes' => 'nullable|string',
-        ]);
-
-        DB::beginTransaction();
-        try {
-            $assignment->completed_quantity = $validated['completed_quantity'];
-            $assignment->notes = $validated['notes'] ?? $assignment->notes;
-            $assignment->status = 'completed';
-            $assignment->save();
-
-            DB::commit();
-            return response()->json([
-                'success' => true,
-                'data' => $assignment,
-                'message' => 'Assignment marked as completed'
-            ]);
-        } catch (\Exception $e) {
-            DB::rollBack();
-            Log::error('Failed to mark assignment as completed: ' . $e->getMessage());
-            return response()->json([
-                'success' => false,
-                'error' => 'Failed to mark assignment as completed: ' . $e->getMessage()
-            ], 500);
-        }
-    }
-
-    public function approveOrReject(Request $request, $id)
-    {
-        $assignment = OrderAssignment::findOrFail($id);
-
-        $validated = $request->validate([
-            'action' => 'required|in:approve,reject',
-            'approved_quantity' => 'required_if:action,approve|integer|min:0|max:' . $assignment->completed_quantity,
-            'rejected_quantity' => 'required_if:action,reject|integer|min:0|max:' . $assignment->completed_quantity,
-            'rejection_reason' => 'required_if:action,reject|nullable|string',
-        ]);
-
-        DB::beginTransaction();
-        try {
-            if ($validated['action'] === 'approve') {
-                $assignment->approved_quantity = $validated['approved_quantity'];
-                $assignment->rejected_quantity = $assignment->completed_quantity - $validated['approved_quantity'];
-
-                if ($validated['approved_quantity'] > 0) {
-                    $assignment->status = 'approved';
-                    $assignment->approved_at = now();
-                    $assignment->approved_by = Auth::id();
-                }
-
-                if ($assignment->rejected_quantity > 0 && isset($validated['rejection_reason'])) {
-                    $assignment->rejection_reason = $validated['rejection_reason'];
-                }
-            } else {
-                $assignment->rejected_quantity = $validated['rejected_quantity'];
-                $assignment->approved_quantity = $assignment->completed_quantity - $validated['rejected_quantity'];
-                $assignment->rejection_reason = $validated['rejection_reason'];
-
-                if ($assignment->approved_quantity > 0) {
-                    $assignment->status = 'approved';
-                    $assignment->approved_at = now();
-                    $assignment->approved_by = Auth::id();
-                } else {
-                    $assignment->status = 'rejected';
-                }
-            }
-
-            $assignment->save();
-
-            // Update artisan status
-            $artisan = $assignment->artisan;
-            if ($artisan) {
-                $artisan->updateStatus();
-            }
-
-            DB::commit();
-            return response()->json([
-                'success' => true,
-                'data' => $assignment,
-                'message' => 'Assignment ' . ($validated['action'] === 'approve' ? 'approved' : 'rejected')
-            ]);
-        } catch (\Exception $e) {
-            DB::rollBack();
-            Log::error('Failed to process assignment: ' . $e->getMessage());
-            return response()->json([
-                'success' => false,
-                'error' => 'Failed to process assignment: ' . $e->getMessage()
-            ], 500);
-        }
-    }
-
-    public function dispatch(Request $request, $id)
+    public function markDispatched(Request $request, $id)
     {
         $assignment = OrderAssignment::findOrFail($id);
 
@@ -274,87 +182,199 @@ class OrderAssignmentController extends Controller
         }
     }
 
-    public function bulkDispatch(Request $request)
+    /**
+     * Approve or reject an assignment.
+     */
+    public function approveOrReject(Request $request, $id)
     {
+        $assignment = OrderAssignment::findOrFail($id);
+
         $validated = $request->validate([
-            'assignment_ids' => 'required|array',
-            'assignment_ids.*' => 'required|exists:order_assignments,id',
-            'dispatch_date' => 'required|date',
-            'dispatch_method' => 'required|string|in:vehicle,runner,courier,pickup',
-            'notes' => 'nullable|string',
+            'action' => 'required|in:approve,reject',
+            'approved_quantity' => 'required_if:action,approve|integer|min:0|max:' . $assignment->assigned_quantity,
+            'rejected_quantity' => 'required_if:action,reject|integer|min:0|max:' . $assignment->assigned_quantity,
+
         ]);
 
         DB::beginTransaction();
         try {
-            $dispatchedCount = 0;
-            $artisanIds = [];
-            $orderIds = [];
+            if ($validated['action'] === 'approve') {
+                $assignment->approved_quantity = $validated['approved_quantity'];
+                $assignment->rejected_quantity = $assignment->assigned_quantity - $validated['approved_quantity'];
 
-            foreach ($validated['assignment_ids'] as $assignmentId) {
-                $assignment = OrderAssignment::find($assignmentId);
-                if ($assignment && $assignment->status === 'approved') {
-                    $assignment->status = 'dispatched';
-                    $assignment->dispatched_at = now();
-                    $assignment->dispatched_by = Auth::id();
-                    $assignment->dispatch_date = $validated['dispatch_date'];
-                    $assignment->dispatch_method = $validated['dispatch_method'];
-                    $assignment->dispatch_notes = $validated['notes'] ?? null;
-                    $assignment->save();
-                    $dispatchedCount++;
+                if ($validated['approved_quantity'] > 0) {
+                    $assignment->status = 'approved';
+                    $assignment->approved_at = now();
+                    $assignment->approved_by = Auth::id();
+                }
 
-                    // Collect artisan IDs to update their status later
-                    if (!in_array($assignment->artisan_id, $artisanIds)) {
-                        $artisanIds[] = $assignment->artisan_id;
-                    }
+                if ($assignment->rejected_quantity > 0 && isset($validated['rejection_reason'])) {
+                    $assignment->rejection_reason = $validated['rejection_reason'];
+                }
+            } else {
+                $assignment->rejected_quantity = $validated['rejected_quantity'];
+                $assignment->approved_quantity = $assignment->assigned_quantity - $validated['rejected_quantity'];
+                $assignment->rejection_reason = $validated['rejection_reason'];
 
-                    // Collect order IDs to check if they should be marked as dispatched
-                    if (!in_array($assignment->order_id, $orderIds)) {
-                        $orderIds[] = $assignment->order_id;
-                    }
+                if ($assignment->approved_quantity > 0) {
+                    $assignment->status = 'approved';
+                    $assignment->approved_at = now();
+                    $assignment->approved_by = Auth::id();
+                } else {
+                    $assignment->status = 'rejected';
                 }
             }
 
-            // Update status for all affected artisans
-            foreach ($artisanIds as $artisanId) {
-                $artisan = Artisan::find($artisanId);
+            $assignment->save();
+
+            // Update artisan status
+            $artisan = $assignment->artisan;
+            if ($artisan) {
+                $artisan->updateStatus();
+            }
+
+            // Check if all assignments for this order are processed
+            $this->updateOrderStatus($assignment->order);
+
+            DB::commit();
+            return response()->json([
+                'success' => true,
+                'data' => $assignment,
+                'message' => 'Assignment ' . ($validated['action'] === 'approve' ? 'approved' : 'rejected') . ' successfully'
+            ]);
+        } catch (\Exception $e) {
+            DB::rollBack();
+            Log::error('Failed to process assignment: ' . $e->getMessage());
+            return response()->json([
+                'success' => false,
+                'error' => 'Failed to process assignment: ' . $e->getMessage()
+            ], 500);
+        }
+    }
+
+    /**
+     * Bulk approve or reject assignments.
+     */
+    public function bulkApprove(Request $request)
+    {
+        $validated = $request->validate([
+            'assignment_ids' => 'required|array',
+            'assignment_ids.*' => 'required|exists:order_assignments,id',
+            'approvals' => 'required|array',
+            'approvals.*.id' => 'required|exists:order_assignments,id',
+            'approvals.*.approved_quantity' => 'required|integer|min:0',
+            'approvals.*.rejection_reason' => 'nullable|string',
+        ]);
+
+        DB::beginTransaction();
+        try {
+            $processedOrders = [];
+
+            foreach ($validated['approvals'] as $approval) {
+                $assignment = OrderAssignment::findOrFail($approval['id']);
+
+                // Ensure approved quantity doesn't exceed assigned quantity
+                $approvedQuantity = min($approval['approved_quantity'], $assignment->assigned_quantity);
+                $rejectedQuantity = $assignment->assigned_quantity - $approvedQuantity;
+
+                $assignment->approved_quantity = $approvedQuantity;
+                $assignment->rejected_quantity = $rejectedQuantity;
+
+                if ($approvedQuantity > 0) {
+                    $assignment->status = 'approved';
+                    $assignment->approved_at = now();
+                    $assignment->approved_by = Auth::id();
+                }
+
+                if ($rejectedQuantity > 0 && !empty($approval['rejection_reason'])) {
+                    $assignment->rejection_reason = $approval['rejection_reason'];
+                }
+
+                $assignment->save();
+
+                // Track processed orders for status update
+                if (!in_array($assignment->order_id, $processedOrders)) {
+                    $processedOrders[] = $assignment->order_id;
+                }
+
+                // Update artisan status
+                $artisan = $assignment->artisan;
                 if ($artisan) {
                     $artisan->updateStatus();
                 }
             }
 
-            // Check if any orders should be marked as dispatched
-            foreach ($orderIds as $orderId) {
+            // Update status for all affected orders
+            foreach ($processedOrders as $orderId) {
                 $order = Order::find($orderId);
                 if ($order) {
-                    $allDispatched = true;
-
-                    foreach ($order->assignments as $assignment) {
-                        if ($assignment->status !== 'dispatched') {
-                            $allDispatched = false;
-                            break;
-                        }
-                    }
-
-                    if ($allDispatched) {
-                        $order->status = 'dispatched';
-                        $order->save();
-                    }
+                    $this->updateOrderStatus($order);
                 }
             }
 
             DB::commit();
             return response()->json([
                 'success' => true,
-                'message' => "$dispatchedCount assignments dispatched successfully",
+                'message' => 'Assignments processed successfully'
             ]);
         } catch (\Exception $e) {
             DB::rollBack();
-            Log::error('Failed to bulk dispatch assignments: ' . $e->getMessage());
+            Log::error('Failed to process bulk assignments: ' . $e->getMessage());
             return response()->json([
                 'success' => false,
-                'error' => 'Failed to dispatch assignments: ' . $e->getMessage()
+                'error' => 'Failed to process bulk assignments: ' . $e->getMessage()
             ], 500);
         }
+    }
+
+    /**
+     * Update order status based on assignments.
+     */
+    private function updateOrderStatus($order)
+    {
+        // Reload order with fresh assignments
+        $order = Order::with('assignments')->find($order->id);
+
+        if ($order->assignments->isEmpty()) {
+            $order->status = 'pending';
+            $order->save();
+            return;
+        }
+
+        // Count assignments by status
+        $totalAssignments = $order->assignments->count();
+        $approvedAssignments = $order->assignments->where('status', 'approved')->count();
+        $dispatchedAssignments = $order->assignments->where('status', 'dispatched')->count();
+        $rejectedAssignments = $order->assignments->where('status', 'rejected')->count();
+
+        // Calculate total quantities
+        $totalAssignedQuantity = $order->assignments->sum('assigned_quantity');
+        $totalApprovedQuantity = $order->assignments->sum('approved_quantity');
+        $totalRejectedQuantity = $order->assignments->sum('rejected_quantity');
+
+        // Determine order status based on assignments
+        if ($dispatchedAssignments === $totalAssignments) {
+            // All assignments are dispatched
+            $order->status = 'dispatched';
+        } else if ($approvedAssignments + $rejectedAssignments === $totalAssignments) {
+            // All assignments are either approved or rejected
+            if ($totalApprovedQuantity >= $order->total_quantity) {
+                // All required quantity is approved
+                $order->status = 'approved';
+            } else if ($totalApprovedQuantity + $totalRejectedQuantity >= $totalAssignedQuantity) {
+                // All assigned quantity is accounted for (approved + rejected)
+                // But not all required quantity is approved, so keep in production
+                $order->status = 'in_production';
+            } else {
+                // Some assignments are still pending
+                $order->status = 'in_production';
+            }
+        } else {
+            // Some assignments are still in production
+            $order->status = 'in_production';
+        }
+
+        $order->save();
     }
 
     // Update the assignToOrder method to ensure proper validation of the status field

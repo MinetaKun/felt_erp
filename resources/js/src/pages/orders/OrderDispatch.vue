@@ -1,139 +1,197 @@
 <template>
-    <div class="container mx-auto px-4 py-6">
-      <div class="mb-6 flex justify-between items-center">
-        <h1 class="text-2xl font-bold">Order Assignments for Dispatch</h1>
-        <button
-          v-if="selectedOrders.length > 0"
-          @click="bulkDispatch"
-          :disabled="processing"
-          class="px-4 py-2 bg-purple-600 text-white rounded-md hover:bg-purple-700 disabled:opacity-50 disabled:cursor-not-allowed"
-        >
-          {{ processing ? "Processing..." : `Dispatch Selected (${selectedOrders.length})` }}
-        </button>
+    <div class="container mx-auto px-4 py-8">
+      <div class="flex justify-between items-center mb-6">
+        <h1 class="text-2xl font-bold">Order Dispatch</h1>
+        <div class="flex space-x-2">
+          <button
+            v-if="selectedAssignments.length > 0"
+            @click="bulkDispatch"
+            :disabled="processing"
+            class="bg-purple-500 hover:bg-purple-600 text-white px-4 py-2 rounded-md flex items-center"
+          >
+            <span v-if="processing" class="mr-2">
+              <svg class="animate-spin h-4 w-4 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+              </svg>
+            </span>
+            Bulk Dispatch ({{ selectedAssignments.length }})
+          </button>
+        </div>
       </div>
   
       <!-- Filters -->
-      <div class="bg-white dark:bg-gray-800 p-4 rounded-md shadow-md mb-6">
-        <div class="grid grid-cols-1 md:grid-cols-4 gap-4">
+      <div class="bg-white shadow rounded-lg p-4 mb-6">
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
           <div>
-            <label class="block text-sm font-medium mb-1">Search</label>
+            <label class="block text-sm font-medium text-gray-700 mb-1">Search</label>
             <input
               type="text"
               v-model="filters.search"
               @input="debounceSearch"
-              placeholder="Search by order ID or artisan"
-              class="w-full p-2 border rounded-md"
+              placeholder="Search orders or artisans..."
+              class="w-full px-3 py-2 border border-gray-300 rounded-md"
             />
           </div>
           <div>
-            <label class="block text-sm font-medium mb-1">Department</label>
-            <select v-model="filters.department_id" @change="loadOrders" class="w-full p-2 border rounded-md">
+            <label class="block text-sm font-medium text-gray-700 mb-1">Department</label>
+            <select
+              v-model="filters.department_id"
+              @change="loadAssignments"
+              class="w-full px-3 py-2 border border-gray-300 rounded-md"
+            >
               <option value="">All Departments</option>
-              <option v-for="dept in departments" :key="dept.id" :value="dept.id">{{ dept.name }}</option>
+              <option v-for="dept in departments" :key="dept.id" :value="dept.id">
+                {{ dept.name }}
+              </option>
             </select>
           </div>
           <div>
-            <label class="block text-sm font-medium mb-1">Status</label>
-            <select v-model="filters.status" @change="loadOrders" class="w-full p-2 border rounded-md">
-              <option value="">All Statuses</option>
+            <label class="block text-sm font-medium text-gray-700 mb-1">Status</label>
+            <select
+              v-model="filters.status"
+              @change="loadAssignments"
+              class="w-full px-3 py-2 border border-gray-300 rounded-md"
+            >
               <option value="approved">Approved</option>
               <option value="dispatched">Dispatched</option>
+              <option value="">All Statuses</option>
             </select>
           </div>
-          <div class="flex items-end">
-            <button
-              @click="resetFilters"
-              class="px-4 py-2 bg-gray-200 text-gray-700 rounded-md hover:bg-gray-300"
-            >
-              Reset Filters
-            </button>
-          </div>
+        </div>
+        <div class="mt-4 flex justify-end">
+          <button
+            @click="resetFilters"
+            class="bg-gray-200 hover:bg-gray-300 text-gray-700 px-4 py-2 rounded-md"
+          >
+            Reset Filters
+          </button>
         </div>
       </div>
   
       <!-- Assignments Table -->
-      <div class="bg-white dark:bg-gray-800 rounded-md shadow-md overflow-hidden">
+      <div class="bg-white shadow rounded-lg overflow-hidden">
         <div class="overflow-x-auto">
           <table class="min-w-full divide-y divide-gray-200">
-            <thead class="bg-gray-50 dark:bg-gray-700">
+            <thead class="bg-gray-50">
               <tr>
-                <th class="px-4 py-3 text-left">
+                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                   <div class="flex items-center">
                     <input
                       type="checkbox"
                       :checked="selectAll"
                       @change="toggleSelectAll"
-                      class="mr-2 h-4 w-4"
+                      class="h-4 w-4 text-blue-600 border-gray-300 rounded"
                     />
-                    <span>Order ID</span>
                   </div>
                 </th>
-                <th class="px-4 py-3 text-left">Product</th>
-                <th class="px-4 py-3 text-left">Artisan</th>
-                <th class="px-4 py-3 text-left">Department</th>
-                <th class="px-4 py-3 text-left">Quantity</th>
-                <th class="px-4 py-3 text-left">Status</th>
-                <th class="px-4 py-3 text-left">Approved Date</th>
-                <th class="px-4 py-3 text-left">Actions</th>
+                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  Order ID
+                </th>
+                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  Product
+                </th>
+                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  Artisan
+                </th>
+                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  Department
+                </th>
+                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  Quantity
+                </th>
+                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  Status
+                </th>
+                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  Approved Date
+                </th>
+                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  Actions
+                </th>
               </tr>
             </thead>
-            <tbody class="divide-y divide-gray-200">
+            <tbody class="bg-white divide-y divide-gray-200">
               <tr v-if="loading" class="text-center">
-                <td colspan="8" class="px-4 py-4">Loading assignments...</td>
+                <td colspan="9" class="px-6 py-4">
+                  <div class="flex justify-center">
+                    <svg class="animate-spin h-5 w-5 text-gray-500" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                      <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                      <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                    </svg>
+                  </div>
+                </td>
               </tr>
               <tr v-else-if="assignments.length === 0" class="text-center">
-                <td colspan="8" class="px-4 py-4">No assignments found.</td>
+                <td colspan="9" class="px-6 py-4 text-gray-500">
+                  No assignments found
+                </td>
               </tr>
-              <tr v-for="assignment in assignments" :key="assignment.id" class="hover:bg-gray-50 dark:hover:bg-gray-700">
-                <td class="px-4 py-3">
-                  <div class="flex items-center">
-                    <input
-                      type="checkbox"
-                      v-if="assignment.status === 'approved'"
-                      v-model="selectedOrders"
-                      :value="assignment.id"
-                      class="mr-2 h-4 w-4"
-                    />
-                    <span>{{ assignment.order?.order_id || 'N/A' }}</span>
-                  </div>
+              <tr v-for="assignment in assignments" :key="assignment.id" class="hover:bg-gray-50">
+                <td class="px-6 py-4 whitespace-nowrap">
+                  <input
+                    type="checkbox"
+                    v-model="selectedAssignments"
+                    :value="assignment.id"
+                    :disabled="assignment.status === 'dispatched'"
+                    class="h-4 w-4 text-blue-600 border-gray-300 rounded"
+                  />
                 </td>
-                <td class="px-4 py-3">{{ assignment.order?.product_name || 'N/A' }}</td>
-                <td class="px-4 py-3">{{ assignment.artisan?.name || 'N/A' }}</td>
-                <td class="px-4 py-3">{{ assignment.artisan?.department?.name || 'N/A' }}</td>
-                <td class="px-4 py-3">
-                  <div class="flex flex-col">
-                    <span>Assigned: {{ assignment.assigned_quantity }}</span>
-                    <span>Completed: {{ assignment.completed_quantity }}</span>
-                    <span>Approved: {{ assignment.approved_quantity }}</span>
-                  </div>
+                <td class="px-6 py-4 whitespace-nowrap">
+                  {{ assignment.order?.order_id || 'N/A' }}
                 </td>
-                <td class="px-4 py-3">
-                  <span :class="getStatusClass(assignment.status)" class="px-2 py-1 rounded-full text-xs">
+                <td class="px-6 py-4 whitespace-nowrap">
+                  {{ assignment.order?.product_name || 'N/A' }}
+                </td>
+                <td class="px-6 py-4 whitespace-nowrap">
+                  {{ assignment.artisan?.name || 'N/A' }}
+                </td>
+                <td class="px-6 py-4 whitespace-nowrap">
+                  {{ assignment.artisan?.department?.name || 'N/A' }}
+                </td>
+                <td class="px-6 py-4 whitespace-nowrap">
+                  {{ assignment.approved_quantity }}
+                </td>
+                <td class="px-6 py-4 whitespace-nowrap">
+                  <span :class="['px-2 py-1 text-xs rounded-full', getStatusClass(assignment.status)]">
                     {{ formatStatus(assignment.status) }}
                   </span>
                 </td>
-                <td class="px-4 py-3">{{ formatDate(assignment.approved_at) }}</td>
-                <td class="px-4 py-3">
+                <td class="px-6 py-4 whitespace-nowrap">
+                  {{ formatDate(assignment.approved_at) }}
+                </td>
+                <td class="px-6 py-4 whitespace-nowrap">
                   <div class="flex space-x-2">
                     <button
                       v-if="assignment.status === 'approved'"
-                      @click="dispatchAssignment(assignment)"
-                      class="px-3 py-1 bg-purple-600 text-white rounded-md hover:bg-purple-700 text-sm"
+                      @click="openDispatchModal(assignment)"
+                      class="text-purple-600 hover:text-purple-900"
+                      title="Dispatch"
                     >
-                      Dispatch
+                      <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
+                        <path d="M8 16.5a1.5 1.5 0 11-3 0 1.5 1.5 0 013 0zM15 16.5a1.5 1.5 0 11-3 0 1.5 1.5 0 013 0z" />
+                        <path d="M3 4a1 1 0 00-1 1v10a1 1 0 001 1h1.05a2.5 2.5 0 014.9 0H10a1 1 0 001-1v-5h2.05a2.5 2.5 0 014.9 0H19a1 1 0 001-1v-4a1 1 0 00-1-1h-8a1 1 0 00-.8.4L8.4 8H5V5a1 1 0 00-1-1H3z" />
+                      </svg>
                     </button>
                     <button
                       v-if="assignment.status === 'dispatched'"
                       @click="downloadInvoice(assignment)"
-                      class="px-3 py-1 bg-green-600 text-white rounded-md hover:bg-green-700 text-sm"
+                      class="text-green-600 hover:text-green-900"
+                      title="Download Invoice"
                     >
-                      Invoice
+                      <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
+                        <path fill-rule="evenodd" d="M6 2a2 2 0 00-2 2v12a2 2 0 002 2h8a2 2 0 002-2V7.414A2 2 0 0015.414 6L12 2.586A2 2 0 0010.586 2H6zm5 6a1 1 0 10-2 0v3.586l-1.293-1.293a1 1 0 10-1.414 1.414l3 3a1 1 0 001.414 0l3-3a1 1 0 00-1.414-1.414L11 11.586V8z" clip-rule="evenodd" />
+                      </svg>
                     </button>
                     <button
                       @click="viewDetails(assignment)"
-                      class="px-3 py-1 bg-blue-600 text-white rounded-md hover:bg-blue-700 text-sm"
+                      class="text-blue-600 hover:text-blue-900"
+                      title="View Details"
                     >
-                      View
+                      <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
+                        <path d="M10 12a2 2 0 100-4 2 2 0 000 4z" />
+                        <path fill-rule="evenodd" d="M.458 10C1.732 5.943 5.522 3 10 3s8.268 2.943 9.542 7c-1.274 4.057-5.064 7-9.542 7S1.732 14.057.458 10zM14 10a4 4 0 11-8 0 4 4 0 018 0z" clip-rule="evenodd" />
+                      </svg>
                     </button>
                   </div>
                 </td>
@@ -143,15 +201,15 @@
         </div>
   
         <!-- Pagination -->
-        <div class="px-4 py-3 flex items-center justify-between border-t border-gray-200 sm:px-6">
+        <div class="bg-white px-4 py-3 flex items-center justify-between border-t border-gray-200 sm:px-6">
           <div class="hidden sm:flex-1 sm:flex sm:items-center sm:justify-between">
             <div>
               <p class="text-sm text-gray-700">
                 Showing
-                <span class="font-medium">{{ assignments.length }}</span>
-                results of
-                <span class="font-medium">{{ pagination.total }}</span>
-                total
+                <span class="font-medium">{{ pagination.current_page }}</span>
+                of
+                <span class="font-medium">{{ pagination.last_page }}</span>
+                pages
               </p>
             </div>
             <div>
@@ -161,18 +219,21 @@
                   :disabled="pagination.current_page === 1"
                   class="relative inline-flex items-center px-2 py-2 rounded-l-md border border-gray-300 bg-white text-sm font-medium text-gray-500 hover:bg-gray-50"
                 >
-                  Previous
+                  <span class="sr-only">Previous</span>
+                  <svg class="h-5 w-5" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
+                    <path fill-rule="evenodd" d="M12.707 5.293a1 1 0 010 1.414L9.414 10l3.293 3.293a1 1 0 01-1.414 1.414l-4-4a1 1 0 010-1.414l4-4a1 1 0 011.414 0z" clip-rule="evenodd" />
+                  </svg>
                 </button>
                 <button
-                  v-for="(page, index) in getPageNumbers()"
-                  :key="index"
+                  v-for="page in getPageNumbers()"
+                  :key="page"
                   @click="typeof page === 'number' ? handlePageChange(page) : null"
                   :class="[
                     'relative inline-flex items-center px-4 py-2 border border-gray-300 bg-white text-sm font-medium',
                     page === pagination.current_page
-                      ? 'z-10 bg-indigo-50 border-indigo-500 text-indigo-600'
+                      ? 'z-10 bg-blue-50 border-blue-500 text-blue-600'
                       : 'text-gray-500 hover:bg-gray-50',
-                    page === '...' ? 'cursor-default' : 'cursor-pointer',
+                    typeof page !== 'number' ? 'cursor-default' : 'cursor-pointer'
                   ]"
                 >
                   {{ page }}
@@ -182,7 +243,10 @@
                   :disabled="pagination.current_page === pagination.last_page"
                   class="relative inline-flex items-center px-2 py-2 rounded-r-md border border-gray-300 bg-white text-sm font-medium text-gray-500 hover:bg-gray-50"
                 >
-                  Next
+                  <span class="sr-only">Next</span>
+                  <svg class="h-5 w-5" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
+                    <path fill-rule="evenodd" d="M7.293 14.707a1 1 0 010-1.414L10.586 10 7.293 6.707a1 1 0 011.414-1.414l4 4a1 1 0 010 1.414l-4 4a1 1 0 01-1.414 0z" clip-rule="evenodd" />
+                  </svg>
                 </button>
               </nav>
             </div>
@@ -191,68 +255,72 @@
       </div>
   
       <!-- Dispatch Modal -->
-      <div v-if="showDispatchModal" class="fixed inset-0 z-50 overflow-y-auto">
-        <div class="flex items-center justify-center min-h-screen pt-4 px-4 pb-20 text-center sm:block sm:p-0">
-          <!-- Background overlay -->
-          <div class="fixed inset-0 transition-opacity" aria-hidden="true">
-            <div class="absolute inset-0 bg-gray-500 opacity-75"></div>
+      <div v-if="showDispatchModal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+        <div class="bg-white rounded-lg p-6 w-full max-w-md">
+          <h2 class="text-xl font-bold mb-4">Dispatch Assignment</h2>
+          <div v-if="selectedAssignment" class="mb-4">
+            <p class="mb-2">
+              <span class="font-semibold">Order:</span> {{ selectedAssignment.order?.order_id }}
+            </p>
+            <p class="mb-2">
+              <span class="font-semibold">Product:</span> {{ selectedAssignment.order?.product_name }}
+            </p>
+            <p class="mb-2">
+              <span class="font-semibold">Artisan:</span> {{ selectedAssignment.artisan?.name }}
+            </p>
+            <p class="mb-2">
+              <span class="font-semibold">Approved Quantity:</span> {{ selectedAssignment.approved_quantity }}
+            </p>
           </div>
-  
-          <!-- Modal panel -->
-          <div
-            class="inline-block align-bottom bg-white rounded-lg text-left overflow-hidden shadow-xl transform transition-all sm:my-8 sm:align-middle sm:max-w-lg sm:w-full"
-          >
-            <div class="bg-white px-4 pt-5 pb-4 sm:p-6 sm:pb-4">
-              <div class="sm:flex sm:items-start">
-                <div class="mt-3 text-center sm:mt-0 sm:ml-4 sm:text-left w-full">
-                  <h3 class="text-lg leading-6 font-medium text-gray-900 mb-4">Dispatch Assignment</h3>
-                  
-                  <div class="mb-4">
-                    <p class="text-sm text-gray-500 mb-2">
-                      Order: <span class="font-semibold">{{ selectedAssignment?.order?.order_id || 'N/A' }}</span>
-                    </p>
-                    <p class="text-sm text-gray-500 mb-2">
-                      Product: <span class="font-semibold">{{ selectedAssignment?.order?.product_name || 'N/A' }}</span>
-                    </p>
-                    <p class="text-sm text-gray-500 mb-2">
-                      Artisan: <span class="font-semibold">{{ selectedAssignment?.artisan?.name || 'N/A' }}</span>
-                    </p>
-                    <p class="text-sm text-gray-500 mb-2">
-                      Approved Quantity: <span class="font-semibold">{{ selectedAssignment?.approved_quantity || 0 }}</span>
-                    </p>
-                    <p class="text-sm text-gray-500 mb-2">
-                      Wages per Unit: <span class="font-semibold">{{ formatCurrency(selectedAssignment?.order?.wages_per_unit || 0) }}</span>
-                    </p>
-                    <p class="text-sm text-gray-500 mb-2">
-                      Total Wages: <span class="font-semibold">{{ formatCurrency((selectedAssignment?.approved_quantity || 0) * (selectedAssignment?.order?.wages_per_unit || 0)) }}</span>
-                    </p>
-                  </div>
-  
-                  <div class="mb-4">
-                    <p class="text-sm text-gray-700">
-                      Are you sure you want to dispatch this assignment? This action cannot be undone.
-                    </p>
-                  </div>
-                </div>
-              </div>
-            </div>
-            <div class="bg-gray-50 px-4 py-3 sm:px-6 sm:flex sm:flex-row-reverse">
-              <button
-                type="button"
-                @click="confirmDispatch"
-                :disabled="processing"
-                class="w-full inline-flex justify-center rounded-md border border-transparent shadow-sm px-4 py-2 bg-purple-600 text-base font-medium text-white hover:bg-purple-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-purple-500 sm:ml-3 sm:w-auto sm:text-sm disabled:opacity-50 disabled:cursor-not-allowed"
-              >
-                {{ processing ? "Processing..." : "Dispatch" }}
-              </button>
-              <button
-                type="button"
-                @click="showDispatchModal = false"
-                class="mt-3 w-full inline-flex justify-center rounded-md border border-gray-300 shadow-sm px-4 py-2 bg-white text-base font-medium text-gray-700 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 sm:mt-0 sm:ml-3 sm:w-auto sm:text-sm"
-              >
-                Cancel
-              </button>
-            </div>
+          <div class="mb-4">
+            <label class="block text-sm font-medium text-gray-700 mb-1">Dispatch Date</label>
+            <input
+              type="date"
+              v-model="dispatchForm.dispatch_date"
+              class="w-full px-3 py-2 border border-gray-300 rounded-md"
+            />
+          </div>
+          <div class="mb-4">
+            <label class="block text-sm font-medium text-gray-700 mb-1">Dispatch Method</label>
+            <select
+              v-model="dispatchForm.dispatch_method"
+              class="w-full px-3 py-2 border border-gray-300 rounded-md"
+            >
+              <option value="vehicle">Vehicle</option>
+              <option value="runner">Runner</option>
+              <option value="courier">Courier</option>
+              <option value="pickup">Pickup</option>
+            </select>
+          </div>
+          <div class="mb-4">
+            <label class="block text-sm font-medium text-gray-700 mb-1">Notes</label>
+            <textarea
+              v-model="dispatchForm.notes"
+              rows="3"
+              class="w-full px-3 py-2 border border-gray-300 rounded-md"
+              placeholder="Additional notes about the dispatch"
+            ></textarea>
+          </div>
+          <div class="flex justify-end space-x-2">
+            <button
+              @click="showDispatchModal = false"
+              class="bg-gray-200 hover:bg-gray-300 text-gray-700 px-4 py-2 rounded-md"
+            >
+              Cancel
+            </button>
+            <button
+              @click="confirmDispatch"
+              :disabled="processing"
+              class="bg-purple-500 hover:bg-purple-600 text-white px-4 py-2 rounded-md flex items-center"
+            >
+              <span v-if="processing" class="mr-2">
+                <svg class="animate-spin h-4 w-4 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                  <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                  <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                </svg>
+              </span>
+              Dispatch
+            </button>
           </div>
         </div>
       </div>
@@ -262,6 +330,7 @@
   <script>
   import { ref, reactive, onMounted, computed } from "vue"
   import axios from "axios"
+  import Swal from "sweetalert2"
   
   export default {
     setup() {
@@ -279,17 +348,22 @@
       const filters = reactive({
         search: "",
         department_id: "",
-        status: "",
+        status: "approved", // Default to show only approved assignments
         page: 1,
         per_page: 15,
       })
-      const selectedOrders = ref([])
+      const selectedAssignments = ref([])
       const selectAll = ref(false)
       const showDispatchModal = ref(false)
       const selectedAssignment = ref(null)
+      const dispatchForm = ref({
+        dispatch_date: new Date().toISOString().split('T')[0],
+        dispatch_method: "vehicle",
+        notes: ""
+      })
   
       // Load assignments with filters
-      const loadOrders = async () => {
+      const loadAssignments = async () => {
         loading.value = true
         try {
           const queryParams = new URLSearchParams()
@@ -318,7 +392,7 @@
           }
         } catch (error) {
           console.error("Error loading assignments:", error)
-          alert("Failed to load assignments. Please try again.")
+          Swal.fire("Error!", "Failed to load assignments.", "error")
         } finally {
           loading.value = false
         }
@@ -326,68 +400,52 @@
   
       // Format status for display
       const formatStatus = (status) => {
-        switch (status) {
-          case "pending":
-            return "Pending"
-          case "in_production":
-            return "In Production"
-          case "completed":
-            return "Completed"
-          case "approved":
-            return "Approved"
-          case "dispatched":
-            return "Dispatched"
-          default:
-            return status
-        }
+        if (!status) return "N/A"
+        return status
+          .split("_")
+          .map((word) => word.charAt(0).toUpperCase() + word.slice(1))
+          .join(" ")
       }
   
       // Format date
       const formatDate = (dateString) => {
         if (!dateString) return "N/A"
         const date = new Date(dateString)
-        return date.toLocaleDateString()
-      }
-  
-      // Format currency
-      const formatCurrency = (amount) => {
-        return new Intl.NumberFormat('en-US', {
-          style: 'currency',
-          currency: 'USD',
-        }).format(amount)
+        return date.toLocaleDateString("en-US", { year: "numeric", month: "short", day: "numeric" })
       }
   
       // Get status class for styling
       const getStatusClass = (status) => {
-        switch (status) {
-          case "pending":
-            return "bg-yellow-100 text-yellow-800"
-          case "in_production":
-            return "bg-blue-100 text-blue-800"
-          case "completed":
-            return "bg-orange-100 text-orange-800"
-          case "approved":
-            return "bg-green-100 text-green-800"
-          case "dispatched":
-            return "bg-purple-100 text-purple-800"
-          default:
-            return "bg-gray-100 text-gray-800"
+        const classes = {
+          pending: "bg-yellow-100 text-yellow-800",
+          in_production: "bg-blue-100 text-blue-800",
+          completed: "bg-orange-100 text-orange-800",
+          approved: "bg-green-100 text-green-800",
+          dispatched: "bg-purple-100 text-purple-800",
         }
+        return classes[status] || "bg-gray-100 text-gray-800"
       }
   
       // Toggle select all
       const toggleSelectAll = () => {
         selectAll.value = !selectAll.value
         if (selectAll.value) {
-          selectedOrders.value = assignments.value.filter((a) => a.status === "approved").map((a) => a.id)
+          selectedAssignments.value = assignments.value
+            .filter((a) => a.status === "approved")
+            .map((a) => a.id)
         } else {
-          selectedOrders.value = []
+          selectedAssignments.value = []
         }
       }
   
-      // Dispatch a single assignment
-      const dispatchAssignment = (assignment) => {
+      // Open dispatch modal for a single assignment
+      const openDispatchModal = (assignment) => {
         selectedAssignment.value = assignment
+        dispatchForm.value = {
+          dispatch_date: new Date().toISOString().split('T')[0],
+          dispatch_method: "vehicle",
+          notes: ""
+        }
         showDispatchModal.value = true
       }
   
@@ -395,63 +453,96 @@
       const confirmDispatch = async () => {
         processing.value = true
         try {
-          await axios.patch(`/order-assignments/${selectedAssignment.value.id}/dispatch`)
+          await axios.patch(`/order-assignments/${selectedAssignment.value.id}/dispatch`, dispatchForm.value)
           showDispatchModal.value = false
-          alert("Assignment dispatched successfully")
-          loadOrders()
+          Swal.fire("Success!", "Assignment dispatched successfully", "success")
+          loadAssignments()
         } catch (error) {
           console.error("Error dispatching assignment:", error)
-          alert("Failed to dispatch assignment. Please try again.")
+          Swal.fire("Error!", "Failed to dispatch assignment.", "error")
         } finally {
           processing.value = false
         }
+      }
+  
+      // Bulk dispatch selected assignments
+      const bulkDispatch = async () => {
+        if (selectedAssignments.value.length === 0) return
+  
+        Swal.fire({
+          title: 'Dispatch Multiple Assignments',
+          html: `
+            <div class="mb-4">
+              <label class="block text-sm font-medium text-gray-700">Dispatch Date</label>
+              <input id="swal-dispatch-date" type="date" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm" value="${new Date().toISOString().split('T')[0]}">
+            </div>
+            <div class="mb-4">
+              <label class="block text-sm font-medium text-gray-700">Dispatch Method</label>
+              <select id="swal-dispatch-method" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm">
+                <option value="vehicle">Vehicle</option>
+                <option value="runner">Runner</option>
+                <option value="courier">Courier</option>
+                <option value="pickup">Pickup</option>
+              </select>
+            </div>
+            <div>
+              <label class="block text-sm font-medium text-gray-700">Notes</label>
+              <textarea id="swal-dispatch-notes" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm" rows="3"></textarea>
+            </div>
+          `,
+          showCancelButton: true,
+          confirmButtonText: 'Dispatch',
+          preConfirm: () => {
+            return {
+              dispatch_date: document.getElementById('swal-dispatch-date').value,
+              dispatch_method: document.getElementById('swal-dispatch-method').value,
+              notes: document.getElementById('swal-dispatch-notes').value
+            }
+          }
+        }).then((result) => {
+          if (result.isConfirmed) {
+            processing.value = true
+            axios.post("/order-assignments/bulk-dispatch", {
+              assignment_ids: selectedAssignments.value,
+              ...result.value
+            })
+            .then(() => {
+              Swal.fire("Success!", "Assignments dispatched successfully", "success")
+              selectedAssignments.value = []
+              selectAll.value = false
+              loadAssignments()
+            })
+            .catch((error) => {
+              console.error("Error bulk dispatching assignments:", error)
+              Swal.fire("Error!", "Failed to dispatch assignments.", "error")
+            })
+            .finally(() => {
+              processing.value = false
+            })
+          }
+        })
       }
   
       // Download invoice for a dispatched assignment
       const downloadInvoice = async (assignment) => {
         try {
           const response = await axios.get(`/orders/${assignment.order_id}/invoice`, {
-            responseType: 'blob'
+            responseType: "blob",
           })
-          
+  
           // Create a blob URL and trigger download
-          const blob = new Blob([response.data], { type: 'application/pdf' })
+          const blob = new Blob([response.data], { type: "application/pdf" })
           const url = window.URL.createObjectURL(blob)
-          const link = document.createElement('a')
+          const link = document.createElement("a")
           link.href = url
-          link.setAttribute('download', `invoice-${assignment.order.order_id}.pdf`)
+          link.setAttribute("download", `invoice-${assignment.order.order_id}.pdf`)
           document.body.appendChild(link)
           link.click()
           document.body.removeChild(link)
           window.URL.revokeObjectURL(url)
         } catch (error) {
           console.error("Error downloading invoice:", error)
-          alert("Failed to download invoice. Please try again.")
-        }
-      }
-  
-      // Bulk dispatch selected assignments
-      const bulkDispatch = async () => {
-        if (selectedOrders.value.length === 0) return
-  
-        if (!confirm(`Are you sure you want to dispatch ${selectedOrders.value.length} assignments?`)) {
-          return
-        }
-  
-        processing.value = true
-        try {
-          await axios.post("/order-assignments/bulk-dispatch", {
-            assignment_ids: selectedOrders.value,
-          })
-          alert("Assignments dispatched successfully")
-          selectedOrders.value = []
-          selectAll.value = false
-          loadOrders()
-        } catch (error) {
-          console.error("Error bulk dispatching assignments:", error)
-          alert("Failed to dispatch assignments. Please try again.")
-        } finally {
-          processing.value = false
+          Swal.fire("Error!", "Failed to download invoice.", "error")
         }
       }
   
@@ -466,7 +557,7 @@
       const debounceSearch = () => {
         clearTimeout(searchTimeout)
         searchTimeout = setTimeout(() => {
-          loadOrders()
+          loadAssignments()
         }, 500)
       }
   
@@ -474,7 +565,7 @@
       const handlePageChange = (page) => {
         if (page < 1 || page > pagination.value.last_page) return
         filters.page = page
-        loadOrders()
+        loadAssignments()
       }
   
       // Get page numbers for pagination
@@ -500,17 +591,18 @@
       // Reset filters
       const resetFilters = () => {
         Object.keys(filters).forEach((key) => {
-          if (key !== "page" && key !== "per_page") {
+          if (key !== "page" && key !== "per_page" && key !== "status") {
             filters[key] = ""
           }
         })
         filters.page = 1
-        loadOrders()
+        filters.status = "approved" // Keep the status filter
+        loadAssignments()
       }
   
-      // Load orders on component mount
+      // Load assignments on component mount
       onMounted(() => {
-        loadOrders()
+        loadAssignments()
       })
   
       return {
@@ -520,16 +612,16 @@
         processing,
         pagination,
         filters,
-        selectedOrders,
+        selectedAssignments,
         selectAll,
         showDispatchModal,
         selectedAssignment,
+        dispatchForm,
         formatStatus,
         formatDate,
-        formatCurrency,
         getStatusClass,
         toggleSelectAll,
-        dispatchAssignment,
+        openDispatchModal,
         confirmDispatch,
         downloadInvoice,
         bulkDispatch,
@@ -538,9 +630,8 @@
         handlePageChange,
         getPageNumbers,
         resetFilters,
-        loadOrders,
+        loadAssignments,
       }
     },
-}
+  }
 </script>
-  
