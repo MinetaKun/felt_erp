@@ -272,8 +272,37 @@
                 <router-link to="/wages/calculations" class="block p-2 text-gray-400 hover:text-white hover:bg-gray-700 rounded-lg transition-colors">
                   Wage Calculations
                 </router-link>
-                <router-link to="/wages/reports" class="block p-2 text-gray-400 hover:text-white hover:bg-gray-700 rounded-lg transition-colors">
-                  Reports
+                <router-link to="/wages/report" class="block p-2 text-gray-400 hover:text-white hover:bg-gray-700 rounded-lg transition-colors">
+                  Wage Report
+                </router-link>
+              </div>
+            </div>
+          </li>
+
+          <!-- Inventory Section -->
+          <li v-if="hasPermission(['inventory-all', 'inventory-view'])" class="mb-2">
+            <div>
+              <button @click="toggleDropdown('inventory')" 
+                      class="w-full flex items-center p-3 text-gray-300 hover:bg-gray-700 rounded-lg transition-colors"
+                      :class="{ 'justify-center': isCollapsed, 'bg-gray-700': isActive('/inventory') }">
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" 
+                        d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4" />
+                </svg>
+                <span v-if="!isCollapsed" class="ml-3 flex-1 text-left">Inventory</span>
+                <svg v-if="!isCollapsed" xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 transition-transform"
+                     :class="{ 'rotate-180': dropdownOpen.inventory || shouldOpenDropdown.inventory }"
+                     fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" />
+                </svg>
+              </button>
+              
+              <div v-if="(!isCollapsed && (dropdownOpen.inventory || shouldOpenDropdown.inventory))" class="ml-8 mt-2 space-y-2">
+                <router-link to="/inventory/raw-materials" class="block p-2 text-gray-400 hover:text-white hover:bg-gray-700 rounded-lg transition-colors">
+                  Raw Materials
+                </router-link>
+                <router-link to="/inventory/finished-products" class="block p-2 text-gray-400 hover:text-white hover:bg-gray-700 rounded-lg transition-colors">
+                  Finished Products
                 </router-link>
               </div>
             </div>

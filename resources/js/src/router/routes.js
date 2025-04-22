@@ -308,5 +308,36 @@ export default [
         permissions: ["orders-all", "orders-view"],
       },
     },
-  ]
+    {
+      path: '/inventory',
+      name: 'inventory',
+      component: () => import('@/layouts/DefaultLayout.vue'),
+      meta: {
+          title: 'Inventory',
+          requiresAuth: true,
+      },
+      children: [
+          {
+              path: 'raw-materials',
+              name: 'raw-materials',
+              component: () => import('@/pages/inventory/RawMaterials.vue'),
+              meta: {
+                  title: 'Raw Materials',
+                  requiresAuth: true,
+                  permissions: ['inventory-all', 'inventory-view']
+              }
+          },
+          {
+              path: 'finished-products',
+              name: 'finished-products',
+              component: () => import('@/pages/inventory/FinishedProducts.vue'),
+              meta: {
+                  title: 'Finished Products',
+                  requiresAuth: true,
+                  permissions: ['inventory-all', 'inventory-view']
+              }
+          }
+      ]
+    },
+]
   
