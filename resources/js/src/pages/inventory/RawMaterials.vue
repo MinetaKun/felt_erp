@@ -6,7 +6,7 @@
         @click="showAddModal = true"
         class="bg-blue-500 hover:bg-blue-600 text-white px-4 py-2 rounded-lg flex items-center"
       >
-        <PlusIcon class="w-5 h-5 mr-2" />
+        <span class="mr-2">+</span>
         Add Raw Material
       </button>
     </div>
@@ -14,6 +14,19 @@
     <!-- Filters -->
     <div class="bg-white rounded-lg shadow p-4 mb-6">
       <div class="grid grid-cols-1 md:grid-cols-4 gap-4">
+        <div>
+          <label class="block text-sm font-medium text-gray-700 mb-1">Category</label>
+          <select
+            v-model="filters.category"
+            class="w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
+          >
+            <option value="">All Categories</option>
+            <option value="raw_material">Raw Materials</option>
+            <option value="machine">Machines & Equipment</option>
+            <option value="gadget">Gadgets & Electronics</option>
+            <option value="other">Other</option>
+          </select>
+        </div>
         <div>
           <label class="block text-sm font-medium text-gray-700 mb-1">Type</label>
           <select
@@ -23,18 +36,6 @@
             <option value="">All Types</option>
             <option v-for="type in materialTypes" :key="type" :value="type">
               {{ type }}
-            </option>
-          </select>
-        </div>
-        <div>
-          <label class="block text-sm font-medium text-gray-700 mb-1">Color</label>
-          <select
-            v-model="filters.color"
-            class="w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
-          >
-            <option value="">All Colors</option>
-            <option v-for="color in materialColors" :key="color" :value="color">
-              {{ color }}
             </option>
           </select>
         </div>
@@ -55,10 +56,30 @@
           <input
             type="text"
             v-model="filters.search"
-            placeholder="Search materials..."
+            placeholder="Search inventory..."
             class="w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
           />
         </div>
+      </div>
+    </div>
+
+    <!-- Inventory Summary -->
+    <div class="grid grid-cols-1 md:grid-cols-4 gap-6 mb-6">
+      <div class="bg-white rounded-lg shadow p-6">
+        <h3 class="text-lg font-medium text-gray-900">Total Items</h3>
+        <p class="mt-2 text-3xl font-bold text-blue-600">{{ totalItems }}</p>
+      </div>
+      <div class="bg-white rounded-lg shadow p-6">
+        <h3 class="text-lg font-medium text-gray-900">Low Stock Items</h3>
+        <p class="mt-2 text-3xl font-bold text-red-600">{{ lowStockCount }}</p>
+      </div>
+      <div class="bg-white rounded-lg shadow p-6">
+        <h3 class="text-lg font-medium text-gray-900">Total Value</h3>
+        <p class="mt-2 text-3xl font-bold text-green-600">{{ formatCurrency(totalValue) }}</p>
+      </div>
+      <div class="bg-white rounded-lg shadow p-6">
+        <h3 class="text-lg font-medium text-gray-900">Machines & Equipment</h3>
+        <p class="mt-2 text-3xl font-bold text-purple-600">{{ machineCount }}</p>
       </div>
     </div>
 
@@ -67,15 +88,21 @@
       <div class="bg-red-50 border-l-4 border-red-400 p-4">
         <div class="flex">
           <div class="flex-shrink-0">
-            <ExclamationIcon class="h-5 w-5 text-red-400" />
+            !
           </div>
           <div class="ml-3">
             <h3 class="text-sm font-medium text-red-800">Low Stock Alert</h3>
             <div class="mt-2 text-sm text-red-700">
-              <p>The following materials are running low on stock:</p>
+              <p>The following items are running low on stock:</p>
               <ul class="list-disc pl-5 mt-2">
                 <li v-for="material in lowStockMaterials" :key="material.id">
                   {{ material.name }} ({{ material.quantity }} {{ material.unit }} remaining)
+                  <button
+                    @click="updateStock(material)"
+                    class="ml-2 text-blue-600 hover:text-blue-800 text-sm"
+                  >
+                    Restock
+                  </button>
                 </li>
               </ul>
             </div>
@@ -86,6 +113,16 @@
 
     <!-- Materials Table -->
     <div class="bg-white rounded-lg shadow overflow-hidden">
+      <div class="flex justify-between items-center p-4 border-b">
+        <h2 class="text-lg font-medium text-gray-900">Inventory Items</h2>
+        <button
+          @click="printInventory"
+          class="bg-gray-100 hover:bg-gray-200 text-gray-700 px-4 py-2 rounded-lg flex items-center"
+        >
+          <span class="mr-2">🖨️</span>
+          Print Inventory
+        </button>
+      </div>
       <table class="min-w-full divide-y divide-gray-200">
         <thead class="bg-gray-50">
           <tr>
@@ -93,10 +130,10 @@
               Name
             </th>
             <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-              Type
+              Category
             </th>
             <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-              Color
+              Type
             </th>
             <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
               Quantity
@@ -122,10 +159,10 @@
               <div class="text-sm text-gray-500">{{ material.description }}</div>
             </td>
             <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-              {{ material.type }}
+              {{ formatCategory(material.category) }}
             </td>
             <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-              {{ material.color }}
+              {{ material.type }}
             </td>
             <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
               {{ material.quantity }} {{ material.unit }}
@@ -168,8 +205,21 @@
     </div>
 
     <!-- Add/Edit Modal -->
-    <Modal v-model="showAddModal" :title="editingMaterial ? 'Edit Raw Material' : 'Add Raw Material'">
+    <Modal v-model="showAddModal" :title="editingMaterial ? 'Edit Inventory Item' : 'Add Inventory Item'">
       <form @submit.prevent="saveMaterial" class="space-y-4">
+        <div>
+          <label class="block text-sm font-medium text-gray-700">Category</label>
+          <select
+            v-model="form.category"
+            required
+            class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
+          >
+            <option value="raw_material">Raw Materials</option>
+            <option value="machine">Machines & Equipment</option>
+            <option value="gadget">Gadgets & Electronics</option>
+            <option value="other">Other</option>
+          </select>
+        </div>
         <div>
           <label class="block text-sm font-medium text-gray-700">Name</label>
           <input
@@ -184,15 +234,6 @@
           <input
             type="text"
             v-model="form.type"
-            required
-            class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
-          />
-        </div>
-        <div>
-          <label class="block text-sm font-medium text-gray-700">Color</label>
-          <input
-            type="text"
-            v-model="form.color"
             required
             class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
           />
@@ -334,8 +375,7 @@
 
 <script setup>
 import { ref, reactive, computed, onMounted } from 'vue'
-import { PlusIcon, ExclamationIcon } from '@heroicons/vue/24/outline'
-import Modal from '@/components/Modal.vue'
+import Modal from '../../components/Modal.vue'
 import axios from 'axios'
 
 const materials = ref([])
@@ -346,16 +386,16 @@ const editingMaterial = ref(null)
 const selectedMaterial = ref(null)
 
 const filters = reactive({
+  category: '',
   type: '',
-  color: '',
   stockStatus: '',
   search: ''
 })
 
 const form = reactive({
   name: '',
+  category: 'raw_material',
   type: '',
-  color: '',
   quantity: 0,
   unit: '',
   min_stock_level: 0,
@@ -374,8 +414,22 @@ const materialTypes = computed(() => {
   return [...new Set(materials.value.map(m => m.type))]
 })
 
-const materialColors = computed(() => {
-  return [...new Set(materials.value.map(m => m.color))]
+const totalItems = computed(() => {
+  return materials.value.length
+})
+
+const lowStockCount = computed(() => {
+  return lowStockMaterials.value.length
+})
+
+const machineCount = computed(() => {
+  return materials.value.filter(m => m.category === 'machine').length
+})
+
+const totalValue = computed(() => {
+  return materials.value.reduce((sum, material) => {
+    return sum + (material.quantity * material.price_per_unit)
+  }, 0)
 })
 
 onMounted(async () => {
@@ -387,7 +441,7 @@ async function fetchMaterials() {
   try {
     const response = await axios.get('/raw-materials', { params: filters })
     if (response.data.success) {
-      materials.value = response.data.data
+      materials.value = response.data.data.data
     }
   } catch (error) {
     console.error('Failed to fetch materials:', error)
@@ -458,6 +512,7 @@ function resetForm() {
   Object.keys(form).forEach(key => {
     form[key] = ''
   })
+  form.category = 'raw_material'
 }
 
 function formatCurrency(amount) {
@@ -466,4 +521,29 @@ function formatCurrency(amount) {
     currency: 'USD'
   }).format(amount)
 }
-</script> 
+
+function formatCategory(category) {
+  const categories = {
+    raw_material: 'Raw Materials',
+    machine: 'Machines & Equipment',
+    gadget: 'Gadgets & Electronics',
+    other: 'Other'
+  }
+  return categories[category] || category
+}
+
+function printInventory() {
+  window.print()
+}
+</script>
+
+<style>
+@media print {
+  .no-print {
+    display: none;
+  }
+  .print-only {
+    display: block;
+  }
+}
+</style> 

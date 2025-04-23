@@ -16,42 +16,68 @@
       
       <nav class="mt-4">
         <ul>
-          <!-- Users Section -->
-          <li v-if="hasPermission(['users-all', 'users-view'])" class="mb-2">
-            <router-link to="/users" class="flex items-center p-3 text-gray-300 hover:bg-gray-700 rounded-lg transition-colors"
-                        :class="{ 'justify-center': isCollapsed, 'bg-gray-700': isActive('/users') }">
-              <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" 
-                      d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z" />
-              </svg>
-              <span v-if="!isCollapsed" class="ml-3">Users</span>
-            </router-link>
+          <!-- User Management Section -->
+          <li v-if="hasPermission(['users-all', 'users-view', 'roles-all', 'roles-view', 'permissions-all', 'permissions-view'])" class="mb-2">
+            <div>
+              <button @click="toggleDropdown('userManagement')" 
+                      class="w-full flex items-center p-3 text-gray-300 hover:bg-gray-700 rounded-lg transition-colors"
+                      :class="{ 'justify-center': isCollapsed, 'bg-gray-700': isActive('/users') || isActive('/roles') || isActive('/permissions') }">
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z" />
+                </svg>
+                <span v-if="!isCollapsed" class="ml-3 flex-1 text-left">User Management</span>
+                <svg v-if="!isCollapsed" xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 transition-transform"
+                     :class="{ 'rotate-180': dropdownOpen.userManagement || shouldOpenDropdown.userManagement }"
+                     fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" />
+                </svg>
+              </button>
+              
+              <div v-if="(!isCollapsed && (dropdownOpen.userManagement || shouldOpenDropdown.userManagement))" class="ml-8 mt-2 space-y-2">
+                <router-link v-if="hasPermission(['users-all', 'users-view'])" to="/users" class="block p-2 text-gray-400 hover:text-white hover:bg-gray-700 rounded-lg transition-colors">
+                  Users
+                </router-link>
+                <router-link v-if="hasPermission(['roles-all', 'roles-view'])" to="/roles" class="block p-2 text-gray-400 hover:text-white hover:bg-gray-700 rounded-lg transition-colors">
+                  Roles
+                </router-link>
+                <router-link v-if="hasPermission(['permissions-all', 'permissions-view'])" to="/permissions" class="block p-2 text-gray-400 hover:text-white hover:bg-gray-700 rounded-lg transition-colors">
+                  Permissions
+                </router-link>
+              </div>
+            </div>
           </li>
-          
-          <!-- Roles Section -->
-          <li v-if="hasPermission(['roles-all', 'roles-view'])" class="mb-2">
-            <router-link to="/roles" class="flex items-center p-3 text-gray-300 hover:bg-gray-700 rounded-lg transition-colors"
-                        :class="{ 'justify-center': isCollapsed, 'bg-gray-700': isActive('/roles') }">
-              <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" 
-                      d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" />
-              </svg>
-              <span v-if="!isCollapsed" class="ml-3">Roles</span>
-            </router-link>
+
+          <!-- Inventory Section -->
+          <li v-if="hasPermission(['inventory-all', 'inventory-view'])" class="mb-2">
+            <div>
+              <button @click="toggleDropdown('inventory')" 
+                      class="w-full flex items-center p-3 text-gray-300 hover:bg-gray-700 rounded-lg transition-colors"
+                      :class="{ 'justify-center': isCollapsed, 'bg-gray-700': isActive('/inventory') }">
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4" />
+                </svg>
+                <span v-if="!isCollapsed" class="ml-3 flex-1 text-left">Inventory</span>
+                <svg v-if="!isCollapsed" xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 transition-transform"
+                     :class="{ 'rotate-180': dropdownOpen.inventory || shouldOpenDropdown.inventory }"
+                     fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" />
+                </svg>
+              </button>
+              
+              <div v-if="(!isCollapsed && (dropdownOpen.inventory || shouldOpenDropdown.inventory))" class="ml-8 mt-2 space-y-2">
+                <router-link to="/inventory" class="block p-2 text-gray-400 hover:text-white hover:bg-gray-700 rounded-lg transition-colors">
+                  Overview
+                </router-link>
+                <router-link to="/inventory/raw-materials" class="block p-2 text-gray-400 hover:text-white hover:bg-gray-700 rounded-lg transition-colors">
+                  Raw Materials
+                </router-link>
+                <router-link to="/inventory/finished-products" class="block p-2 text-gray-400 hover:text-white hover:bg-gray-700 rounded-lg transition-colors">
+                  Finished Products
+                </router-link>
+              </div>
+            </div>
           </li>
-          
-          <!-- Permissions Section -->
-          <li v-if="hasPermission(['permissions-all', 'permissions-view'])" class="mb-2">
-            <router-link to="/permissions" class="flex items-center p-3 text-gray-300 hover:bg-gray-700 rounded-lg transition-colors"
-                        :class="{ 'justify-center': isCollapsed, 'bg-gray-700': isActive('/permissions') }">
-              <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" 
-                      d="M15 7a2 2 0 012 2m4 0a6 6 0 01-7.743 5.743L11 17H9v2H7v2H4a1 1 0 01-1-1v-2.586a1 1 0 01.293-.707l5.964-5.964A6 6 0 1121 9z" />
-              </svg>
-              <span v-if="!isCollapsed" class="ml-3">Permissions</span>
-            </router-link>
-          </li>
-          
+
           <!-- Departments Section -->
           <li v-if="hasPermission(['departments-all', 'departments-view'])" class="mb-2">
             <router-link to="/departments" class="flex items-center p-3 text-gray-300 hover:bg-gray-700 rounded-lg transition-colors"
@@ -179,10 +205,10 @@
               
               <div v-if="(!isCollapsed && (dropdownOpen.attendance || shouldOpenDropdown.attendance))" class="ml-8 mt-2 space-y-2">
                 <router-link to="/attendance" class="block p-2 text-gray-400 hover:text-white hover:bg-gray-700 rounded-lg transition-colors">
-                  All Records
+                  Mark Attendance
                 </router-link>
-                <router-link to="/attendance/reports" class="block p-2 text-gray-400 hover:text-white hover:bg-gray-700 rounded-lg transition-colors">
-                  Reports
+                <router-link to="/attendance/report" class="block p-2 text-gray-400 hover:text-white hover:bg-gray-700 rounded-lg transition-colors">
+                  Attendance Report
                 </router-link>
               </div>
             </div>
@@ -279,35 +305,6 @@
             </div>
           </li>
 
-          <!-- Inventory Section -->
-          <li v-if="hasPermission(['inventory-all', 'inventory-view'])" class="mb-2">
-            <div>
-              <button @click="toggleDropdown('inventory')" 
-                      class="w-full flex items-center p-3 text-gray-300 hover:bg-gray-700 rounded-lg transition-colors"
-                      :class="{ 'justify-center': isCollapsed, 'bg-gray-700': isActive('/inventory') }">
-                <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" 
-                        d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4" />
-                </svg>
-                <span v-if="!isCollapsed" class="ml-3 flex-1 text-left">Inventory</span>
-                <svg v-if="!isCollapsed" xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 transition-transform"
-                     :class="{ 'rotate-180': dropdownOpen.inventory || shouldOpenDropdown.inventory }"
-                     fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" />
-                </svg>
-              </button>
-              
-              <div v-if="(!isCollapsed && (dropdownOpen.inventory || shouldOpenDropdown.inventory))" class="ml-8 mt-2 space-y-2">
-                <router-link to="/inventory/raw-materials" class="block p-2 text-gray-400 hover:text-white hover:bg-gray-700 rounded-lg transition-colors">
-                  Raw Materials
-                </router-link>
-                <router-link to="/inventory/finished-products" class="block p-2 text-gray-400 hover:text-white hover:bg-gray-700 rounded-lg transition-colors">
-                  Finished Products
-                </router-link>
-              </div>
-            </div>
-          </li>
-          
           <!-- Logout Button -->
           <li class="mt-8">
             <button @click="logout" class="w-full flex items-center p-3 text-gray-300 hover:bg-gray-700 rounded-lg transition-colors"
@@ -364,14 +361,16 @@ const dropdownOpen = ref({
   artisans: false,
   payroll: false,
   attendance: false,
-  wool: false, // Add wool dropdown state
+  wool: false,
+  userManagement: false,
+  inventory: false
 })
 
 const toggleDropdown = (section) => {
   dropdownOpen.value[section] = !dropdownOpen.value[section]
 }
 
-// Update the shouldOpenDropdown computed property to include wool
+// Update the shouldOpenDropdown computed property to include userManagement and inventory
 const shouldOpenDropdown = computed(() => {
   return {
     pettyCash: isActive("/petty-cash"),
@@ -379,7 +378,9 @@ const shouldOpenDropdown = computed(() => {
     artisans: isActive("/artisans"),
     payroll: isActive("/payroll"),
     attendance: isActive("/attendance"),
-    wool: isActive("/wool"), // Add wool check
+    wool: isActive("/wool"),
+    userManagement: isActive("/users") || isActive("/roles") || isActive("/permissions"),
+    inventory: isActive("/inventory")
   }
 })
 
@@ -394,7 +395,7 @@ const logout = async () => {
   }
 }
 
-// Update the watch function to include wool
+// Update the watch function to include userManagement and inventory
 watch(
   () => router.currentRoute.value.path,
   () => {
@@ -405,12 +406,14 @@ watch(
       artisans: isActive("/artisans"),
       payroll: isActive("/payroll"),
       attendance: isActive("/attendance"),
-      wool: isActive("/wool"), // Add wool check
+      wool: isActive("/wool"),
+      userManagement: isActive("/users") || isActive("/roles") || isActive("/permissions"),
+      inventory: isActive("/inventory")
     }
   },
 )
 
-// Update the onMounted function to include wool
+// Update the onMounted function to include userManagement and inventory
 onMounted(() => {
   dropdownOpen.value = {
     pettyCash: isActive("/petty-cash"),
@@ -418,8 +421,10 @@ onMounted(() => {
     artisans: isActive("/artisans"),
     payroll: isActive("/payroll"),
     attendance: isActive("/attendance"),
-    wool: isActive("/wool"), // Add wool check
+    wool: isActive("/wool"),
+    userManagement: isActive("/users") || isActive("/roles") || isActive("/permissions"),
+    inventory: isActive("/inventory")
   }
 })
-  </script>
+</script>
   

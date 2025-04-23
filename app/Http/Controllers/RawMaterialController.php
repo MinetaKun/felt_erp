@@ -24,8 +24,8 @@ class RawMaterialController extends Controller
         }
 
         // Filter by stock status
-        if ($request->has('stock_status')) {
-            switch ($request->stock_status) {
+        if ($request->has('stockStatus')) {
+            switch ($request->stockStatus) {
                 case 'low':
                     $query->whereRaw('quantity <= min_stock_level');
                     break;
@@ -62,7 +62,7 @@ class RawMaterialController extends Controller
         $validated = $request->validate([
             'name' => 'required|string|max:255',
             'type' => 'required|string|max:255',
-            'color' => 'nullable|string|max:255',
+            'color' => 'required|string|max:255',
             'quantity' => 'required|numeric|min:0',
             'unit' => 'required|string|max:50',
             'min_stock_level' => 'required|numeric|min:0',
@@ -100,7 +100,7 @@ class RawMaterialController extends Controller
         $validated = $request->validate([
             'name' => 'sometimes|required|string|max:255',
             'type' => 'sometimes|required|string|max:255',
-            'color' => 'nullable|string|max:255',
+            'color' => 'sometimes|required|string|max:255',
             'quantity' => 'sometimes|required|numeric|min:0',
             'unit' => 'sometimes|required|string|max:50',
             'min_stock_level' => 'sometimes|required|numeric|min:0',
@@ -166,7 +166,12 @@ class RawMaterialController extends Controller
 
         DB::beginTransaction();
         try {
-            $material->updateStock($validated['quantity'], $validated['operation']);
+            if ($validated['operation'] === 'add') {
+                $material->quantity += $validated['quantity'];
+            } else {
+                $material->quantity -= $validated['quantity'];
+            }
+            $material->save();
             DB::commit();
 
             return response()->json([

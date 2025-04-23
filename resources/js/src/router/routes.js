@@ -78,49 +78,22 @@ export default [
     // Attendance routes
     {
       path: "/attendance",
-      name: "attendance.index",
-      component: () => import("../pages/attendance/AttendanceIndex.vue"),
-      meta: {
-        layout: "dashboard",
-        permissions: ["attendance-all", "attendance-view"],
-      },
-    },
-    {
-      path: "/attendance/check",
-      name: "attendance.check",
-      component: () => import("../pages/attendance/AttendanceCheck.vue"),
+      name: "attendance.mark",
+      component: () => import("../pages/attendance/MarkAttendance.vue"),
       meta: {
         layout: "dashboard",
         permissions: ["attendance-all", "attendance-create"],
       },
     },
     {
-      path: "/attendance/reports",
-      name: "attendance.reports",
-      component: () => import("../pages/attendance/AttendanceReports.vue"),
+      path: "/attendance/report",
+      name: "attendance.report",
+      component: () => import("../pages/attendance/AttendanceReport.vue"),
       meta: {
         layout: "dashboard",
         permissions: ["attendance-all", "attendance-view"],
       },
     },
-    // {
-    //   path: "/attendance/create",
-    //   name: "attendance.create",
-    //   component: () => import("../pages/attendance/AttendanceForm.vue"),
-    //   meta: {
-    //     layout: "dashboard",
-    //     permissions: ["attendance-all", "attendance-create"],
-    //   },
-    // },
-    // {
-    //   path: "/attendance/:id/edit",
-    //   name: "attendance.edit",
-    //   component: () => import("../pages/attendance/AttendanceForm.vue"),
-    //   meta: {
-    //     layout: "dashboard",
-    //     permissions: ["attendance-all", "attendance-edit"],
-    //   },
-    // },
     // Department routes
     {
       path: "/departments",
@@ -308,36 +281,33 @@ export default [
         permissions: ["orders-all", "orders-view"],
       },
     },
+    // Inventory routes
     {
       path: '/inventory',
       name: 'inventory',
-      component: () => import('@/layouts/DefaultLayout.vue'),
+      component: () => import('../pages/inventory/InventoryIndex.vue'),
       meta: {
-          title: 'Inventory',
-          requiresAuth: true,
+        layout: 'dashboard',
+        permissions: ['inventory-all', 'inventory-view'],
       },
-      children: [
-          {
-              path: 'raw-materials',
-              name: 'raw-materials',
-              component: () => import('@/pages/inventory/RawMaterials.vue'),
-              meta: {
-                  title: 'Raw Materials',
-                  requiresAuth: true,
-                  permissions: ['inventory-all', 'inventory-view']
-              }
-          },
-          {
-              path: 'finished-products',
-              name: 'finished-products',
-              component: () => import('@/pages/inventory/FinishedProducts.vue'),
-              meta: {
-                  title: 'Finished Products',
-                  requiresAuth: true,
-                  permissions: ['inventory-all', 'inventory-view']
-              }
-          }
-      ]
+    },
+    {
+      path: '/inventory/raw-materials',
+      name: 'inventory.raw-materials',
+      component: () => import('../pages/inventory/RawMaterials.vue'),
+      meta: {
+        layout: 'dashboard',
+        permissions: ['inventory-all', 'inventory-view'],
+      },
+    },
+    {
+      path: '/inventory/finished-products',
+      name: 'inventory.finished-products',
+      component: () => import('../pages/inventory/FinishedProducts.vue'),
+      meta: {
+        layout: 'dashboard',
+        permissions: ['inventory-all', 'inventory-view'],
+      },
     },
 ]
   

@@ -13,11 +13,10 @@ class FinishedProduct extends Model
     protected $fillable = [
         'name',
         'type',
-        'color',
         'size',
         'quantity',
         'price',
-        'order_id',
+        'wage_per_unit',
         'description',
         'location',
         'status'
@@ -25,13 +24,26 @@ class FinishedProduct extends Model
 
     protected $casts = [
         'quantity' => 'integer',
-        'price' => 'decimal:2'
+        'price' => 'decimal:2',
+        'wage_per_unit' => 'decimal:2'
     ];
 
     // Relationships
     public function order()
     {
         return $this->belongsTo(Order::class);
+    }
+
+    // Check if product is in stock
+    public function isInStock()
+    {
+        return $this->quantity > 0;
+    }
+
+    // Check if product is low in stock
+    public function isLowStock()
+    {
+        return $this->quantity > 0 && $this->quantity <= 10;
     }
 
     // Update quantity
@@ -45,16 +57,27 @@ class FinishedProduct extends Model
         $this->save();
     }
 
-    // Check if product is available
-    public function isAvailable()
+    // Get stock status
+    public function getStockStatus()
     {
-        return $this->status === 'available' && $this->quantity > 0;
+        if ($this->quantity === 0) {
+            return 'out_of_stock';
+        } elseif ($this->isLowStock()) {
+            return 'low_stock';
+        }
+        return 'in_stock';
     }
 
-    // Get total value of the product
+    // Calculate total value
     public function getTotalValue()
     {
         return $this->quantity * $this->price;
+    }
+
+    // Calculate total wages
+    public function getTotalWages()
+    {
+        return $this->quantity * $this->wage_per_unit;
     }
 
     // Update status

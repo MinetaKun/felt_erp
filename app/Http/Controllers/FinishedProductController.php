@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Models\FinishedProduct;
+use App\Models\Order;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
@@ -11,16 +12,11 @@ class FinishedProductController extends Controller
 {
     public function index(Request $request)
     {
-        $query = FinishedProduct::with('order');
+        $query = FinishedProduct::query();
 
         // Filter by type
         if ($request->has('type')) {
             $query->where('type', $request->type);
-        }
-
-        // Filter by color
-        if ($request->has('color')) {
-            $query->where('color', $request->color);
         }
 
         // Filter by size
@@ -30,7 +26,18 @@ class FinishedProductController extends Controller
 
         // Filter by status
         if ($request->has('status')) {
-            $query->where('status', $request->status);
+            switch ($request->status) {
+                case 'out_of_stock':
+                    $query->where('quantity', 0);
+                    break;
+                case 'low_stock':
+                    $query->where('quantity', '>', 0)
+                        ->where('quantity', '<=', 10);
+                    break;
+                case 'in_stock':
+                    $query->where('quantity', '>', 10);
+                    break;
+            }
         }
 
         // Search
@@ -38,10 +45,7 @@ class FinishedProductController extends Controller
             $search = $request->search;
             $query->where(function ($q) use ($search) {
                 $q->where('name', 'like', "%{$search}%")
-                    ->orWhere('description', 'like', "%{$search}%")
-                    ->orWhereHas('order', function ($q) use ($search) {
-                        $q->where('order_id', 'like', "%{$search}%");
-                    });
+                    ->orWhere('description', 'like', "%{$search}%");
             });
         }
 
@@ -58,14 +62,12 @@ class FinishedProductController extends Controller
         $validated = $request->validate([
             'name' => 'required|string|max:255',
             'type' => 'required|string|max:255',
-            'color' => 'required|string|max:255',
             'size' => 'required|string|max:50',
-            'quantity' => 'required|integer|min:1',
+            'quantity' => 'required|integer|min:0',
             'price' => 'required|numeric|min:0',
-            'order_id' => 'nullable|exists:orders,id',
+            'wage_per_unit' => 'required|numeric|min:0',
             'description' => 'nullable|string',
-            'location' => 'nullable|string|max:255',
-            'status' => 'required|in:available,reserved,sold'
+            'location' => 'nullable|string|max:255'
         ]);
 
         DB::beginTransaction();
@@ -96,14 +98,12 @@ class FinishedProductController extends Controller
         $validated = $request->validate([
             'name' => 'sometimes|required|string|max:255',
             'type' => 'sometimes|required|string|max:255',
-            'color' => 'sometimes|required|string|max:255',
             'size' => 'sometimes|required|string|max:50',
-            'quantity' => 'sometimes|required|integer|min:1',
+            'quantity' => 'sometimes|required|integer|min:0',
             'price' => 'sometimes|required|numeric|min:0',
-            'order_id' => 'nullable|exists:orders,id',
+            'wage_per_unit' => 'sometimes|required|numeric|min:0',
             'description' => 'nullable|string',
-            'location' => 'nullable|string|max:255',
-            'status' => 'sometimes|required|in:available,reserved,sold'
+            'location' => 'nullable|string|max:255'
         ]);
 
         DB::beginTransaction();
@@ -156,7 +156,7 @@ class FinishedProductController extends Controller
         $product = FinishedProduct::findOrFail($id);
 
         $validated = $request->validate([
-            'quantity' => 'required|integer|min:1',
+            'quantity' => 'required|integer|min:0',
             'operation' => 'required|in:add,subtract'
         ]);
 
@@ -186,12 +186,12 @@ class FinishedProductController extends Controller
         $product = FinishedProduct::findOrFail($id);
 
         $validated = $request->validate([
-            'status' => 'required|in:available,reserved,sold'
+            'status' => 'required|string|in:in_stock,low_stock,out_of_stock'
         ]);
 
         DB::beginTransaction();
         try {
-            $product->updateStatus($validated['status']);
+            $product->update(['status' => $validated['status']]);
             DB::commit();
 
             return response()->json([
@@ -212,15 +212,18 @@ class FinishedProductController extends Controller
 
     public function getInventorySummary()
     {
-        $summary = FinishedProduct::selectRaw('
-            type,
-            color,
-            size,
-            SUM(quantity) as total_quantity,
-            SUM(quantity * price) as total_value
-        ')
-            ->groupBy('type', 'color', 'size')
-            ->get();
+        $summary = [
+            'total_products' => FinishedProduct::count(),
+            'total_quantity' => FinishedProduct::sum('quantity'),
+            'total_value' => FinishedProduct::sum(DB::raw('quantity * price')),
+            'status_breakdown' => [
+                'in_stock' => FinishedProduct::where('quantity', '>', 10)->count(),
+                'low_stock' => FinishedProduct::where('quantity', '>', 0)
+                    ->where('quantity', '<=', 10)
+                    ->count(),
+                'out_of_stock' => FinishedProduct::where('quantity', 0)->count()
+            ]
+        ];
 
         return response()->json([
             'success' => true,

@@ -134,30 +134,18 @@ Route::middleware('auth:sanctum')->group(function () {
      */
     Route::prefix('attendance')->group(function () {
         // Main attendance routes
-        Route::get('/', [\App\Http\Controllers\AttendanceController::class, 'index'])
+        Route::get('/report', [\App\Http\Controllers\AttendanceController::class, 'report'])
             ->middleware('permission:attendance-all|attendance-view');
-        Route::post('/', [\App\Http\Controllers\AttendanceController::class, 'store'])
+        Route::post('/bulk', [\App\Http\Controllers\AttendanceController::class, 'bulkStore'])
             ->middleware('permission:attendance-all|attendance-create');
-        Route::get('/{id}', [\App\Http\Controllers\AttendanceController::class, 'show'])
+        Route::get('/statistics', [\App\Http\Controllers\AttendanceController::class, 'statistics'])
             ->middleware('permission:attendance-all|attendance-view');
-        Route::patch('/{id}', [\App\Http\Controllers\AttendanceController::class, 'update'])
-            ->middleware('permission:attendance-all|attendance-edit');
-        Route::delete('/{id}', [\App\Http\Controllers\AttendanceController::class, 'destroy'])
-            ->middleware('permission:attendance-all|attendance-delete');
 
-        // Check in/out routes
-        Route::post('/check-in', [\App\Http\Controllers\AttendanceController::class, 'checkIn'])
-            ->middleware('permission:attendance-all|attendance-create');
-        Route::post('/check-out', [\App\Http\Controllers\AttendanceController::class, 'checkOut'])
+        // Existing attendance routes
+        Route::get('/date/{date}', [\App\Http\Controllers\AttendanceController::class, 'getByDate'])
+            ->middleware('permission:attendance-all|attendance-view');
+        Route::put('/date/{date}', [\App\Http\Controllers\AttendanceController::class, 'updateByDate'])
             ->middleware('permission:attendance-all|attendance-edit');
-
-        // Reports routes
-        Route::get('/reports/daily', [\App\Http\Controllers\AttendanceController::class, 'dailyReport'])
-            ->middleware('permission:attendance-all|attendance-view');
-        Route::get('/reports/monthly', [\App\Http\Controllers\AttendanceController::class, 'monthlyReport'])
-            ->middleware('permission:attendance-all|attendance-view');
-        Route::get('/reports/export', [\App\Http\Controllers\AttendanceController::class, 'export'])
-            ->middleware('permission:attendance-all|attendance-view');
     });
 
     Route::get('/departments', [\App\Http\Controllers\DepartmentController::class, 'index']);
@@ -319,35 +307,39 @@ Route::middleware('auth:sanctum')->group(function () {
      * Inventory routes
      * ------------------------------------------------------------------------
      */
-    Route::prefix('raw-materials')->group(function () {
-        Route::get('/', [\App\Http\Controllers\RawMaterialController::class, 'index'])
-            ->middleware('permission:inventory-all|inventory-view');
-        Route::post('/', [\App\Http\Controllers\RawMaterialController::class, 'store'])
-            ->middleware('permission:inventory-all|inventory-create');
-        Route::get('/low-stock', [\App\Http\Controllers\RawMaterialController::class, 'getLowStock'])
-            ->middleware('permission:inventory-all|inventory-view');
-        Route::put('/{id}', [\App\Http\Controllers\RawMaterialController::class, 'update'])
-            ->middleware('permission:inventory-all|inventory-edit');
-        Route::delete('/{id}', [\App\Http\Controllers\RawMaterialController::class, 'destroy'])
-            ->middleware('permission:inventory-all|inventory-delete');
-        Route::post('/{id}/update-stock', [\App\Http\Controllers\RawMaterialController::class, 'updateStock'])
-            ->middleware('permission:inventory-all|inventory-edit');
-    });
+    Route::prefix('inventory')->group(function () {
+        // Raw Materials routes
+        Route::prefix('raw-materials')->group(function () {
+            Route::get('/', [\App\Http\Controllers\RawMaterialController::class, 'index'])
+                ->middleware('permission:inventory-all|inventory-view');
+            Route::post('/', [\App\Http\Controllers\RawMaterialController::class, 'store'])
+                ->middleware('permission:inventory-all|inventory-create');
+            Route::get('/low-stock', [\App\Http\Controllers\RawMaterialController::class, 'getLowStock'])
+                ->middleware('permission:inventory-all|inventory-view');
+            Route::put('/{id}', [\App\Http\Controllers\RawMaterialController::class, 'update'])
+                ->middleware('permission:inventory-all|inventory-edit');
+            Route::delete('/{id}', [\App\Http\Controllers\RawMaterialController::class, 'destroy'])
+                ->middleware('permission:inventory-all|inventory-delete');
+            Route::post('/{id}/update-stock', [\App\Http\Controllers\RawMaterialController::class, 'updateStock'])
+                ->middleware('permission:inventory-all|inventory-edit');
+        });
 
-    Route::prefix('finished-products')->group(function () {
-        Route::get('/', [\App\Http\Controllers\FinishedProductController::class, 'index'])
-            ->middleware('permission:inventory-all|inventory-view');
-        Route::post('/', [\App\Http\Controllers\FinishedProductController::class, 'store'])
-            ->middleware('permission:inventory-all|inventory-create');
-        Route::put('/{id}', [\App\Http\Controllers\FinishedProductController::class, 'update'])
-            ->middleware('permission:inventory-all|inventory-edit');
-        Route::delete('/{id}', [\App\Http\Controllers\FinishedProductController::class, 'destroy'])
-            ->middleware('permission:inventory-all|inventory-delete');
-        Route::post('/{id}/update-quantity', [\App\Http\Controllers\FinishedProductController::class, 'updateQuantity'])
-            ->middleware('permission:inventory-all|inventory-edit');
-        Route::post('/{id}/update-status', [\App\Http\Controllers\FinishedProductController::class, 'updateStatus'])
-            ->middleware('permission:inventory-all|inventory-edit');
-        Route::get('/inventory-summary', [\App\Http\Controllers\FinishedProductController::class, 'getInventorySummary'])
-            ->middleware('permission:inventory-all|inventory-view');
+        // Finished Products routes
+        Route::prefix('finished-products')->group(function () {
+            Route::get('/', [\App\Http\Controllers\FinishedProductController::class, 'index'])
+                ->middleware('permission:inventory-all|inventory-view');
+            Route::post('/', [\App\Http\Controllers\FinishedProductController::class, 'store'])
+                ->middleware('permission:inventory-all|inventory-create');
+            Route::put('/{id}', [\App\Http\Controllers\FinishedProductController::class, 'update'])
+                ->middleware('permission:inventory-all|inventory-edit');
+            Route::delete('/{id}', [\App\Http\Controllers\FinishedProductController::class, 'destroy'])
+                ->middleware('permission:inventory-all|inventory-delete');
+            Route::post('/{id}/update-quantity', [\App\Http\Controllers\FinishedProductController::class, 'updateQuantity'])
+                ->middleware('permission:inventory-all|inventory-edit');
+            Route::post('/{id}/update-status', [\App\Http\Controllers\FinishedProductController::class, 'updateStatus'])
+                ->middleware('permission:inventory-all|inventory-edit');
+            Route::get('/inventory-summary', [\App\Http\Controllers\FinishedProductController::class, 'getInventorySummary'])
+                ->middleware('permission:inventory-all|inventory-view');
+        });
     });
 });

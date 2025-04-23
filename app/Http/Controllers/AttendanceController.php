@@ -8,6 +8,9 @@ use App\Models\Artisan;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Carbon\Carbon;
+use Illuminate\Support\Facades\DB;
+use League\Csv\Writer;
+use SplTempFileObject;
 
 class AttendanceController extends Controller
 {
@@ -249,5 +252,234 @@ class AttendanceController extends Controller
         });
 
         return response()->json($data);
+    }
+
+    public function bulkStore(Request $request)
+    {
+        $request->validate([
+            'records' => 'required|array',
+            'records.*.date' => 'required|date',
+            'records.*.status' => 'required|in:present,absent,late',
+            'records.*.remarks' => 'nullable|string|max:255',
+            'records.*.attendanceable_id' => 'required|integer',
+            'records.*.attendanceable_type' => 'required|in:App\\Models\\User,App\\Models\\Artisan'
+        ]);
+
+        try {
+            DB::beginTransaction();
+
+            foreach ($request->records as $record) {
+                // Check if attendance exists for this specific person and date
+                $existingAttendance = Attendance::where('date', $record['date'])
+                    ->where('attendanceable_id', $record['attendanceable_id'])
+                    ->where('attendanceable_type', $record['attendanceable_type'])
+                    ->first();
+
+                if ($existingAttendance) {
+                    // Update existing record
+                    $existingAttendance->update([
+                        'status' => $record['status'],
+                        'remarks' => $record['remarks'] ?? '',
+                    ]);
+                } else {
+                    // Create new record
+                    Attendance::create([
+                        'date' => $record['date'],
+                        'status' => $record['status'],
+                        'remarks' => $record['remarks'] ?? '',
+                        'attendanceable_id' => $record['attendanceable_id'],
+                        'attendanceable_type' => $record['attendanceable_type'],
+                    ]);
+                }
+            }
+
+            DB::commit();
+
+            return response()->json([
+                'message' => 'Attendance records saved successfully.',
+                'count' => count($request->records)
+            ]);
+        } catch (\Exception $e) {
+            DB::rollBack();
+            return response()->json([
+                'message' => 'Failed to save attendance records.',
+                'error' => $e->getMessage()
+            ], 500);
+        }
+    }
+
+    public function checkDate($date)
+    {
+        $exists = Attendance::whereDate('date', $date)->exists();
+
+        return response()->json([
+            'exists' => $exists,
+            'date' => $date
+        ]);
+    }
+
+    public function getByDate($date)
+    {
+        $records = Attendance::with(['attendanceable' => function ($query) {
+            $query->when($query->getModel() instanceof Artisan, function ($q) {
+                $q->with('department');
+            });
+        }])
+            ->whereDate('date', $date)
+            ->get()
+            ->map(function ($attendance) {
+                $attendanceable = $attendance->attendanceable;
+                return [
+                    'id' => $attendance->id,
+                    'name' => $attendanceable->name,
+                    'type' => $attendanceable instanceof User ? 'user' : 'artisan',
+                    'department' => $attendanceable instanceof Artisan ? ($attendanceable->department?->name ?? 'N/A') : 'N/A',
+                    'status' => $attendance->status,
+                    'remarks' => $attendance->remarks,
+                ];
+            });
+
+        return response()->json($records);
+    }
+
+    public function updateByDate(Request $request, $date)
+    {
+        $request->validate([
+            'records' => 'required|array',
+            'records.*.id' => 'required|integer|exists:attendance,id',
+            'records.*.status' => 'required|in:present,absent,late',
+            'records.*.remarks' => 'nullable|string|max:255',
+        ]);
+
+        try {
+            DB::beginTransaction();
+
+            foreach ($request->records as $record) {
+                Attendance::where('id', $record['id'])
+                    ->whereDate('date', $date)
+                    ->update([
+                        'status' => $record['status'],
+                        'remarks' => $record['remarks'] ?? '',
+                    ]);
+            }
+
+            DB::commit();
+
+            return response()->json([
+                'message' => 'Attendance records updated successfully.',
+                'count' => count($request->records)
+            ]);
+        } catch (\Exception $e) {
+            DB::rollBack();
+            return response()->json([
+                'message' => 'Failed to update attendance records.',
+                'error' => $e->getMessage()
+            ], 500);
+        }
+    }
+
+    public function report(Request $request)
+    {
+        $query = Attendance::with(['attendanceable.department']);
+
+        // Apply filters
+        if ($request->filled('startDate')) {
+            $query->whereDate('date', '>=', $request->startDate);
+        }
+        if ($request->filled('endDate')) {
+            $query->whereDate('date', '<=', $request->endDate);
+        }
+        if ($request->filled('type')) {
+            $query->where('attendanceable_type', $request->type === 'user' ? User::class : Artisan::class);
+        }
+        if ($request->filled('status')) {
+            $query->where('status', $request->status);
+        }
+        if ($request->filled('department')) {
+            $query->whereHasMorph('attendanceable', [Artisan::class], function ($q) use ($request) {
+                $q->where('department_id', $request->department);
+            });
+        }
+
+        // Calculate statistics
+        $statistics = [
+            'total' => $query->count(),
+            'present' => (clone $query)->where('status', 'present')->count(),
+            'absent' => (clone $query)->where('status', 'absent')->count(),
+            'late' => (clone $query)->where('status', 'late')->count(),
+        ];
+
+        // If export is requested
+        if ($request->boolean('export')) {
+            return $this->exportReport($query);
+        }
+
+        // Get paginated results
+        $attendance = $query->latest()
+            ->paginate($request->input('per_page', 15));
+
+        // Transform the data for the response
+        $attendance->getCollection()->transform(function ($record) {
+            return [
+                'id' => $record->id,
+                'name' => $record->attendanceable->name,
+                'type' => $record->attendanceable_type === User::class ? 'User' : 'Artisan',
+                'department' => $record->attendanceable->department?->name ?? 'N/A',
+                'date' => $record->date,
+                'status' => $record->status,
+                'remarks' => $record->remarks,
+            ];
+        });
+
+        return response()->json([
+            'data' => $attendance->items(),
+            'current_page' => $attendance->currentPage(),
+            'last_page' => $attendance->lastPage(),
+            'from' => $attendance->firstItem(),
+            'to' => $attendance->lastItem(),
+            'total' => $attendance->total(),
+            'statistics' => $statistics,
+        ]);
+    }
+
+    private function exportReport($query)
+    {
+        $attendance = $query->latest()->get();
+
+        $csv = Writer::createFromFileObject(new SplTempFileObject());
+
+        // Add headers
+        $csv->insertOne([
+            'Name',
+            'Type',
+            'Department',
+            'Date',
+            'Status',
+            'Check In',
+            'Check Out',
+            'Remarks'
+        ]);
+
+        // Add data rows
+        foreach ($attendance as $record) {
+            $csv->insertOne([
+                $record->attendanceable->name,
+                $record->attendanceable_type === User::class ? 'User' : 'Artisan',
+                $record->attendanceable->department?->name ?? 'N/A',
+                $record->date->format('Y-m-d'),
+                ucfirst($record->status),
+                $record->check_in?->format('H:i:s') ?? 'N/A',
+                $record->check_out?->format('H:i:s') ?? 'N/A',
+                $record->remarks ?? 'N/A'
+            ]);
+        }
+
+        $filename = 'attendance_report_' . date('Y-m-d_H-i-s') . '.csv';
+        $csvContent = (string) $csv;
+
+        return response($csvContent)
+            ->header('Content-Type', 'text/csv')
+            ->header('Content-Disposition', 'attachment; filename="' . $filename . '"')
+            ->header('Content-Length', strlen($csvContent));
     }
 }
