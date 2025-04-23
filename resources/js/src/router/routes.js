@@ -301,12 +301,39 @@ export default [
       },
     },
     {
-      path: '/inventory/finished-products',
-      name: 'inventory.finished-products',
+      path: '/inventory/products',
+      name: 'inventory.products',
       component: () => import('../pages/inventory/FinishedProducts.vue'),
       meta: {
         layout: 'dashboard',
         permissions: ['inventory-all', 'inventory-view'],
+      },
+    },
+    {
+      path: '/inventory/products/create',
+      name: 'inventory.products.create',
+      component: () => import('../pages/inventory/ProductForm.vue'),
+      meta: {
+        layout: 'dashboard',
+        permissions: ['inventory-all', 'inventory-create'],
+      },
+    },
+    {
+      path: '/inventory/products/:id',
+      name: 'inventory.products.show',
+      component: () => import('../pages/inventory/ProductDetails.vue'),
+      meta: {
+        layout: 'dashboard',
+        permissions: ['inventory-all', 'inventory-view'],
+      },
+    },
+    {
+      path: '/inventory/products/:id/edit',
+      name: 'inventory.products.edit',
+      component: () => import('../pages/inventory/ProductForm.vue'),
+      meta: {
+        layout: 'dashboard',
+        permissions: ['inventory-all', 'inventory-edit'],
       },
     },
 ]

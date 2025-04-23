@@ -4,22 +4,22 @@ use Illuminate\Database\Migrations\Migration;
 use Illuminate\Database\Schema\Blueprint;
 use Illuminate\Support\Facades\Schema;
 
-return new class extends Migration
+class CreateRawMaterialsTable extends Migration
 {
     public function up()
     {
-        Schema::create('finished_products', function (Blueprint $table) {
+        Schema::create('raw_materials', function (Blueprint $table) {
             $table->id();
             $table->string('name');
             $table->string('type');
             $table->string('color');
-            $table->string('size');
-            $table->integer('quantity');
-            $table->decimal('price', 10, 2);
-            $table->foreignId('order_id')->nullable()->constrained()->onDelete('set null');
+            $table->decimal('quantity', 10, 2);
+            $table->string('unit');
+            $table->decimal('min_stock_level', 10, 2);
+            $table->decimal('price_per_unit', 10, 2);
+            $table->string('supplier')->nullable();
             $table->text('description')->nullable();
             $table->string('location')->nullable();
-            $table->string('status')->default('in_stock');
             $table->timestamps();
             $table->softDeletes();
         });
@@ -27,6 +27,6 @@ return new class extends Migration
 
     public function down()
     {
-        Schema::dropIfExists('finished_products');
+        Schema::dropIfExists('raw_materials');
     }
-};
+}

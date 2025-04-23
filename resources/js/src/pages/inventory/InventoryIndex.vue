@@ -70,7 +70,7 @@
             <div class="flex justify-between items-center mb-4">
               <h2 class="text-xl font-bold text-gray-900">Finished Products</h2>
               <router-link
-                to="/inventory/finished-products"
+                to="/inventory/products"
                 class="text-blue-600 hover:text-blue-800"
               >
                 View All
@@ -150,7 +150,7 @@ async function fetchInventoryData() {
     }
 
     // Fetch finished products summary
-    const finishedProductsResponse = await axios.get('/inventory/finished-products');
+    const finishedProductsResponse = await axios.get('/inventory/products');
     if (finishedProductsResponse.data.success) {
       finishedProductsCount.value = finishedProductsResponse.data.data.total;
       recentFinishedProducts.value = finishedProductsResponse.data.data.data.slice(0, 5);

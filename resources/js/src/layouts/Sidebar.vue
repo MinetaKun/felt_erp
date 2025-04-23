@@ -71,8 +71,8 @@
                 <router-link to="/inventory/raw-materials" class="block p-2 text-gray-400 hover:text-white hover:bg-gray-700 rounded-lg transition-colors">
                   Raw Materials
                 </router-link>
-                <router-link to="/inventory/finished-products" class="block p-2 text-gray-400 hover:text-white hover:bg-gray-700 rounded-lg transition-colors">
-                  Finished Products
+                <router-link to="/inventory/products" class="block p-2 text-gray-400 hover:text-white hover:bg-gray-700 rounded-lg transition-colors">
+                  Products
                 </router-link>
               </div>
             </div>

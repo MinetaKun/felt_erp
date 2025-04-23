@@ -1,524 +1,380 @@
 <template>
-  <div class="container mx-auto px-4 py-8">
-    <div class="flex justify-between items-center mb-6">
-      <h1 class="text-2xl font-bold text-gray-800">Finished Products Inventory</h1>
-      <button
-        @click="showAddModal = true"
-        class="bg-blue-500 hover:bg-blue-600 text-white px-4 py-2 rounded-lg flex items-center"
-      >
-        <span class="mr-2">+</span>
-        Add Finished Product
-      </button>
-    </div>
-
-    <!-- Filters -->
-    <div class="bg-white rounded-lg shadow p-4 mb-6">
-      <div class="grid grid-cols-1 md:grid-cols-4 gap-4">
-        <div>
-          <label class="block text-sm font-medium text-gray-700 mb-1">Product Type</label>
-          <select
-            v-model="filters.type"
-            class="w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
-          >
-            <option value="">All Types</option>
-            <option v-for="type in productTypes" :key="type" :value="type">
-              {{ type }}
-            </option>
-          </select>
-        </div>
-        <div>
-          <label class="block text-sm font-medium text-gray-700 mb-1">Size</label>
-          <select
-            v-model="filters.size"
-            class="w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
-          >
-            <option value="">All Sizes</option>
-            <option v-for="size in productSizes" :key="size" :value="size">
-              {{ size }}
-            </option>
-          </select>
-        </div>
-        <div>
-          <label class="block text-sm font-medium text-gray-700 mb-1">Status</label>
-          <select
-            v-model="filters.status"
-            class="w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
-          >
-            <option value="">All Status</option>
-            <option value="in_stock">In Stock</option>
-            <option value="low_stock">Low Stock</option>
-            <option value="out_of_stock">Out of Stock</option>
-          </select>
-        </div>
-        <div>
-          <label class="block text-sm font-medium text-gray-700 mb-1">Search</label>
-          <input
-            type="text"
-            v-model="filters.search"
-            placeholder="Search products..."
-            class="w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
-          />
+  <div class="min-h-screen bg-gray-100">
+    <!-- Header -->
+    <div class="bg-white shadow">
+      <div class="max-w-7xl mx-auto py-6 px-4 sm:px-6 lg:px-8">
+        <div class="flex justify-between items-center">
+          <h1 class="text-3xl font-bold text-gray-900">Products</h1>
+          <div class="flex space-x-4">
+            <router-link
+              to="/inventory/products/create"
+              class="inline-flex items-center px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
+            >
+              <svg class="-ml-1 mr-2 h-5 w-5" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor">
+                <path fill-rule="evenodd" d="M10 3a1 1 0 011 1v5h5a1 1 0 110 2h-5v5a1 1 0 11-2 0v-5H4a1 1 0 110-2h5V4a1 1 0 011-1z" clip-rule="evenodd" />
+              </svg>
+              Add Product
+            </router-link>
+          </div>
         </div>
       </div>
     </div>
 
-    <!-- Inventory Summary -->
-    <div class="grid grid-cols-1 md:grid-cols-4 gap-6 mb-6">
-      <div class="bg-white rounded-lg shadow p-6">
-        <h3 class="text-lg font-medium text-gray-900">Total Products</h3>
-        <p class="mt-2 text-3xl font-bold text-blue-600">{{ totalProducts }}</p>
-      </div>
-      <div class="bg-white rounded-lg shadow p-6">
-        <h3 class="text-lg font-medium text-gray-900">Total Quantity</h3>
-        <p class="mt-2 text-3xl font-bold text-green-600">{{ totalQuantity }}</p>
-      </div>
-      <div class="bg-white rounded-lg shadow p-6">
-        <h3 class="text-lg font-medium text-gray-900">Total Value</h3>
-        <p class="mt-2 text-3xl font-bold text-purple-600">{{ formatCurrency(totalValue) }}</p>
-      </div>
-      <div class="bg-white rounded-lg shadow p-6">
-        <h3 class="text-lg font-medium text-gray-900">Active Orders</h3>
-        <p class="mt-2 text-3xl font-bold text-orange-600">{{ activeOrders }}</p>
-      </div>
-    </div>
-
-    <!-- Active Orders Timeline -->
-    <div class="bg-white rounded-lg shadow p-6 mb-6">
-      <h2 class="text-lg font-medium text-gray-900 mb-4">Active Orders Timeline</h2>
-      <div class="space-y-4">
-        <div v-for="order in activeOrderTimeline" :key="order.id" class="border-l-4 border-blue-500 pl-4 py-2">
-          <div class="flex justify-between items-start">
+    <!-- Main Content -->
+    <div class="max-w-7xl mx-auto py-6 sm:px-6 lg:px-8">
+      <!-- Filters -->
+      <div class="bg-white shadow rounded-lg mb-6">
+        <div class="p-6">
+          <div class="grid grid-cols-1 md:grid-cols-4 gap-6">
             <div>
-              <h3 class="text-sm font-medium text-gray-900">Order #{{ order.order_number }}</h3>
-              <p class="text-sm text-gray-500">{{ order.product_name }} ({{ order.quantity }} units)</p>
-            </div>
-            <div class="text-right">
-              <p class="text-sm text-gray-500">Due: {{ formatDate(order.due_date) }}</p>
-              <div class="mt-1">
-                <div class="w-full bg-gray-200 rounded-full h-2">
-                  <div
-                    class="bg-blue-500 h-2 rounded-full"
-                    :style="{ width: `${order.progress}%` }"
-                  ></div>
+              <label class="block text-sm font-medium text-gray-700">Search</label>
+              <div class="mt-1 relative rounded-md shadow-sm">
+                <input
+                  type="text"
+                  class="focus:ring-blue-500 focus:border-blue-500 block w-full pr-10 sm:text-sm border-gray-300 rounded-md"
+                  v-model="filters.search"
+                  placeholder="Search by name or SKU..."
+                  @input="debouncedSearch"
+                >
+                <div class="absolute inset-y-0 right-0 pr-3 flex items-center pointer-events-none">
+                  <svg class="h-5 w-5 text-gray-400" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor">
+                    <path fill-rule="evenodd" d="M8 4a4 4 0 100 8 4 4 0 000-8zM2 8a6 6 0 1110.89 3.476l4.817 4.817a1 1 0 01-1.414 1.414l-4.816-4.816A6 6 0 012 8z" clip-rule="evenodd" />
+                  </svg>
                 </div>
-                <p class="text-xs text-gray-500 mt-1">{{ order.progress }}% Complete</p>
+              </div>
+            </div>
+
+            <div>
+              <label class="block text-sm font-medium text-gray-700">Category</label>
+              <select 
+                class="mt-1 block w-full pl-3 pr-10 py-2 text-base border-gray-300 focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm rounded-md"
+                v-model="filters.category"
+                @change="fetchProducts"
+              >
+                <option value="">All Categories</option>
+                <option v-for="category in categories" :key="category" :value="category">
+                  {{ category }}
+                </option>
+              </select>
+            </div>
+
+            <div>
+              <label class="block text-sm font-medium text-gray-700">Status</label>
+              <select 
+                class="mt-1 block w-full pl-3 pr-10 py-2 text-base border-gray-300 focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm rounded-md"
+                v-model="filters.status"
+                @change="fetchProducts"
+              >
+                <option value="">All Statuses</option>
+                <option value="active">Active</option>
+                <option value="inactive">Inactive</option>
+                <option value="discontinued">Discontinued</option>
+              </select>
+            </div>
+
+            <div>
+              <label class="block text-sm font-medium text-gray-700">Stock Status</label>
+              <select 
+                class="mt-1 block w-full pl-3 pr-10 py-2 text-base border-gray-300 focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm rounded-md"
+                v-model="filters.stockStatus"
+                @change="fetchProducts"
+              >
+                <option value="">All</option>
+                <option value="low">Low Stock</option>
+                <option value="normal">Normal Stock</option>
+              </select>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Products Table -->
+      <div class="bg-white shadow rounded-lg">
+        <div class="p-6">
+          <div v-if="loading" class="flex justify-center items-center py-12">
+            <svg class="animate-spin h-8 w-8 text-blue-500" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+              <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+              <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+            </svg>
+          </div>
+
+          <div v-else-if="error" class="rounded-md bg-red-50 p-4">
+            <div class="flex">
+              <div class="flex-shrink-0">
+                <svg class="h-5 w-5 text-red-400" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor">
+                  <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clip-rule="evenodd" />
+                </svg>
+              </div>
+              <div class="ml-3">
+                <h3 class="text-sm font-medium text-red-800">{{ error }}</h3>
+              </div>
+            </div>
+          </div>
+
+          <div v-else>
+            <div class="overflow-x-auto">
+              <table class="min-w-full divide-y divide-gray-200">
+                <thead class="bg-gray-50">
+                  <tr>
+                    <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">ID</th>
+                    <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Name</th>
+                    <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Size</th>
+                    <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Color</th>
+                    <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Quantity</th>
+                    <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Price</th>
+                    <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Details</th>
+                    <th scope="col" class="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
+                  </tr>
+                </thead>
+                <tbody class="bg-white divide-y divide-gray-200">
+                  <tr v-for="product in products" :key="product?.id" class="hover:bg-gray-50">
+                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{{ product?.id }}</td>
+                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{{ product?.name }}</td>
+                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{{ product?.size }}</td>
+                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{{ product?.color }}</td>
+                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{{ product?.quantity }}</td>
+                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{{ formatCurrency(product?.price) }}</td>
+                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{{ product?.details }}</td>
+                    <td class="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
+                      <div class="flex justify-end space-x-3">
+                        <router-link
+                          :to="`/inventory/products/${product?.id}`"
+                          class="text-blue-600 hover:text-blue-900"
+                        >
+                          <svg class="h-5 w-5" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor">
+                            <path d="M10 12a2 2 0 100-4 2 2 0 000 4z" />
+                            <path fill-rule="evenodd" d="M.458 10C1.732 5.943 5.522 3 10 3s8.268 2.943 9.542 7c-1.274 4.057-5.064 7-9.542 7S1.732 14.057.458 10zM14 10a4 4 0 11-8 0 4 4 0 018 0z" clip-rule="evenodd" />
+                          </svg>
+                        </router-link>
+                        <router-link
+                          :to="`/inventory/products/${product?.id}/edit`"
+                          class="text-indigo-600 hover:text-indigo-900"
+                        >
+                          <svg class="h-5 w-5" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor">
+                            <path d="M13.586 3.586a2 2 0 112.828 2.828l-.793.793-2.828-2.828.793-.793zM11.379 5.793L3 14.172V17h2.828l8.38-8.379-2.83-2.828z" />
+                          </svg>
+                        </router-link>
+                        <button
+                          @click="deleteProduct(product)"
+                          class="text-red-600 hover:text-red-900"
+                        >
+                          <svg class="h-5 w-5" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor">
+                            <path fill-rule="evenodd" d="M9 2a1 1 0 00-.894.553L7.382 4H4a1 1 0 000 2v10a2 2 0 002 2h8a2 2 0 002-2V6a1 1 0 100-2h-3.382l-.724-1.447A1 1 0 0011 2H9zM7 8a1 1 0 012 0v6a1 1 0 11-2 0V8zm5-1a1 1 0 00-1 1v6a1 1 0 102 0V8a1 1 0 00-1-1z" clip-rule="evenodd" />
+                          </svg>
+                        </button>
+                      </div>
+                    </td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+
+            <!-- Pagination -->
+            <div class="bg-white px-4 py-3 flex items-center justify-between border-t border-gray-200 sm:px-6">
+              <div class="flex-1 flex justify-between sm:hidden">
+                <button
+                  @click="changePage(pagination.current_page - 1)"
+                  :disabled="pagination.current_page === 1"
+                  class="relative inline-flex items-center px-4 py-2 border border-gray-300 text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50"
+                >
+                  Previous
+                </button>
+                <button
+                  @click="changePage(pagination.current_page + 1)"
+                  :disabled="pagination.current_page === pagination.last_page"
+                  class="ml-3 relative inline-flex items-center px-4 py-2 border border-gray-300 text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50"
+                >
+                  Next
+                </button>
+              </div>
+              <div class="hidden sm:flex-1 sm:flex sm:items-center sm:justify-between">
+                <div>
+                  <p class="text-sm text-gray-700">
+                    Showing
+                    <span class="font-medium">{{ pagination.from }}</span>
+                    to
+                    <span class="font-medium">{{ pagination.to }}</span>
+                    of
+                    <span class="font-medium">{{ pagination.total }}</span>
+                    results
+                  </p>
+                </div>
+                <div>
+                  <nav class="relative z-0 inline-flex rounded-md shadow-sm -space-x-px" aria-label="Pagination">
+                    <button
+                      @click="changePage(pagination.current_page - 1)"
+                      :disabled="pagination.current_page === 1"
+                      class="relative inline-flex items-center px-2 py-2 rounded-l-md border border-gray-300 bg-white text-sm font-medium text-gray-500 hover:bg-gray-50"
+                    >
+                      <span class="sr-only">Previous</span>
+                      <svg class="h-5 w-5" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
+                        <path fill-rule="evenodd" d="M12.707 5.293a1 1 0 010 1.414L9.414 10l3.293 3.293a1 1 0 01-1.414 1.414l-4-4a1 1 0 010-1.414l4-4a1 1 0 011.414 0z" clip-rule="evenodd" />
+                      </svg>
+                    </button>
+                    <button
+                      v-for="page in pagination.last_page"
+                      :key="page"
+                      @click="changePage(page)"
+                      :class="[
+                        page === pagination.current_page
+                          ? 'z-10 bg-blue-50 border-blue-500 text-blue-600'
+                          : 'bg-white border-gray-300 text-gray-500 hover:bg-gray-50',
+                        'relative inline-flex items-center px-4 py-2 border text-sm font-medium'
+                      ]"
+                    >
+                      {{ page }}
+                    </button>
+                    <button
+                      @click="changePage(pagination.current_page + 1)"
+                      :disabled="pagination.current_page === pagination.last_page"
+                      class="relative inline-flex items-center px-2 py-2 rounded-r-md border border-gray-300 bg-white text-sm font-medium text-gray-500 hover:bg-gray-50"
+                    >
+                      <span class="sr-only">Next</span>
+                      <svg class="h-5 w-5" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
+                        <path fill-rule="evenodd" d="M7.293 14.707a1 1 0 010-1.414L10.586 10 7.293 6.707a1 1 0 011.414-1.414l4 4a1 1 0 010 1.414l-4 4a1 1 0 01-1.414 0z" clip-rule="evenodd" />
+                      </svg>
+                    </button>
+                  </nav>
+                </div>
               </div>
             </div>
           </div>
         </div>
       </div>
     </div>
-
-    <!-- Products Table -->
-    <div class="bg-white rounded-lg shadow overflow-hidden">
-      <div class="flex justify-between items-center p-4 border-b">
-        <h2 class="text-lg font-medium text-gray-900">Finished Products</h2>
-        <button
-          @click="printInventory"
-          class="bg-gray-100 hover:bg-gray-200 text-gray-700 px-4 py-2 rounded-lg flex items-center"
-        >
-          <span class="mr-2">🖨️</span>
-          Print Inventory
-        </button>
-      </div>
-      <table class="min-w-full divide-y divide-gray-200">
-        <thead class="bg-gray-50">
-          <tr>
-            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-              Name
-            </th>
-            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-              Type
-            </th>
-            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-              Size
-            </th>
-            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-              Quantity
-            </th>
-            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-              Price
-            </th>
-            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-              Wage/Unit
-            </th>
-            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-              Status
-            </th>
-            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-              Actions
-            </th>
-          </tr>
-        </thead>
-        <tbody class="bg-white divide-y divide-gray-200">
-          <tr v-for="product in products" :key="product.id">
-            <td class="px-6 py-4 whitespace-nowrap">
-              <div class="text-sm font-medium text-gray-900">{{ product.name }}</div>
-              <div class="text-sm text-gray-500">{{ product.description }}</div>
-            </td>
-            <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-              {{ product.type }}
-            </td>
-            <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-              {{ product.size }}
-            </td>
-            <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-              {{ product.quantity }}
-            </td>
-            <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-              {{ formatCurrency(product.price) }}
-            </td>
-            <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-              {{ formatCurrency(product.wage_per_unit) }}
-            </td>
-            <td class="px-6 py-4 whitespace-nowrap">
-              <span
-                :class="{
-                  'bg-red-100 text-red-800': product.status === 'out_of_stock',
-                  'bg-yellow-100 text-yellow-800': product.status === 'low_stock',
-                  'bg-green-100 text-green-800': product.status === 'in_stock'
-                }"
-                class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full"
-              >
-                {{ formatStatus(product.status) }}
-              </span>
-            </td>
-            <td class="px-6 py-4 whitespace-nowrap text-sm font-medium">
-              <button
-                @click="editProduct(product)"
-                class="text-blue-600 hover:text-blue-900 mr-4"
-              >
-                Edit
-              </button>
-              <button
-                @click="updateQuantity(product)"
-                class="text-green-600 hover:text-green-900"
-              >
-                Update Quantity
-              </button>
-            </td>
-          </tr>
-        </tbody>
-      </table>
-    </div>
-
-    <!-- Add/Edit Modal -->
-    <Modal v-model="showAddModal" :title="editingProduct ? 'Edit Finished Product' : 'Add Finished Product'">
-      <form @submit.prevent="saveProduct" class="space-y-4">
-        <div>
-          <label class="block text-sm font-medium text-gray-700">Name</label>
-          <input
-            type="text"
-            v-model="form.name"
-            required
-            class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
-          />
-        </div>
-        <div>
-          <label class="block text-sm font-medium text-gray-700">Type</label>
-          <input
-            type="text"
-            v-model="form.type"
-            required
-            class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
-          />
-        </div>
-        <div>
-          <label class="block text-sm font-medium text-gray-700">Size</label>
-          <input
-            type="text"
-            v-model="form.size"
-            required
-            class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
-          />
-        </div>
-        <div>
-          <label class="block text-sm font-medium text-gray-700">Quantity</label>
-          <input
-            type="number"
-            v-model="form.quantity"
-            required
-            min="0"
-            class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
-          />
-        </div>
-        <div>
-          <label class="block text-sm font-medium text-gray-700">Price</label>
-          <input
-            type="number"
-            v-model="form.price"
-            required
-            min="0"
-            step="0.01"
-            class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
-          />
-        </div>
-        <div>
-          <label class="block text-sm font-medium text-gray-700">Wage per Unit</label>
-          <input
-            type="number"
-            v-model="form.wage_per_unit"
-            required
-            min="0"
-            step="0.01"
-            class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
-          />
-        </div>
-        <div>
-          <label class="block text-sm font-medium text-gray-700">Description</label>
-          <textarea
-            v-model="form.description"
-            rows="3"
-            class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
-          ></textarea>
-        </div>
-        <div>
-          <label class="block text-sm font-medium text-gray-700">Location</label>
-          <input
-            type="text"
-            v-model="form.location"
-            class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
-          />
-        </div>
-        <div class="flex justify-end">
-          <button
-            type="button"
-            @click="showAddModal = false"
-            class="bg-white py-2 px-4 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
-          >
-            Cancel
-          </button>
-          <button
-            type="submit"
-            class="ml-3 inline-flex justify-center py-2 px-4 border border-transparent shadow-sm text-sm font-medium rounded-md text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
-          >
-            {{ editingProduct ? 'Update' : 'Save' }}
-          </button>
-        </div>
-      </form>
-    </Modal>
-
-    <!-- Update Quantity Modal -->
-    <Modal v-model="showQuantityModal" title="Update Quantity">
-      <form @submit.prevent="saveQuantityUpdate" class="space-y-4">
-        <div>
-          <label class="block text-sm font-medium text-gray-700">Current Quantity</label>
-          <p class="mt-1 text-sm text-gray-500">
-            {{ selectedProduct.quantity }}
-          </p>
-        </div>
-        <div>
-          <label class="block text-sm font-medium text-gray-700">Operation</label>
-          <select
-            v-model="quantityForm.operation"
-            required
-            class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
-          >
-            <option value="add">Add Quantity</option>
-            <option value="subtract">Subtract Quantity</option>
-          </select>
-        </div>
-        <div>
-          <label class="block text-sm font-medium text-gray-700">Quantity</label>
-          <input
-            type="number"
-            v-model="quantityForm.quantity"
-            required
-            min="0"
-            class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
-          />
-        </div>
-        <div class="flex justify-end">
-          <button
-            type="button"
-            @click="showQuantityModal = false"
-            class="bg-white py-2 px-4 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
-          >
-            Cancel
-          </button>
-          <button
-            type="submit"
-            class="ml-3 inline-flex justify-center py-2 px-4 border border-transparent shadow-sm text-sm font-medium rounded-md text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
-          >
-            Update Quantity
-          </button>
-        </div>
-      </form>
-    </Modal>
   </div>
 </template>
 
-<script setup>
-import { ref, reactive, computed, onMounted } from 'vue'
-import Modal from '../../components/Modal.vue'
-import axios from 'axios'
+<script>
+import axios from 'axios';
+import Swal from 'sweetalert2';
+import debounce from 'lodash/debounce';
 
-const products = ref([])
-const activeOrderTimeline = ref([])
-const showAddModal = ref(false)
-const showQuantityModal = ref(false)
-const editingProduct = ref(null)
-const selectedProduct = ref(null)
+export default {
+  name: 'Products',
+  data() {
+    return {
+      products: [],
+      categories: [],
+      loading: true,
+      error: null,
+      filters: {
+        search: '',
+        category: '',
+        status: '',
+        stockStatus: ''
+      },
+      pagination: {
+        current_page: 1,
+        last_page: 1,
+        from: 0,
+        to: 0,
+        total: 0
+      },
+      permissions: []
+    };
+  },
+  created() {
+    this.fetchProducts();
+    this.fetchCategories();
+    this.fetchPermissions();
+  },
+  methods: {
+    async fetchPermissions() {
+      try {
+        const response = await axios.get('/user/permissions');
+        this.permissions = response.data;
+      } catch (error) {
+        console.error('Error fetching permissions:', error);
+      }
+    },
+    hasPermission(permission) {
+      return this.permissions.includes(permission);
+    },
+    async fetchProducts() {
+      try {
+        this.loading = true;
+        const response = await axios.get('/inventory/products', {
+          params: {
+            page: this.pagination.current_page,
+            search: this.filters.search,
+            category: this.filters.category,
+            status: this.filters.status,
+            stock_status: this.filters.stockStatus
+          }
+        });
+        
+        if (response.data.success) {
+          this.products = response.data.data.data || [];
+          this.pagination = {
+            current_page: response.data.data.current_page || 1,
+            last_page: response.data.data.last_page || 1,
+            from: response.data.data.from || 0,
+            to: response.data.data.to || 0,
+            total: response.data.data.total || 0
+          };
+        } else {
+          this.error = 'Failed to fetch products. Please try again.';
+          this.products = [];
+        }
+      } catch (error) {
+        this.error = 'Failed to fetch products. Please try again.';
+        console.error('Error fetching products:', error);
+        this.products = [];
+      } finally {
+        this.loading = false;
+      }
+    },
+    async fetchCategories() {
+      try {
+        const response = await axios.get('/inventory/categories');
+        this.categories = response.data;
+      } catch (error) {
+        console.error('Error fetching categories:', error);
+      }
+    },
+    async deleteProduct(product) {
+      try {
+        const result = await Swal.fire({
+          title: 'Are you sure?',
+          text: `You are about to delete ${product.name}. This action cannot be undone.`,
+          icon: 'warning',
+          showCancelButton: true,
+          confirmButtonColor: '#d33',
+          cancelButtonColor: '#3085d6',
+          confirmButtonText: 'Yes, delete it!'
+        });
 
-const filters = reactive({
-  type: '',
-  size: '',
-  status: '',
-  search: ''
-})
-
-const form = reactive({
-  name: '',
-  type: '',
-  size: '',
-  quantity: 0,
-  price: 0,
-  wage_per_unit: 0,
-  description: '',
-  location: ''
-})
-
-const quantityForm = reactive({
-  operation: 'add',
-  quantity: 0
-})
-
-const productTypes = computed(() => {
-  return [...new Set(products.value.map(p => p.type))]
-})
-
-const productSizes = computed(() => {
-  return [...new Set(products.value.map(p => p.size))]
-})
-
-const totalProducts = computed(() => {
-  return products.value.length
-})
-
-const totalQuantity = computed(() => {
-  return products.value.reduce((sum, product) => sum + product.quantity, 0)
-})
-
-const totalValue = computed(() => {
-  return products.value.reduce((sum, product) => sum + (product.quantity * product.price), 0)
-})
-
-const activeOrders = computed(() => {
-  return activeOrderTimeline.value.length
-})
-
-onMounted(async () => {
-  await fetchProducts()
-  await fetchActiveOrders()
-})
-
-async function fetchProducts() {
-  try {
-    const response = await axios.get('/finished-products', { params: filters })
-    if (response.data.success) {
-      products.value = response.data.data
+        if (result.isConfirmed) {
+          await axios.delete(`/inventory/products/${product.id}`);
+          this.fetchProducts();
+          Swal.fire('Deleted!', 'The product has been deleted.', 'success');
+        }
+      } catch (error) {
+        Swal.fire('Error!', 'Failed to delete the product.', 'error');
+        console.error('Error deleting product:', error);
+      }
+    },
+    changePage(page) {
+      if (page >= 1 && page <= this.pagination.last_page) {
+        this.pagination.current_page = page;
+        this.fetchProducts();
+      }
+    },
+    debouncedSearch: debounce(function() {
+      this.pagination.current_page = 1;
+      this.fetchProducts();
+    }, 300),
+    formatCurrency(value) {
+      return new Intl.NumberFormat('en-US', {
+        style: 'currency',
+        currency: 'USD'
+      }).format(value);
+    },
+    formatStatus(status) {
+      if (!status) return 'Unknown';
+      return status.charAt(0).toUpperCase() + status.slice(1);
     }
-  } catch (error) {
-    console.error('Failed to fetch products:', error)
   }
-}
-
-async function fetchActiveOrders() {
-  try {
-    const response = await axios.get('/orders/active')
-    if (response.data.success) {
-      activeOrderTimeline.value = response.data.data
-    }
-  } catch (error) {
-    console.error('Failed to fetch active orders:', error)
-  }
-}
-
-function editProduct(product) {
-  editingProduct.value = product
-  Object.assign(form, product)
-  showAddModal.value = true
-}
-
-function updateQuantity(product) {
-  selectedProduct.value = product
-  quantityForm.operation = 'add'
-  quantityForm.quantity = 0
-  showQuantityModal.value = true
-}
-
-async function saveProduct() {
-  try {
-    const url = editingProduct.value
-      ? `/finished-products/${editingProduct.value.id}`
-      : '/finished-products'
-    const method = editingProduct.value ? 'put' : 'post'
-    
-    const response = await axios[method](url, form)
-    if (response.data.success) {
-      showAddModal.value = false
-      await fetchProducts()
-      resetForm()
-    }
-  } catch (error) {
-    console.error('Failed to save product:', error)
-  }
-}
-
-async function saveQuantityUpdate() {
-  try {
-    const response = await axios.post(
-      `/finished-products/${selectedProduct.value.id}/update-quantity`,
-      quantityForm
-    )
-    if (response.data.success) {
-      showQuantityModal.value = false
-      await fetchProducts()
-    }
-  } catch (error) {
-    console.error('Failed to update quantity:', error)
-  }
-}
-
-function resetForm() {
-  editingProduct.value = null
-  Object.keys(form).forEach(key => {
-    form[key] = ''
-  })
-}
-
-function formatCurrency(amount) {
-  return new Intl.NumberFormat('en-US', {
-    style: 'currency',
-    currency: 'USD'
-  }).format(amount)
-}
-
-function formatDate(date) {
-  return new Date(date).toLocaleDateString()
-}
-
-function formatStatus(status) {
-  const statuses = {
-    in_stock: 'In Stock',
-    low_stock: 'Low Stock',
-    out_of_stock: 'Out of Stock'
-  }
-  return statuses[status] || status
-}
-
-function printInventory() {
-  window.print()
-}
-</script>
-
-<style>
-@media print {
-  .no-print {
-    display: none;
-  }
-  .print-only {
-    display: block;
-  }
-}
-</style> 
+};
+</script> 

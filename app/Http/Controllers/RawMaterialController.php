@@ -11,50 +11,71 @@ class RawMaterialController extends Controller
 {
     public function index(Request $request)
     {
-        $query = RawMaterial::query();
+        try {
+            $query = RawMaterial::query();
 
-        // Filter by type
-        if ($request->has('type')) {
-            $query->where('type', $request->type);
-        }
-
-        // Filter by color
-        if ($request->has('color')) {
-            $query->where('color', $request->color);
-        }
-
-        // Filter by stock status
-        if ($request->has('stockStatus')) {
-            switch ($request->stockStatus) {
-                case 'low':
-                    $query->whereRaw('quantity <= min_stock_level');
-                    break;
-                case 'warning':
-                    $query->whereRaw('quantity <= min_stock_level * 1.5')
-                        ->whereRaw('quantity > min_stock_level');
-                    break;
-                case 'good':
-                    $query->whereRaw('quantity > min_stock_level * 1.5');
-                    break;
+            // Filter by type
+            if ($request->has('type') && !empty($request->type)) {
+                $query->where('type', $request->type);
             }
+
+            // Filter by color
+            if ($request->has('color') && !empty($request->color)) {
+                $query->where('color', $request->color);
+            }
+
+            // Filter by stock status
+            if ($request->has('stockStatus') && !empty($request->stockStatus)) {
+                switch ($request->stockStatus) {
+                    case 'low':
+                        $query->whereRaw('quantity <= min_stock_level');
+                        break;
+                    case 'warning':
+                        $query->whereRaw('quantity <= min_stock_level * 1.5')
+                            ->whereRaw('quantity > min_stock_level');
+                        break;
+                    case 'good':
+                        $query->whereRaw('quantity > min_stock_level * 1.5');
+                        break;
+                }
+            }
+
+            // Search
+            if ($request->has('search') && !empty($request->search)) {
+                $search = $request->search;
+                $query->where(function ($q) use ($search) {
+                    $q->where('name', 'like', "%{$search}%")
+                        ->orWhere('description', 'like', "%{$search}%")
+                        ->orWhere('supplier', 'like', "%{$search}%");
+                });
+            }
+
+            // Get total count before pagination
+            $total = $query->count();
+
+            // Paginate results
+            $perPage = $request->has('per_page') ? $request->per_page : 15;
+            $materials = $query->paginate($perPage);
+
+            // Convert the paginated results to an array and add stock status
+            $materialsArray = $materials->toArray();
+            $materialsArray['data'] = array_map(function ($material) {
+                $material['stock_status'] = $this->calculateStockStatus($material['quantity'], $material['min_stock_level']);
+                return $material;
+            }, $materialsArray['data']);
+
+            return response()->json([
+                'success' => true,
+                'data' => $materialsArray
+            ]);
+        } catch (\Exception $e) {
+            Log::error('Failed to fetch raw materials: ' . $e->getMessage());
+            return response()->json([
+                'success' => false,
+                'message' => 'Failed to fetch raw materials',
+                'error' => $e->getMessage()
+            ], 500);
         }
-
-        // Search
-        if ($request->has('search')) {
-            $search = $request->search;
-            $query->where(function ($q) use ($search) {
-                $q->where('name', 'like', "%{$search}%")
-                    ->orWhere('description', 'like', "%{$search}%")
-                    ->orWhere('supplier', 'like', "%{$search}%");
-            });
-        }
-
-        $materials = $query->paginate($request->per_page ?? 15);
-
-        return response()->json([
-            'success' => true,
-            'data' => $materials
-        ]);
     }
 
     public function store(Request $request)
@@ -75,6 +96,7 @@ class RawMaterialController extends Controller
         DB::beginTransaction();
         try {
             $material = RawMaterial::create($validated);
+            $material->stock_status = $material->stock_status;
             DB::commit();
 
             return response()->json([
@@ -113,6 +135,7 @@ class RawMaterialController extends Controller
         DB::beginTransaction();
         try {
             $material->update($validated);
+            $material->stock_status = $material->stock_status;
             DB::commit();
 
             return response()->json([
@@ -166,12 +189,8 @@ class RawMaterialController extends Controller
 
         DB::beginTransaction();
         try {
-            if ($validated['operation'] === 'add') {
-                $material->quantity += $validated['quantity'];
-            } else {
-                $material->quantity -= $validated['quantity'];
-            }
-            $material->save();
+            $material->updateStock($validated['quantity'], $validated['operation']);
+            $material->stock_status = $material->stock_status;
             DB::commit();
 
             return response()->json([
@@ -192,11 +211,36 @@ class RawMaterialController extends Controller
 
     public function getLowStock()
     {
-        $lowStock = RawMaterial::whereRaw('quantity <= min_stock_level')->get();
+        try {
+            $lowStock = RawMaterial::whereRaw('quantity <= min_stock_level')->get();
 
-        return response()->json([
-            'success' => true,
-            'data' => $lowStock
-        ]);
+            // Add stock status to each material
+            $lowStock->transform(function ($material) {
+                $material->stock_status = $material->stock_status;
+                return $material;
+            });
+
+            return response()->json([
+                'success' => true,
+                'data' => $lowStock
+            ]);
+        } catch (\Exception $e) {
+            Log::error('Failed to fetch low stock materials: ' . $e->getMessage());
+            return response()->json([
+                'success' => false,
+                'message' => 'Failed to fetch low stock materials',
+                'error' => $e->getMessage()
+            ], 500);
+        }
+    }
+
+    private function calculateStockStatus($quantity, $minStockLevel)
+    {
+        if ($quantity <= $minStockLevel) {
+            return 'low';
+        } elseif ($quantity <= ($minStockLevel * 1.5)) {
+            return 'warning';
+        }
+        return 'good';
     }
 }
