@@ -8,6 +8,12 @@
           <p class="text-indigo-100 text-sm mt-1">Manage your artisans efficiently</p>
         </div>
         <div class="flex flex-wrap gap-2">
+          <router-link 
+            to="/artisans/productivity"
+            class="inline-flex items-center px-4 py-2 bg-indigo-500 text-white text-sm font-medium rounded-lg hover:bg-indigo-600 transition duration-200 shadow-sm"
+          >
+            <i class="fas fa-chart-line mr-2"></i> Productivity
+          </router-link>
           <label class="inline-flex items-center px-4 py-2 bg-white text-indigo-700 text-sm font-medium rounded-lg hover:bg-indigo-50 transition duration-200 shadow-sm cursor-pointer">
             <i class="fas fa-upload mr-2"></i> Import
             <input type="file" class="sr-only" @change="importArtisans" accept=".csv" />
@@ -83,7 +89,7 @@
               <th class="p-3 text-left border-b-2 border-gray-200">Department</th>
               <th class="p-3 text-left border-b-2 border-gray-200">Phone</th>
               <th class="p-3 text-left border-b-2 border-gray-200">PAN Number</th>
-              <th class="p-3 text-left border-b-2 border-gray-200">Salary</th>
+              <th class="p-3 text-left border-b-2 border-gray-200">Skills</th>
               <th class="p-3 text-left border-b-2 border-gray-200">Status</th>
               <th class="p-3 text-left border-b-2 border-gray-200">Join Date</th>
               <th class="p-3 text-left border-b-2 border-gray-200">Actions</th>
@@ -113,7 +119,15 @@
               </td>
               <td class="p-3 border-t">{{ artisan.phone_number || 'N/A' }}</td>
               <td class="p-3 border-t">{{ artisan.pan_number || 'N/A' }}</td>
-              <td class="p-3 border-t">{{ formatCurrency(artisan.basic_salary) }}</td>
+              <td class="p-3 border-t">
+                <div class="flex flex-wrap gap-1">
+                  <span v-for="skill in artisan.skills" :key="skill" 
+                    class="px-2 py-1 text-xs bg-blue-100 text-blue-800 rounded-full">
+                    {{ skill }}
+                  </span>
+                  <span v-if="!artisan.skills || artisan.skills.length === 0" class="text-gray-500">No skills</span>
+                </div>
+              </td>
               <td class="p-3 border-t">
                 <span :class="[
                   'inline-block px-2 py-1 text-xs font-semibold rounded',

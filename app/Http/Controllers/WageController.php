@@ -371,10 +371,75 @@ class WageController extends Controller
                 return $item;
             });
 
-            return response()->json([
+            $response = [
                 'success' => true,
-                'data' => $report
-            ]);
+                'data' => [
+                    'report' => $report
+                ]
+            ];
+
+            // If include_artisans is true, fetch artisan-specific data
+            if ($request->boolean('include_artisans')) {
+                $artisanQuery = OrderAssignment::query()
+                    ->select([
+                        'artisans.id as artisan_id',
+                        'artisans.name as artisan_name',
+                        DB::raw('DATE_FORMAT(order_assignments.approved_at, "%Y-%m") as month'),
+                        DB::raw('COUNT(DISTINCT order_assignments.order_id) as total_orders'),
+                        DB::raw('SUM(order_assignments.approved_quantity) as total_quantity'),
+                        DB::raw('SUM(CAST(order_assignments.approved_quantity AS DECIMAL(10,2)) * CAST(orders.wages_per_unit AS DECIMAL(10,2))) as total_wages')
+                    ])
+                    ->join('orders', 'order_assignments.order_id', '=', 'orders.id')
+                    ->join('artisans', 'order_assignments.artisan_id', '=', 'artisans.id')
+                    ->where('order_assignments.status', 'dispatched')
+                    ->where('order_assignments.approved_quantity', '>', 0);
+
+                // Apply the same date range filter
+                if ($request->filled('date_range')) {
+                    $now = Carbon::now();
+                    switch ($request->date_range) {
+                        case 'today':
+                            $artisanQuery->whereDate('order_assignments.approved_at', $now->toDateString());
+                            break;
+                        case 'week':
+                            $artisanQuery->whereBetween('order_assignments.approved_at', [
+                                $now->startOfWeek()->toDateString(),
+                                $now->endOfWeek()->toDateString()
+                            ]);
+                            break;
+                        case 'month':
+                            $artisanQuery->whereBetween('order_assignments.approved_at', [
+                                $now->startOfMonth()->toDateString(),
+                                $now->endOfMonth()->toDateString()
+                            ]);
+                            break;
+                        case 'year':
+                            $artisanQuery->whereBetween('order_assignments.approved_at', [
+                                $now->startOfYear()->toDateString(),
+                                $now->endOfYear()->toDateString()
+                            ]);
+                            break;
+                    }
+                }
+
+                $artisanQuery->groupBy('artisans.id', 'artisans.name', DB::raw('DATE_FORMAT(order_assignments.approved_at, "%Y-%m")'))
+                    ->orderBy('artisans.name')
+                    ->orderBy('month', 'desc');
+
+                $artisans = $artisanQuery->get();
+
+                // Ensure numeric values
+                $artisans = $artisans->map(function ($item) {
+                    $item->total_wages = (float)$item->total_wages;
+                    $item->total_quantity = (float)$item->total_quantity;
+                    $item->total_orders = (int)$item->total_orders;
+                    return $item;
+                });
+
+                $response['data']['artisans'] = $artisans;
+            }
+
+            return response()->json($response);
         } catch (\Exception $e) {
             Log::error('Wage Report Error:', [
                 'message' => $e->getMessage(),

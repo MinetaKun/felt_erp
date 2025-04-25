@@ -14,24 +14,28 @@ class Artisan extends Model
         'name',
         'email',
         'phone_number',
-        'basic_salary',
         'pan_number',
         'department_id',
         'profile_photo',
         'citizenship_photo',
         'status',
         'bank_account_number',
+        'skills'
+    ];
+
+    protected $casts = [
+        'skills' => 'array'
     ];
 
     public static $rules = [
         'name' => 'required|string|max:255',
         'email' => 'required|email|unique:artisans,email',
         'phone_number' => 'required|string|max:20',
-        'basic_salary' => 'required|numeric',
         'pan_number' => 'required|string|max:20|unique:artisans,pan_number',
         'bank_account_number' => 'required|string|max:50|unique:artisans,bank_account_number',
         'department_id' => 'required|exists:departments,id',
         'status' => 'sometimes|in:active,inactive',
+        'skills' => 'nullable|array',
     ];
 
     public function department()

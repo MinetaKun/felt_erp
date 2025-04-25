@@ -68,7 +68,15 @@ class WoolSupplierController extends Controller
 
     public function destroy($id)
     {
-        $supplier = WoolSupplier::findOrFail($id);
+        $supplier = WoolSupplier::withTrashed()->findOrFail($id);
+
+        if ($supplier->trashed()) {
+            return response()->json([
+                'message' => 'This supplier has already been deleted.',
+                'deleted_at' => $supplier->deleted_at
+            ], 410);
+        }
+
         $supplier->delete();
         return response()->json(null, 204);
     }

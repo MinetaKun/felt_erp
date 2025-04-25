@@ -187,5 +187,38 @@ class OrderSeeder extends Seeder
                 ]);
             }
         }
+
+        $orders = [
+            [
+                'order_id' => 'ORD-' . strtoupper(uniqid()),
+                'product_name' => 'Wool Scarf',
+                'size' => 'Medium',
+                'wool_color' => 'Natural',
+                'weight' => 0.5,
+                'total_quantity' => 100,
+                'due_date' => Carbon::now()->addDays(30),
+                'status' => 'in_production',
+                'wages_per_unit' => 50,
+                'client_name' => 'Test Client 1',
+                'notes' => 'Test order for productivity tracking',
+            ],
+            [
+                'order_id' => 'ORD-' . strtoupper(uniqid()),
+                'product_name' => 'Wool Blanket',
+                'size' => 'Large',
+                'wool_color' => 'Gray',
+                'weight' => 1.5,
+                'total_quantity' => 50,
+                'due_date' => Carbon::now()->addDays(45),
+                'status' => 'pending',
+                'wages_per_unit' => 100,
+                'client_name' => 'Test Client 2',
+                'notes' => 'Test order for productivity tracking',
+            ],
+        ];
+
+        foreach ($orders as $order) {
+            Order::create($order);
+        }
     }
 }

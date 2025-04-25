@@ -3,6 +3,8 @@
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\NotificationController;
+use App\Http\Controllers\ArtisanProductivityController;
+use App\Http\Controllers\DashboardController;
 
 /**
  * ------------------------------------------------------------------------
@@ -28,6 +30,9 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::get('user', function (Request $request) {
         return $request->user();
     });
+
+    // Dashboard route
+    Route::get('dashboard', [DashboardController::class, 'index']);
 
     /**
      * ------------------------------------------------------------------------
@@ -117,9 +122,11 @@ Route::middleware('auth:sanctum')->group(function () {
         ->middleware('permission:artisans-all|artisans-view');
     Route::post('artisans/import', [\App\Http\Controllers\ArtisanController::class, 'import'])
         ->middleware('permission:artisans-all|artisans-create');
+    Route::get('artisans/productivity', [ArtisanProductivityController::class, 'index'])
+        ->middleware('permission:artisans-all|artisans-view');
 
     // Wildcard routes come after specific routes
-    Route::get('artisans/{artisanId}', [\App\Http\Controllers\ArtisanController::class, 'show'])
+    Route::get('artisans/{id}', [\App\Http\Controllers\ArtisanController::class, 'show'])
         ->middleware('permission:artisans-all|artisans-view');
     Route::post('artisans', [\App\Http\Controllers\ArtisanController::class, 'store'])
         ->middleware('permission:artisans-all|artisans-create');
@@ -361,4 +368,7 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::get('/notifications', [NotificationController::class, 'index']);
     Route::post('/notifications/{notification}/mark-as-read', [NotificationController::class, 'markAsRead']);
     Route::post('/notifications/mark-all-as-read', [NotificationController::class, 'markAllAsRead']);
+
+    // Dashboard
+    Route::get('/dashboard', [DashboardController::class, 'index'])->middleware('auth:sanctum');
 });

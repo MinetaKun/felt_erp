@@ -24,7 +24,7 @@
     </div>
     <button
       @click="$router.push('/departments/create')"
-      class="inline-flex items-center px-4 py-2 bg-emerald-500 text-white text-sm font-medium rounded-lg hover:bg-emerald-600 transition duration-200 shadow-sm"
+      class="inline-flex items-center px-4 py-2 bg-indigo-600 text-white text-sm font-medium rounded-lg hover:bg-indigo-700 transition duration-200 shadow-sm"
     >
       <i class="fas fa-plus mr-2"></i> Add Department
     </button>

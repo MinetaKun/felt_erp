@@ -16,6 +16,18 @@
       
       <nav class="mt-4">
         <ul>
+          <!-- Dashboard -->
+          <li class="mb-2">
+            <router-link to="/dashboard" class="flex items-center p-3 text-gray-300 hover:bg-gray-700 rounded-lg transition-colors"
+                        :class="{ 'justify-center': isCollapsed, 'bg-gray-700': isActive('/dashboard') }">
+              <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" 
+                      d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6" />
+              </svg>
+              <span v-if="!isCollapsed" class="ml-3">Dashboard</span>
+            </router-link>
+          </li>
+
           <!-- User Management Section -->
           <li v-if="hasPermission(['users-all', 'users-view', 'roles-all', 'roles-view', 'permissions-all', 'permissions-view'])" class="mb-2">
             <div>
@@ -115,6 +127,12 @@
                 
                 <router-link to="/departments" class="block p-2 text-gray-400 hover:text-white hover:bg-gray-700 rounded-lg transition-colors">
                   Departments
+                </router-link>
+                <router-link
+                  to="/artisans/productivity"
+                  class="block p-2 text-gray-400 hover:text-white hover:bg-gray-700 rounded-lg transition-colors"
+                >
+                  Artisan Productivity
                 </router-link>
               </div>
             </div>
@@ -231,16 +249,7 @@
                 </svg>
                 </button>
                 
-                <div v-if="(!isCollapsed && (dropdownOpen.payroll || shouldOpenDropdown.payroll))" class="ml-8 mt-2 space-y-2">
-                <router-link to="/payroll" class="block p-2 text-gray-400 hover:text-white hover:bg-gray-700 rounded-lg transition-colors"
-                            :class="{ 'bg-gray-700': isActive('/payroll') && !isActive('/payroll/artisan') }">
-                    Payroll List
-                </router-link>
-                <!-- <router-link to="/payroll/reports" class="block p-2 text-gray-400 hover:text-white hover:bg-gray-700 rounded-lg transition-colors"
-                            :class="{ 'bg-gray-700': isActive('/payroll/reports') }">
-                    Payroll Reports
-                </router-link> -->
-                </div>
+                
             </div>
         </li>
                     

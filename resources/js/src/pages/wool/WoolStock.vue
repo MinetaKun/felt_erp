@@ -1,92 +1,108 @@
 <template>
-  <div class="container mx-auto px-4 py-8">
-    <div class="flex justify-between items-center mb-6">
-      <h1 class="text-2xl font-bold text-gray-800">Wool Stock</h1>
-      <div class="flex space-x-4">
-        <button @click="showFilterModal = true" class="bg-gray-500 text-white px-4 py-2 rounded-lg hover:bg-gray-600">
-          Filter
-        </button>
-        <button @click="exportStock" class="bg-green-500 text-white px-4 py-2 rounded-lg hover:bg-green-600">
-          Export
-        </button>
+  <div class="p-5">
+    <div class="bg-white rounded-lg shadow">
+      <!-- Header Section -->
+      <div class="p-5 bg-gradient-to-r from-indigo-600 to-blue-500 border-b border-indigo-200 flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
+        <div class="text-white">
+          <h3 class="text-xl font-bold">Wool Stock</h3>
+          <p class="text-indigo-100 text-sm mt-1">Manage your wool stock efficiently</p>
+        </div>
+        <div class="flex flex-wrap gap-2">
+          <button @click="exportStock" class="inline-flex items-center px-4 py-2 bg-white text-blue-700 text-sm font-medium rounded-lg hover:bg-blue-50 transition duration-200 shadow-sm">
+            <i class="fas fa-download mr-2"></i> Export
+          </button>
+        </div>
       </div>
-    </div>
 
-    <!-- Stock Table -->
-    <div class="bg-white rounded-lg shadow overflow-hidden">
-      <table class="min-w-full divide-y divide-gray-200">
-        <thead class="bg-gray-50">
-          <tr>
-            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Wool Type</th>
-            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Color</th>
-            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Quantity</th>
-            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Unit</th>
-            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Unit Price</th>
-            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Received Date</th>
-            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Order Reference</th>
-            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
-          </tr>
-        </thead>
-        <tbody class="bg-white divide-y divide-gray-200">
-          <tr v-for="stock in filteredStock" :key="stock.id">
-            <td class="px-6 py-4 whitespace-nowrap">{{ stock.wool_type }}</td>
-            <td class="px-6 py-4 whitespace-nowrap">{{ stock.color }}</td>
-            <td class="px-6 py-4 whitespace-nowrap">{{ stock.quantity }}</td>
-            <td class="px-6 py-4 whitespace-nowrap">{{ stock.unit }}</td>
-            <td class="px-6 py-4 whitespace-nowrap">{{ formatCurrency(stock.unit_price) }}</td>
-            <td class="px-6 py-4 whitespace-nowrap">{{ formatDate(stock.received_date) }}</td>
-            <td class="px-6 py-4 whitespace-nowrap">
-              <span v-if="stock.orderItem?.order" class="text-blue-600 hover:text-blue-900 cursor-pointer"
-                    @click="viewOrder(stock.orderItem.order)">
-                {{ stock.orderItem.order.order_number }}
-              </span>
-            </td>
-            <td class="px-6 py-4 whitespace-nowrap text-sm font-medium">
-              <button @click="editStock(stock)" class="text-indigo-600 hover:text-indigo-900 mr-4">Edit</button>
-              <button @click="deleteStock(stock.id)" class="text-red-600 hover:text-red-900">Delete</button>
-            </td>
-          </tr>
-        </tbody>
-      </table>
-    </div>
+      <div class="p-5">
+        <!-- Filters Section -->
+        <div class="flex flex-wrap gap-4 mb-4">
+          <div class="w-full md:w-1/4">
+            <input 
+              type="text" 
+              class="w-full p-2 border border-gray-300 rounded focus:border-blue-500 focus:ring focus:ring-blue-200" 
+              placeholder="Search by wool type or color..." 
+              v-model="searchQuery"
+              @input="debouncedFilterStock"
+            >
+          </div>
+          <div class="w-full md:w-1/4">
+            <select 
+              class="w-full p-2 border border-gray-300 rounded focus:border-blue-500 focus:ring focus:ring-blue-200" 
+              v-model="filters.wool_type" 
+              @change="filterStock"
+            >
+              <option value="">All Wool Types</option>
+              <option v-for="type in uniqueWoolTypes" :key="type" :value="type">
+                {{ type }}
+              </option>
+            </select>
+          </div>
+          <div class="w-full md:w-1/4">
+            <select 
+              class="w-full p-2 border border-gray-300 rounded focus:border-blue-500 focus:ring focus:ring-blue-200" 
+              v-model="filters.color" 
+              @change="filterStock"
+            >
+              <option value="">All Colors</option>
+              <option v-for="color in uniqueColors" :key="color" :value="color">
+                {{ color }}
+              </option>
+            </select>
+          </div>
+          <div class="w-full md:w-1/4">
+            <button 
+              class="inline-flex items-center px-3 py-2 bg-gray-200 text-gray-700 rounded hover:bg-gray-300"
+              @click="resetFilters"
+            >
+              <i class="fas fa-sync-alt mr-1"></i> Reset
+            </button>
+          </div>
+        </div>
 
-    <!-- Filter Modal -->
-    <div v-if="showFilterModal" class="fixed inset-0 bg-gray-600 bg-opacity-50 overflow-y-auto h-full w-full">
-      <div class="relative top-20 mx-auto p-5 border w-96 shadow-lg rounded-md bg-white">
-        <div class="mt-3 text-center">
-          <h3 class="text-lg leading-6 font-medium text-gray-900">Filter Stock</h3>
-          <form @submit.prevent="applyFilters" class="mt-4">
-            <div class="mb-4">
-              <label class="block text-gray-700 text-sm font-bold mb-2" for="wool_type">Wool Type</label>
-              <input v-model="filters.wool_type" type="text" id="wool_type"
-                     class="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline">
-            </div>
-            <div class="mb-4">
-              <label class="block text-gray-700 text-sm font-bold mb-2" for="color">Color</label>
-              <input v-model="filters.color" type="text" id="color"
-                     class="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline">
-            </div>
-            <div class="mb-4">
-              <label class="block text-gray-700 text-sm font-bold mb-2" for="date_from">Date From</label>
-              <input v-model="filters.date_from" type="date" id="date_from"
-                     class="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline">
-            </div>
-            <div class="mb-4">
-              <label class="block text-gray-700 text-sm font-bold mb-2" for="date_to">Date To</label>
-              <input v-model="filters.date_to" type="date" id="date_to"
-                     class="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline">
-            </div>
-            <div class="flex justify-end space-x-3">
-              <button type="button" @click="resetFilters"
-                      class="bg-gray-300 text-gray-700 px-4 py-2 rounded-lg hover:bg-gray-400">
-                Reset
-              </button>
-              <button type="submit"
-                      class="bg-blue-500 text-white px-4 py-2 rounded-lg hover:bg-blue-600">
-                Apply Filters
-              </button>
-            </div>
-          </form>
+        <!-- Stock Table -->
+        <div class="overflow-x-auto">
+          <table class="min-w-full border-collapse">
+            <thead>
+              <tr class="bg-gray-100">
+                <th class="p-3 text-left border-b-2 border-gray-200">Wool Type</th>
+                <th class="p-3 text-left border-b-2 border-gray-200">Color</th>
+                <th class="p-3 text-left border-b-2 border-gray-200">Quantity</th>
+                <th class="p-3 text-left border-b-2 border-gray-200">Unit</th>
+                <th class="p-3 text-left border-b-2 border-gray-200">Unit Price</th>
+                <th class="p-3 text-left border-b-2 border-gray-200">Received Date</th>
+                <th class="p-3 text-left border-b-2 border-gray-200">Order Reference</th>
+                <th class="p-3 text-left border-b-2 border-gray-200">Actions</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr v-for="stock in filteredStock" :key="stock.id" class="hover:bg-gray-50">
+                <td class="p-3 border-t">{{ stock.wool_type }}</td>
+                <td class="p-3 border-t">{{ stock.color }}</td>
+                <td class="p-3 border-t">{{ stock.quantity }}</td>
+                <td class="p-3 border-t">{{ stock.unit }}</td>
+                <td class="p-3 border-t">{{ formatCurrency(stock.unit_price) }}</td>
+                <td class="p-3 border-t">{{ formatDate(stock.received_date) }}</td>
+                <td class="p-3 border-t">
+                  <span v-if="stock.orderItem?.order" class="text-blue-600 hover:text-blue-900 cursor-pointer"
+                        @click="viewOrder(stock.orderItem.order)">
+                    {{ stock.orderItem.order.order_number }}
+                  </span>
+                </td>
+                <td class="p-3 border-t">
+                  <button @click="editStock(stock)" class="inline-flex items-center px-2 py-1 bg-blue-500 text-white text-sm rounded hover:bg-blue-600 mr-1">
+                    <i class="fas fa-edit"></i>
+                  </button>
+                  <button @click="deleteStock(stock.id)" class="inline-flex items-center px-2 py-1 bg-red-500 text-white text-sm rounded hover:bg-red-600">
+                    <i class="fas fa-trash"></i>
+                  </button>
+                </td>
+              </tr>
+              <tr v-if="filteredStock.length === 0">
+                <td colspan="8" class="p-3 text-center border-t">No stock items found</td>
+              </tr>
+            </tbody>
+          </table>
         </div>
       </div>
     </div>
@@ -100,45 +116,45 @@
             <div class="mb-4">
               <label class="block text-gray-700 text-sm font-bold mb-2" for="wool_type">Wool Type</label>
               <input v-model="editForm.wool_type" type="text" id="wool_type" required
-                     class="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline">
+                     class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-indigo-500 focus:border-indigo-500">
             </div>
             <div class="mb-4">
               <label class="block text-gray-700 text-sm font-bold mb-2" for="color">Color</label>
               <input v-model="editForm.color" type="text" id="color" required
-                     class="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline">
+                     class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-indigo-500 focus:border-indigo-500">
             </div>
             <div class="mb-4">
               <label class="block text-gray-700 text-sm font-bold mb-2" for="quantity">Quantity</label>
               <input v-model="editForm.quantity" type="number" step="0.01" id="quantity" required
-                     class="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline">
+                     class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-indigo-500 focus:border-indigo-500">
             </div>
             <div class="mb-4">
               <label class="block text-gray-700 text-sm font-bold mb-2" for="unit">Unit</label>
               <input v-model="editForm.unit" type="text" id="unit" required
-                     class="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline">
+                     class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-indigo-500 focus:border-indigo-500">
             </div>
             <div class="mb-4">
               <label class="block text-gray-700 text-sm font-bold mb-2" for="unit_price">Unit Price</label>
               <input v-model="editForm.unit_price" type="number" step="0.01" id="unit_price" required
-                     class="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline">
+                     class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-indigo-500 focus:border-indigo-500">
             </div>
             <div class="mb-4">
               <label class="block text-gray-700 text-sm font-bold mb-2" for="received_date">Received Date</label>
               <input v-model="editForm.received_date" type="date" id="received_date" required
-                     class="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline">
+                     class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-indigo-500 focus:border-indigo-500">
             </div>
             <div class="mb-4">
               <label class="block text-gray-700 text-sm font-bold mb-2" for="notes">Notes</label>
               <textarea v-model="editForm.notes" id="notes"
-                        class="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline"></textarea>
+                        class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-indigo-500 focus:border-indigo-500"></textarea>
             </div>
             <div class="flex justify-end space-x-3">
               <button type="button" @click="closeEditModal"
-                      class="bg-gray-300 text-gray-700 px-4 py-2 rounded-lg hover:bg-gray-400">
+                      class="px-4 py-2 bg-gray-200 text-gray-700 rounded-md hover:bg-gray-300 focus:outline-none focus:ring-2 focus:ring-gray-500">
                 Cancel
               </button>
               <button type="submit"
-                      class="bg-blue-500 text-white px-4 py-2 rounded-lg hover:bg-blue-600">
+                      class="px-4 py-2 bg-indigo-600 text-white rounded-md hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-indigo-500">
                 Update
               </button>
             </div>
@@ -152,17 +168,16 @@
 <script setup>
 import { ref, computed, onMounted } from 'vue'
 import axios from 'axios'
+import { debounce } from 'lodash'
 
 const stock = ref([])
-const showFilterModal = ref(false)
 const showEditModal = ref(false)
 const editingId = ref(null)
+const searchQuery = ref('')
 
 const filters = ref({
   wool_type: '',
-  color: '',
-  date_from: '',
-  date_to: ''
+  color: ''
 })
 
 const editForm = ref({
@@ -175,6 +190,16 @@ const editForm = ref({
   notes: ''
 })
 
+const uniqueWoolTypes = computed(() => {
+  const types = new Set(stock.value.map(item => item.wool_type))
+  return Array.from(types).sort()
+})
+
+const uniqueColors = computed(() => {
+  const colors = new Set(stock.value.map(item => item.color))
+  return Array.from(colors).sort()
+})
+
 const fetchStock = async () => {
   try {
     const response = await axios.get('/wool/stock')
@@ -184,31 +209,31 @@ const fetchStock = async () => {
   }
 }
 
+const filterStock = () => {
+  // The filteredStock computed property will handle the filtering
+}
+
+const debouncedFilterStock = debounce(filterStock, 300)
+
 const filteredStock = computed(() => {
   return stock.value.filter(item => {
+    const matchesSearch = !searchQuery.value || 
+      item.wool_type.toLowerCase().includes(searchQuery.value.toLowerCase()) ||
+      item.color.toLowerCase().includes(searchQuery.value.toLowerCase())
     const matchesWoolType = !filters.value.wool_type || 
-      item.wool_type.toLowerCase().includes(filters.value.wool_type.toLowerCase())
+      item.wool_type === filters.value.wool_type
     const matchesColor = !filters.value.color || 
-      item.color.toLowerCase().includes(filters.value.color.toLowerCase())
-    const matchesDateFrom = !filters.value.date_from || 
-      new Date(item.received_date) >= new Date(filters.value.date_from)
-    const matchesDateTo = !filters.value.date_to || 
-      new Date(item.received_date) <= new Date(filters.value.date_to)
+      item.color === filters.value.color
     
-    return matchesWoolType && matchesColor && matchesDateFrom && matchesDateTo
+    return matchesSearch && matchesWoolType && matchesColor
   })
 })
 
-const applyFilters = () => {
-  showFilterModal.value = false
-}
-
 const resetFilters = () => {
+  searchQuery.value = ''
   filters.value = {
     wool_type: '',
-    color: '',
-    date_from: '',
-    date_to: ''
+    color: ''
   }
 }
 
@@ -250,17 +275,11 @@ const exportStock = async () => {
       responseType: 'blob'
     });
     
-    // Create a blob from the response data
     const blob = new Blob([response.data], { type: 'text/csv' });
-    
-    // Create a temporary URL for the blob
     const url = window.URL.createObjectURL(blob);
-    
-    // Create a temporary link element
     const link = document.createElement('a');
     link.href = url;
     
-    // Get the filename from the Content-Disposition header or use a default
     const contentDisposition = response.headers['content-disposition'];
     let filename = 'wool-stock-export.csv';
     
@@ -275,7 +294,6 @@ const exportStock = async () => {
     document.body.appendChild(link);
     link.click();
     
-    // Clean up
     window.URL.revokeObjectURL(url);
     document.body.removeChild(link);
   } catch (error) {

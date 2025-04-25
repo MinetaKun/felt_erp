@@ -10,6 +10,16 @@ export default [
     },
   
     {
+      path: "/dashboard",
+      name: "dashboard",
+      component: () => import("../pages/Dashboard.vue"),
+      meta: {
+        layout: "dashboard",
+        permissions: [],
+      },
+    },
+  
+    {
       path: "/users",
       name: "users",
       component: () => import("../pages/Users.vue"),
@@ -73,6 +83,15 @@ export default [
       meta: {
         layout: "dashboard",
         permissions: ["artisans-all", "artisans-edit"],
+      },
+    },
+    {
+      path: "/artisans/productivity",
+      name: "artisans.productivity",
+      component: () => import("../pages/artisans/ArtisanProductivity.vue"),
+      meta: {
+        layout: "dashboard",
+        permissions: ["artisans-all", "artisans-view"],
       },
     },
     // Attendance routes

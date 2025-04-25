@@ -1,47 +1,66 @@
 <template>
-  <div class="container mx-auto px-4 py-8">
-    <div class="flex justify-between items-center mb-6">
-      <h1 class="text-2xl font-bold text-gray-800">Wool Orders</h1>
-      <button @click="showAddModal = true" class="bg-blue-500 text-white px-4 py-2 rounded-lg hover:bg-blue-600">
-        Create Order
-      </button>
-    </div>
+  <div class="p-5">
+    <div class="bg-white rounded-lg shadow">
+      <!-- Header Section -->
+      <div class="p-5 bg-gradient-to-r from-indigo-600 to-blue-500 border-b border-indigo-200 flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
+        <div class="text-white">
+          <h3 class="text-xl font-bold">Wool Orders</h3>
+          <p class="text-indigo-100 text-sm mt-1">Manage your wool orders efficiently</p>
+        </div>
+        <div class="flex flex-wrap gap-2">
+          <button @click="showAddModal = true" class="inline-flex items-center px-4 py-2 bg-emerald-500 text-white text-sm font-medium rounded-lg hover:bg-emerald-600 transition duration-200 shadow-sm">
+            <i class="fas fa-plus mr-2"></i> Create Order
+          </button>
+        </div>
+      </div>
 
-    <!-- Orders Table -->
-    <div class="bg-white rounded-lg shadow overflow-hidden">
-      <table class="min-w-full divide-y divide-gray-200">
-        <thead class="bg-gray-50">
-          <tr>
-            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Order Number</th>
-            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Supplier</th>
-            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Order Date</th>
-            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Expected Delivery</th>
-            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Total Amount</th>
-            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
-            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
-          </tr>
-        </thead>
-        <tbody class="bg-white divide-y divide-gray-200">
-          <tr v-for="order in orders" :key="order.id">
-            <td class="px-6 py-4 whitespace-nowrap">{{ order.order_number }}</td>
-            <td class="px-6 py-4 whitespace-nowrap">{{ order.supplier?.name }}</td>
-            <td class="px-6 py-4 whitespace-nowrap">{{ formatDate(order.order_date) }}</td>
-            <td class="px-6 py-4 whitespace-nowrap">{{ formatDate(order.expected_delivery_date) }}</td>
-            <td class="px-6 py-4 whitespace-nowrap">{{ formatCurrency(order.total_amount) }}</td>
-            <td class="px-6 py-4 whitespace-nowrap">
-              <span :class="getStatusClass(order.status)" 
-                    class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full">
-                {{ order.status }}
-              </span>
-            </td>
-            <td class="px-6 py-4 whitespace-nowrap text-sm font-medium">
-              <button @click="viewOrder(order)" class="text-indigo-600 hover:text-indigo-900 mr-4">View</button>
-              <button @click="updateStatus(order)" class="text-green-600 hover:text-green-900 mr-4">Update Status</button>
-              <button @click="deleteOrder(order.id)" class="text-red-600 hover:text-red-900">Delete</button>
-            </td>
-          </tr>
-        </tbody>
-      </table>
+      <div class="p-5">
+        <!-- Orders Table -->
+        <div class="overflow-x-auto">
+          <table class="min-w-full border-collapse">
+            <thead>
+              <tr class="bg-gray-100">
+                <th class="p-3 text-left border-b-2 border-gray-200">Order Number</th>
+                <th class="p-3 text-left border-b-2 border-gray-200">Supplier</th>
+                <th class="p-3 text-left border-b-2 border-gray-200">Order Date</th>
+                <th class="p-3 text-left border-b-2 border-gray-200">Expected Delivery</th>
+                <th class="p-3 text-left border-b-2 border-gray-200">Total Amount</th>
+                <th class="p-3 text-left border-b-2 border-gray-200">Status</th>
+                <th class="p-3 text-left border-b-2 border-gray-200">Actions</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr v-for="order in orders" :key="order.id" class="hover:bg-gray-50">
+                <td class="p-3 border-t">{{ order.order_number }}</td>
+                <td class="p-3 border-t">{{ order.supplier?.name }}</td>
+                <td class="p-3 border-t">{{ formatDate(order.order_date) }}</td>
+                <td class="p-3 border-t">{{ formatDate(order.expected_delivery_date) }}</td>
+                <td class="p-3 border-t">{{ formatCurrency(order.total_amount) }}</td>
+                <td class="p-3 border-t">
+                  <span :class="getStatusClass(order.status)" 
+                        class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full">
+                    {{ order.status }}
+                  </span>
+                </td>
+                <td class="p-3 border-t">
+                  <button @click="viewOrder(order)" class="inline-flex items-center px-2 py-1 bg-blue-500 text-white text-sm rounded hover:bg-blue-600 mr-1">
+                    <i class="fas fa-eye"></i>
+                  </button>
+                  <button @click="updateStatus(order)" class="inline-flex items-center px-2 py-1 bg-green-500 text-white text-sm rounded hover:bg-green-600 mr-1">
+                    <i class="fas fa-sync"></i>
+                  </button>
+                  <button @click="deleteOrder(order.id)" class="inline-flex items-center px-2 py-1 bg-red-500 text-white text-sm rounded hover:bg-red-600">
+                    <i class="fas fa-trash"></i>
+                  </button>
+                </td>
+              </tr>
+              <tr v-if="orders.length === 0">
+                <td colspan="7" class="p-3 text-center border-t">No orders found</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
     </div>
 
     <!-- Add Order Modal -->
@@ -53,7 +72,8 @@
             <div class="mb-4">
               <label class="block text-gray-700 text-sm font-bold mb-2" for="wool_supplier_id">Supplier</label>
               <select v-model="form.wool_supplier_id" id="wool_supplier_id" required
-                      class="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline">
+                      class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-indigo-500 focus:border-indigo-500">
+                <option value="">Select Supplier</option>
                 <option v-for="supplier in suppliers" :key="supplier.id" :value="supplier.id">
                   {{ supplier.name }}
                 </option>
@@ -62,17 +82,17 @@
             <div class="mb-4">
               <label class="block text-gray-700 text-sm font-bold mb-2" for="order_date">Order Date</label>
               <input v-model="form.order_date" type="date" id="order_date" required
-                     class="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline">
+                     class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-indigo-500 focus:border-indigo-500">
             </div>
             <div class="mb-4">
               <label class="block text-gray-700 text-sm font-bold mb-2" for="expected_delivery_date">Expected Delivery Date</label>
               <input v-model="form.expected_delivery_date" type="date" id="expected_delivery_date" required
-                     class="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline">
+                     class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-indigo-500 focus:border-indigo-500">
             </div>
             <div class="mb-4">
               <label class="block text-gray-700 text-sm font-bold mb-2" for="notes">Notes</label>
               <textarea v-model="form.notes" id="notes"
-                        class="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline"></textarea>
+                        class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-indigo-500 focus:border-indigo-500"></textarea>
             </div>
             
             <!-- Order Items -->
@@ -82,32 +102,32 @@
                 <div class="mb-2">
                   <label class="block text-gray-700 text-sm font-bold mb-2">Wool Type</label>
                   <input v-model="item.wool_type" type="text" required
-                         class="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline">
+                         class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-indigo-500 focus:border-indigo-500">
                 </div>
                 <div class="mb-2">
                   <label class="block text-gray-700 text-sm font-bold mb-2">Color</label>
                   <input v-model="item.color" type="text" required
-                         class="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline">
+                         class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-indigo-500 focus:border-indigo-500">
                 </div>
                 <div class="mb-2">
                   <label class="block text-gray-700 text-sm font-bold mb-2">Quantity</label>
                   <input v-model="item.quantity" type="number" step="0.01" required
-                         class="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline">
+                         class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-indigo-500 focus:border-indigo-500">
                 </div>
                 <div class="mb-2">
                   <label class="block text-gray-700 text-sm font-bold mb-2">Unit</label>
                   <input v-model="item.unit" type="text" required
-                         class="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline">
+                         class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-indigo-500 focus:border-indigo-500">
                 </div>
                 <div class="mb-2">
                   <label class="block text-gray-700 text-sm font-bold mb-2">Unit Price</label>
                   <input v-model="item.unit_price" type="number" step="0.01" required
-                         class="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline">
+                         class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-indigo-500 focus:border-indigo-500">
                 </div>
                 <div class="mb-2">
                   <label class="block text-gray-700 text-sm font-bold mb-2">Specifications</label>
                   <textarea v-model="item.specifications"
-                            class="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline"></textarea>
+                            class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-indigo-500 focus:border-indigo-500"></textarea>
                 </div>
                 <button type="button" @click="removeItem(index)" class="text-red-600 hover:text-red-900">
                   Remove Item
@@ -120,11 +140,11 @@
 
             <div class="flex justify-end space-x-3">
               <button type="button" @click="closeModal"
-                      class="bg-gray-300 text-gray-700 px-4 py-2 rounded-lg hover:bg-gray-400">
+                      class="px-4 py-2 bg-gray-200 text-gray-700 rounded-md hover:bg-gray-300 focus:outline-none focus:ring-2 focus:ring-gray-500">
                 Cancel
               </button>
               <button type="submit"
-                      class="bg-blue-500 text-white px-4 py-2 rounded-lg hover:bg-blue-600">
+                      class="px-4 py-2 bg-indigo-600 text-white rounded-md hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-indigo-500">
                 Create Order
               </button>
             </div>
@@ -158,7 +178,7 @@
             </div>
           </div>
           <div class="mt-4">
-            <button @click="closeViewModal" class="bg-gray-300 text-gray-700 px-4 py-2 rounded-lg hover:bg-gray-400">
+            <button @click="closeViewModal" class="px-4 py-2 bg-gray-200 text-gray-700 rounded-md hover:bg-gray-300 focus:outline-none focus:ring-2 focus:ring-gray-500">
               Close
             </button>
           </div>
@@ -175,7 +195,7 @@
             <div class="mb-4">
               <label class="block text-gray-700 text-sm font-bold mb-2" for="status">Status</label>
               <select v-model="statusForm.status" id="status" required
-                      class="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline">
+                      class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-indigo-500 focus:border-indigo-500">
                 <option value="pending">Pending</option>
                 <option value="confirmed">Confirmed</option>
                 <option value="delivered">Delivered</option>
@@ -185,15 +205,15 @@
             <div class="mb-4">
               <label class="block text-gray-700 text-sm font-bold mb-2" for="notes">Notes</label>
               <textarea v-model="statusForm.notes" id="notes"
-                        class="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline"></textarea>
+                        class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-indigo-500 focus:border-indigo-500"></textarea>
             </div>
             <div class="flex justify-end space-x-3">
               <button type="button" @click="closeStatusModal"
-                      class="bg-gray-300 text-gray-700 px-4 py-2 rounded-lg hover:bg-gray-400">
+                      class="px-4 py-2 bg-gray-200 text-gray-700 rounded-md hover:bg-gray-300 focus:outline-none focus:ring-2 focus:ring-gray-500">
                 Cancel
               </button>
               <button type="submit"
-                      class="bg-blue-500 text-white px-4 py-2 rounded-lg hover:bg-blue-600">
+                      class="px-4 py-2 bg-indigo-600 text-white rounded-md hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-indigo-500">
                 Update Status
               </button>
             </div>
