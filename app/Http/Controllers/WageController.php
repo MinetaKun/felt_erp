@@ -34,21 +34,63 @@ class WageController extends Controller
                 ->where('order_assignments.status', 'dispatched')
                 ->where('order_assignments.approved_quantity', '>', 0);
 
-            // Apply filters
-            if ($request->filled('artisan')) {
-                $query->where('artisans.name', 'like', '%' . $request->artisan . '%');
+            // Apply search filter
+            if ($request->filled('search')) {
+                $search = $request->search;
+                $query->where(function ($q) use ($search) {
+                    $q->where('artisans.name', 'like', '%' . $search . '%')
+                        ->orWhere('orders.order_id', 'like', '%' . $search . '%');
+                });
             }
 
-            if ($request->filled('order')) {
-                $query->where('orders.order_id', 'like', '%' . $request->order . '%');
+            // Apply date range filter
+            if ($request->filled('date_range')) {
+                $now = Carbon::now();
+                switch ($request->date_range) {
+                    case 'today':
+                        $query->whereDate('order_assignments.approved_at', $now->toDateString());
+                        break;
+                    case 'week':
+                        $query->whereBetween('order_assignments.approved_at', [
+                            $now->startOfWeek()->toDateString(),
+                            $now->endOfWeek()->toDateString()
+                        ]);
+                        break;
+                    case 'month':
+                        $query->whereBetween('order_assignments.approved_at', [
+                            $now->startOfMonth()->toDateString(),
+                            $now->endOfMonth()->toDateString()
+                        ]);
+                        break;
+                    case 'year':
+                        $query->whereBetween('order_assignments.approved_at', [
+                            $now->startOfYear()->toDateString(),
+                            $now->endOfYear()->toDateString()
+                        ]);
+                        break;
+                }
             }
 
-            if ($request->filled('date_from')) {
-                $query->whereDate('order_assignments.approved_at', '>=', $request->date_from);
-            }
+            // Apply sorting
+            if ($request->filled('sort')) {
+                $sortParts = explode(':', $request->sort);
+                if (count($sortParts) === 2) {
+                    $column = $sortParts[0];
+                    $direction = $sortParts[1];
 
-            if ($request->filled('date_to')) {
-                $query->whereDate('order_assignments.approved_at', '<=', $request->date_to);
+                    // Map frontend sort fields to database columns
+                    $sortMap = [
+                        'approval_date' => 'order_assignments.approved_at',
+                        'artisan_name' => 'artisans.name',
+                        'total_wages' => 'total_wages'
+                    ];
+
+                    if (isset($sortMap[$column])) {
+                        $query->orderBy($sortMap[$column], $direction);
+                    }
+                }
+            } else {
+                $query->orderBy('order_assignments.approved_at', 'desc');
             }
 
             // Log the SQL query for debugging
@@ -106,21 +148,63 @@ class WageController extends Controller
                 ->where('order_assignments.status', 'dispatched')
                 ->where('order_assignments.approved_quantity', '>', 0);
 
-            // Apply filters
-            if ($request->filled('artisan')) {
-                $query->where('artisans.name', 'like', '%' . $request->artisan . '%');
+            // Apply search filter
+            if ($request->filled('search')) {
+                $search = $request->search;
+                $query->where(function ($q) use ($search) {
+                    $q->where('artisans.name', 'like', '%' . $search . '%')
+                        ->orWhere('orders.order_id', 'like', '%' . $search . '%');
+                });
             }
 
-            if ($request->filled('order')) {
-                $query->where('orders.order_id', 'like', '%' . $request->order . '%');
+            // Apply date range filter
+            if ($request->filled('date_range')) {
+                $now = Carbon::now();
+                switch ($request->date_range) {
+                    case 'today':
+                        $query->whereDate('order_assignments.approved_at', $now->toDateString());
+                        break;
+                    case 'week':
+                        $query->whereBetween('order_assignments.approved_at', [
+                            $now->startOfWeek()->toDateString(),
+                            $now->endOfWeek()->toDateString()
+                        ]);
+                        break;
+                    case 'month':
+                        $query->whereBetween('order_assignments.approved_at', [
+                            $now->startOfMonth()->toDateString(),
+                            $now->endOfMonth()->toDateString()
+                        ]);
+                        break;
+                    case 'year':
+                        $query->whereBetween('order_assignments.approved_at', [
+                            $now->startOfYear()->toDateString(),
+                            $now->endOfYear()->toDateString()
+                        ]);
+                        break;
+                }
             }
 
-            if ($request->filled('date_from')) {
-                $query->whereDate('order_assignments.approved_at', '>=', $request->date_from);
-            }
+            // Apply sorting
+            if ($request->filled('sort')) {
+                $sortParts = explode(':', $request->sort);
+                if (count($sortParts) === 2) {
+                    $column = $sortParts[0];
+                    $direction = $sortParts[1];
 
-            if ($request->filled('date_to')) {
-                $query->whereDate('order_assignments.approved_at', '<=', $request->date_to);
+                    // Map frontend sort fields to database columns
+                    $sortMap = [
+                        'approval_date' => 'order_assignments.approved_at',
+                        'artisan_name' => 'artisans.name',
+                        'total_wages' => 'total_wages'
+                    ];
+
+                    if (isset($sortMap[$column])) {
+                        $query->orderBy($sortMap[$column], $direction);
+                    }
+                }
+            } else {
+                $query->orderBy('order_assignments.approved_at', 'desc');
             }
 
             $wages = $query->get();
@@ -184,6 +268,266 @@ class WageController extends Controller
             return response()->json([
                 'success' => false,
                 'message' => 'Error exporting wages',
+                'error' => $e->getMessage()
+            ], 500);
+        }
+    }
+
+    public function report(Request $request)
+    {
+        try {
+            $query = OrderAssignment::query()
+                ->select([
+                    DB::raw('DATE(order_assignments.approved_at) as period'),
+                    DB::raw('COUNT(DISTINCT order_assignments.artisan_id) as total_artisans'),
+                    DB::raw('COUNT(DISTINCT order_assignments.order_id) as total_orders'),
+                    DB::raw('SUM(CAST(order_assignments.approved_quantity AS DECIMAL(10,2)) * CAST(orders.wages_per_unit AS DECIMAL(10,2))) as total_wages'),
+                    DB::raw('AVG(CAST(order_assignments.approved_quantity AS DECIMAL(10,2)) * CAST(orders.wages_per_unit AS DECIMAL(10,2))) as average_wage')
+                ])
+                ->join('orders', 'order_assignments.order_id', '=', 'orders.id')
+                ->join('artisans', 'order_assignments.artisan_id', '=', 'artisans.id')
+                ->where('order_assignments.status', 'dispatched')
+                ->where('order_assignments.approved_quantity', '>', 0);
+
+            // Apply date range filter
+            if ($request->filled('date_range')) {
+                $now = Carbon::now();
+                switch ($request->date_range) {
+                    case 'today':
+                        $query->whereDate('order_assignments.approved_at', $now->toDateString());
+                        break;
+                    case 'week':
+                        $query->whereBetween('order_assignments.approved_at', [
+                            $now->startOfWeek()->toDateString(),
+                            $now->endOfWeek()->toDateString()
+                        ]);
+                        break;
+                    case 'month':
+                        $query->whereBetween('order_assignments.approved_at', [
+                            $now->startOfMonth()->toDateString(),
+                            $now->endOfMonth()->toDateString()
+                        ]);
+                        break;
+                    case 'year':
+                        $query->whereBetween('order_assignments.approved_at', [
+                            $now->startOfYear()->toDateString(),
+                            $now->endOfYear()->toDateString()
+                        ]);
+                        break;
+                }
+            }
+
+            // Group by period based on the group_by parameter
+            if ($request->filled('group_by')) {
+                switch ($request->group_by) {
+                    case 'weekly':
+                        $query->select([
+                            DB::raw('YEARWEEK(order_assignments.approved_at) as period'),
+                            DB::raw('COUNT(DISTINCT order_assignments.artisan_id) as total_artisans'),
+                            DB::raw('COUNT(DISTINCT order_assignments.order_id) as total_orders'),
+                            DB::raw('SUM(CAST(order_assignments.approved_quantity AS DECIMAL(10,2)) * CAST(orders.wages_per_unit AS DECIMAL(10,2))) as total_wages'),
+                            DB::raw('AVG(CAST(order_assignments.approved_quantity AS DECIMAL(10,2)) * CAST(orders.wages_per_unit AS DECIMAL(10,2))) as average_wage')
+                        ])
+                            ->groupBy(DB::raw('YEARWEEK(order_assignments.approved_at)'));
+                        break;
+                    case 'monthly':
+                        $query->select([
+                            DB::raw('DATE_FORMAT(order_assignments.approved_at, "%Y-%m") as period'),
+                            DB::raw('COUNT(DISTINCT order_assignments.artisan_id) as total_artisans'),
+                            DB::raw('COUNT(DISTINCT order_assignments.order_id) as total_orders'),
+                            DB::raw('SUM(CAST(order_assignments.approved_quantity AS DECIMAL(10,2)) * CAST(orders.wages_per_unit AS DECIMAL(10,2))) as total_wages'),
+                            DB::raw('AVG(CAST(order_assignments.approved_quantity AS DECIMAL(10,2)) * CAST(orders.wages_per_unit AS DECIMAL(10,2))) as average_wage')
+                        ])
+                            ->groupBy(DB::raw('DATE_FORMAT(order_assignments.approved_at, "%Y-%m")'));
+                        break;
+                    case 'yearly':
+                        $query->select([
+                            DB::raw('YEAR(order_assignments.approved_at) as period'),
+                            DB::raw('COUNT(DISTINCT order_assignments.artisan_id) as total_artisans'),
+                            DB::raw('COUNT(DISTINCT order_assignments.order_id) as total_orders'),
+                            DB::raw('SUM(CAST(order_assignments.approved_quantity AS DECIMAL(10,2)) * CAST(orders.wages_per_unit AS DECIMAL(10,2))) as total_wages'),
+                            DB::raw('AVG(CAST(order_assignments.approved_quantity AS DECIMAL(10,2)) * CAST(orders.wages_per_unit AS DECIMAL(10,2))) as average_wage')
+                        ])
+                            ->groupBy(DB::raw('YEAR(order_assignments.approved_at)'));
+                        break;
+                    default: // daily
+                        $query->groupBy(DB::raw('DATE(order_assignments.approved_at)'));
+                }
+            } else {
+                $query->groupBy(DB::raw('DATE(order_assignments.approved_at)'));
+            }
+
+            // Apply sorting
+            $query->orderBy('period', 'desc');
+
+            $report = $query->get();
+
+            // Ensure numeric values
+            $report = $report->map(function ($item) {
+                $item->total_wages = (float)$item->total_wages;
+                $item->average_wage = (float)$item->average_wage;
+                $item->total_artisans = (int)$item->total_artisans;
+                $item->total_orders = (int)$item->total_orders;
+                return $item;
+            });
+
+            return response()->json([
+                'success' => true,
+                'data' => $report
+            ]);
+        } catch (\Exception $e) {
+            Log::error('Wage Report Error:', [
+                'message' => $e->getMessage(),
+                'trace' => $e->getTraceAsString()
+            ]);
+
+            return response()->json([
+                'success' => false,
+                'message' => 'Error generating wage report',
+                'error' => $e->getMessage()
+            ], 500);
+        }
+    }
+
+    public function exportReport(Request $request)
+    {
+        try {
+            $query = OrderAssignment::query()
+                ->select([
+                    DB::raw('DATE(order_assignments.approved_at) as period'),
+                    DB::raw('COUNT(DISTINCT order_assignments.artisan_id) as total_artisans'),
+                    DB::raw('COUNT(DISTINCT order_assignments.order_id) as total_orders'),
+                    DB::raw('SUM(CAST(order_assignments.approved_quantity AS DECIMAL(10,2)) * CAST(orders.wages_per_unit AS DECIMAL(10,2))) as total_wages'),
+                    DB::raw('AVG(CAST(order_assignments.approved_quantity AS DECIMAL(10,2)) * CAST(orders.wages_per_unit AS DECIMAL(10,2))) as average_wage')
+                ])
+                ->join('orders', 'order_assignments.order_id', '=', 'orders.id')
+                ->join('artisans', 'order_assignments.artisan_id', '=', 'artisans.id')
+                ->where('order_assignments.status', 'dispatched')
+                ->where('order_assignments.approved_quantity', '>', 0);
+
+            // Apply date range filter
+            if ($request->filled('date_range')) {
+                $now = Carbon::now();
+                switch ($request->date_range) {
+                    case 'today':
+                        $query->whereDate('order_assignments.approved_at', $now->toDateString());
+                        break;
+                    case 'week':
+                        $query->whereBetween('order_assignments.approved_at', [
+                            $now->startOfWeek()->toDateString(),
+                            $now->endOfWeek()->toDateString()
+                        ]);
+                        break;
+                    case 'month':
+                        $query->whereBetween('order_assignments.approved_at', [
+                            $now->startOfMonth()->toDateString(),
+                            $now->endOfMonth()->toDateString()
+                        ]);
+                        break;
+                    case 'year':
+                        $query->whereBetween('order_assignments.approved_at', [
+                            $now->startOfYear()->toDateString(),
+                            $now->endOfYear()->toDateString()
+                        ]);
+                        break;
+                }
+            }
+
+            // Group by period based on the group_by parameter
+            if ($request->filled('group_by')) {
+                switch ($request->group_by) {
+                    case 'weekly':
+                        $query->select([
+                            DB::raw('YEARWEEK(order_assignments.approved_at) as period'),
+                            DB::raw('COUNT(DISTINCT order_assignments.artisan_id) as total_artisans'),
+                            DB::raw('COUNT(DISTINCT order_assignments.order_id) as total_orders'),
+                            DB::raw('SUM(CAST(order_assignments.approved_quantity AS DECIMAL(10,2)) * CAST(orders.wages_per_unit AS DECIMAL(10,2))) as total_wages'),
+                            DB::raw('AVG(CAST(order_assignments.approved_quantity AS DECIMAL(10,2)) * CAST(orders.wages_per_unit AS DECIMAL(10,2))) as average_wage')
+                        ])
+                            ->groupBy(DB::raw('YEARWEEK(order_assignments.approved_at)'));
+                        break;
+                    case 'monthly':
+                        $query->select([
+                            DB::raw('DATE_FORMAT(order_assignments.approved_at, "%Y-%m") as period'),
+                            DB::raw('COUNT(DISTINCT order_assignments.artisan_id) as total_artisans'),
+                            DB::raw('COUNT(DISTINCT order_assignments.order_id) as total_orders'),
+                            DB::raw('SUM(CAST(order_assignments.approved_quantity AS DECIMAL(10,2)) * CAST(orders.wages_per_unit AS DECIMAL(10,2))) as total_wages'),
+                            DB::raw('AVG(CAST(order_assignments.approved_quantity AS DECIMAL(10,2)) * CAST(orders.wages_per_unit AS DECIMAL(10,2))) as average_wage')
+                        ])
+                            ->groupBy(DB::raw('DATE_FORMAT(order_assignments.approved_at, "%Y-%m")'));
+                        break;
+                    case 'yearly':
+                        $query->select([
+                            DB::raw('YEAR(order_assignments.approved_at) as period'),
+                            DB::raw('COUNT(DISTINCT order_assignments.artisan_id) as total_artisans'),
+                            DB::raw('COUNT(DISTINCT order_assignments.order_id) as total_orders'),
+                            DB::raw('SUM(CAST(order_assignments.approved_quantity AS DECIMAL(10,2)) * CAST(orders.wages_per_unit AS DECIMAL(10,2))) as total_wages'),
+                            DB::raw('AVG(CAST(order_assignments.approved_quantity AS DECIMAL(10,2)) * CAST(orders.wages_per_unit AS DECIMAL(10,2))) as average_wage')
+                        ])
+                            ->groupBy(DB::raw('YEAR(order_assignments.approved_at)'));
+                        break;
+                    default: // daily
+                        $query->groupBy(DB::raw('DATE(order_assignments.approved_at)'));
+                }
+            } else {
+                $query->groupBy(DB::raw('DATE(order_assignments.approved_at)'));
+            }
+
+            // Apply sorting
+            $query->orderBy('period', 'desc');
+
+            $report = $query->get();
+
+            // Ensure numeric values
+            $report = $report->map(function ($item) {
+                $item->total_wages = (float)$item->total_wages;
+                $item->average_wage = (float)$item->average_wage;
+                $item->total_artisans = (int)$item->total_artisans;
+                $item->total_orders = (int)$item->total_orders;
+                return $item;
+            });
+
+            $headers = [
+                'Content-Type' => 'text/csv',
+                'Content-Disposition' => 'attachment; filename="wage-report-' . Carbon::now()->format('Y-m-d') . '.csv"',
+            ];
+
+            $callback = function () use ($report) {
+                $file = fopen('php://output', 'w');
+
+                // Add headers
+                fputcsv($file, [
+                    'Period',
+                    'Total Artisans',
+                    'Total Orders',
+                    'Total Wages',
+                    'Average Wage'
+                ]);
+
+                // Add data
+                foreach ($report as $item) {
+                    fputcsv($file, [
+                        $item->period,
+                        $item->total_artisans,
+                        $item->total_orders,
+                        $item->total_wages,
+                        $item->average_wage
+                    ]);
+                }
+
+                fclose($file);
+            };
+
+            return response()->stream($callback, 200, $headers);
+        } catch (\Exception $e) {
+            Log::error('Wage Report Export Error:', [
+                'message' => $e->getMessage(),
+                'trace' => $e->getTraceAsString()
+            ]);
+
+            return response()->json([
+                'success' => false,
+                'message' => 'Error exporting wage report',
                 'error' => $e->getMessage()
             ], 500);
         }

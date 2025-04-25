@@ -33,7 +33,7 @@
                   type="text"
                   class="focus:ring-blue-500 focus:border-blue-500 block w-full pr-10 sm:text-sm border-gray-300 rounded-md"
                   v-model="filters.search"
-                  placeholder="Search by name or SKU..."
+                  placeholder="Search by name, ID, or details..."
                   @input="debouncedSearch"
                 >
                 <div class="absolute inset-y-0 right-0 pr-3 flex items-center pointer-events-none">
@@ -45,43 +45,44 @@
             </div>
 
             <div>
-              <label class="block text-sm font-medium text-gray-700">Category</label>
+              <label class="block text-sm font-medium text-gray-700">Size</label>
               <select 
                 class="mt-1 block w-full pl-3 pr-10 py-2 text-base border-gray-300 focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm rounded-md"
-                v-model="filters.category"
+                v-model="filters.size"
                 @change="fetchProducts"
               >
-                <option value="">All Categories</option>
-                <option v-for="category in categories" :key="category" :value="category">
-                  {{ category }}
+                <option value="">All Sizes</option>
+                <option v-for="size in sizes" :key="size" :value="size">
+                  {{ size }}
                 </option>
               </select>
             </div>
 
             <div>
-              <label class="block text-sm font-medium text-gray-700">Status</label>
+              <label class="block text-sm font-medium text-gray-700">Color</label>
               <select 
                 class="mt-1 block w-full pl-3 pr-10 py-2 text-base border-gray-300 focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm rounded-md"
-                v-model="filters.status"
+                v-model="filters.color"
                 @change="fetchProducts"
               >
-                <option value="">All Statuses</option>
-                <option value="active">Active</option>
-                <option value="inactive">Inactive</option>
-                <option value="discontinued">Discontinued</option>
+                <option value="">All Colors</option>
+                <option v-for="color in colors" :key="color" :value="color">
+                  {{ color }}
+                </option>
               </select>
             </div>
 
             <div>
-              <label class="block text-sm font-medium text-gray-700">Stock Status</label>
+              <label class="block text-sm font-medium text-gray-700">Quantity Range</label>
               <select 
                 class="mt-1 block w-full pl-3 pr-10 py-2 text-base border-gray-300 focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm rounded-md"
-                v-model="filters.stockStatus"
+                v-model="filters.quantityRange"
                 @change="fetchProducts"
               >
-                <option value="">All</option>
-                <option value="low">Low Stock</option>
-                <option value="normal">Normal Stock</option>
+                <option value="">All Quantities</option>
+                <option value="low">Low Stock (&lt; 10)</option>
+                <option value="medium">Medium Stock (10-50)</option>
+                <option value="high">High Stock (&gt; 50)</option>
               </select>
             </div>
           </div>
@@ -116,6 +117,7 @@
               <table class="min-w-full divide-y divide-gray-200">
                 <thead class="bg-gray-50">
                   <tr>
+                    <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Image</th>
                     <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">ID</th>
                     <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Name</th>
                     <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Size</th>
@@ -128,6 +130,19 @@
                 </thead>
                 <tbody class="bg-white divide-y divide-gray-200">
                   <tr v-for="product in products" :key="product?.id" class="hover:bg-gray-50">
+                    <td class="px-6 py-4 whitespace-nowrap">
+                      <img 
+                        v-if="product?.image_path" 
+                        :src="`/storage/${product.image_path}`" 
+                        alt="Product image" 
+                        class="h-10 w-10 object-cover rounded-md"
+                      >
+                      <div v-else class="h-10 w-10 bg-gray-200 rounded-md flex items-center justify-center">
+                        <svg class="h-6 w-6 text-gray-400" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                        </svg>
+                      </div>
+                    </td>
                     <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{{ product?.id }}</td>
                     <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{{ product?.name }}</td>
                     <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{{ product?.size }}</td>
@@ -140,6 +155,7 @@
                         <router-link
                           :to="`/inventory/products/${product?.id}`"
                           class="text-blue-600 hover:text-blue-900"
+                          title="View Details"
                         >
                           <svg class="h-5 w-5" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor">
                             <path d="M10 12a2 2 0 100-4 2 2 0 000 4z" />
@@ -149,14 +165,25 @@
                         <router-link
                           :to="`/inventory/products/${product?.id}/edit`"
                           class="text-indigo-600 hover:text-indigo-900"
+                          title="Edit Product"
                         >
                           <svg class="h-5 w-5" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor">
                             <path d="M13.586 3.586a2 2 0 112.828 2.828l-.793.793-2.828-2.828.793-.793zM11.379 5.793L3 14.172V17h2.828l8.38-8.379-2.83-2.828z" />
                           </svg>
                         </router-link>
                         <button
+                          @click="printProduct(product)"
+                          class="text-green-600 hover:text-green-900"
+                          title="Print Details"
+                        >
+                          <svg class="h-5 w-5" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor">
+                            <path fill-rule="evenodd" d="M5 4v3H4a2 2 0 00-2 2v3a2 2 0 002 2h1v2a2 2 0 002 2h6a2 2 0 002-2v-2h1a2 2 0 002-2V9a2 2 0 00-2-2h-1V4a2 2 0 00-2-2H7a2 2 0 00-2 2zm8 0H7v3h6V4zm0 8H7v4h6v-4z" clip-rule="evenodd" />
+                          </svg>
+                        </button>
+                        <button
                           @click="deleteProduct(product)"
                           class="text-red-600 hover:text-red-900"
+                          title="Delete Product"
                         >
                           <svg class="h-5 w-5" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor">
                             <path fill-rule="evenodd" d="M9 2a1 1 0 00-.894.553L7.382 4H4a1 1 0 000 2v10a2 2 0 002 2h8a2 2 0 002-2V6a1 1 0 100-2h-3.382l-.724-1.447A1 1 0 0011 2H9zM7 8a1 1 0 012 0v6a1 1 0 11-2 0V8zm5-1a1 1 0 00-1 1v6a1 1 0 102 0V8a1 1 0 00-1-1z" clip-rule="evenodd" />
@@ -255,14 +282,15 @@ export default {
   data() {
     return {
       products: [],
-      categories: [],
+      sizes: [],
+      colors: [],
       loading: true,
       error: null,
       filters: {
         search: '',
-        category: '',
-        status: '',
-        stockStatus: ''
+        size: '',
+        color: '',
+        quantityRange: ''
       },
       pagination: {
         current_page: 1,
@@ -276,7 +304,8 @@ export default {
   },
   created() {
     this.fetchProducts();
-    this.fetchCategories();
+    this.fetchSizes();
+    this.fetchColors();
     this.fetchPermissions();
   },
   methods: {
@@ -298,14 +327,16 @@ export default {
           params: {
             page: this.pagination.current_page,
             search: this.filters.search,
-            category: this.filters.category,
-            status: this.filters.status,
-            stock_status: this.filters.stockStatus
+            size: this.filters.size,
+            color: this.filters.color,
+            quantity_range: this.filters.quantityRange
           }
         });
         
         if (response.data.success) {
           this.products = response.data.data.data || [];
+          this.sizes = response.data.sizes || [];
+          this.colors = response.data.colors || [];
           this.pagination = {
             current_page: response.data.data.current_page || 1,
             last_page: response.data.data.last_page || 1,
@@ -325,12 +356,20 @@ export default {
         this.loading = false;
       }
     },
-    async fetchCategories() {
+    async fetchSizes() {
       try {
-        const response = await axios.get('/inventory/categories');
-        this.categories = response.data;
+        const response = await axios.get('/inventory/sizes');
+        this.sizes = response.data;
       } catch (error) {
-        console.error('Error fetching categories:', error);
+        console.error('Error fetching sizes:', error);
+      }
+    },
+    async fetchColors() {
+      try {
+        const response = await axios.get('/inventory/colors');
+        this.colors = response.data;
+      } catch (error) {
+        console.error('Error fetching colors:', error);
       }
     },
     async deleteProduct(product) {
@@ -374,6 +413,63 @@ export default {
     formatStatus(status) {
       if (!status) return 'Unknown';
       return status.charAt(0).toUpperCase() + status.slice(1);
+    },
+    printProduct(product) {
+      const printWindow = window.open('', '_blank');
+      printWindow.document.write(`
+        <!DOCTYPE html>
+        <html>
+          <head>
+            <title>Product Details - ${product.name}</title>
+            <style>
+              body { font-family: Arial, sans-serif; margin: 20px; }
+              .header { text-align: center; margin-bottom: 20px; }
+              .product-image { max-width: 200px; margin: 0 auto; display: block; }
+              .details { margin-top: 20px; }
+              .detail-row { margin: 10px 0; }
+              .label { font-weight: bold; }
+              @media print {
+                .no-print { display: none; }
+                body { margin: 0; }
+              }
+            </style>
+          </head>
+          <body>
+            <div class="header">
+              <h1>Product Details</h1>
+            </div>
+            ${product.image_path ? `<img src="/storage/${product.image_path}" alt="${product.name}" class="product-image">` : ''}
+            <div class="details">
+              <div class="detail-row"><span class="label">ID:</span> ${product.id}</div>
+              <div class="detail-row"><span class="label">Name:</span> ${product.name}</div>
+              <div class="detail-row"><span class="label">Size:</span> ${product.size}</div>
+              <div class="detail-row"><span class="label">Color:</span> ${product.color}</div>
+              <div class="detail-row"><span class="label">Quantity:</span> ${product.quantity}</div>
+              <div class="detail-row"><span class="label">Price:</span> ${this.formatCurrency(product.price)}</div>
+              <div class="detail-row"><span class="label">Details:</span> ${product.details}</div>
+            </div>
+            <div class="no-print" style="margin-top: 20px; text-align: center;">
+              <button onclick="window.print()">Print</button>
+              <button onclick="window.close()">Close</button>
+            </div>
+          </body>
+        </html>
+      `);
+      printWindow.document.close();
+    }
+  },
+  watch: {
+    'filters.size': function() {
+      this.pagination.current_page = 1;
+      this.fetchProducts();
+    },
+    'filters.color': function() {
+      this.pagination.current_page = 1;
+      this.fetchProducts();
+    },
+    'filters.quantityRange': function() {
+      this.pagination.current_page = 1;
+      this.fetchProducts();
     }
   }
 };

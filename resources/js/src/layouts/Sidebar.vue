@@ -298,7 +298,7 @@
                 <router-link to="/wages/calculations" class="block p-2 text-gray-400 hover:text-white hover:bg-gray-700 rounded-lg transition-colors">
                   Wage Calculations
                 </router-link>
-                <router-link to="/wages/report" class="block p-2 text-gray-400 hover:text-white hover:bg-gray-700 rounded-lg transition-colors">
+                <router-link to="/wages/reports" class="block p-2 text-gray-400 hover:text-white hover:bg-gray-700 rounded-lg transition-colors">
                   Wage Report
                 </router-link>
               </div>

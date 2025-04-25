@@ -164,7 +164,7 @@
                   <div class="flex space-x-2">
                     <button
                       v-if="assignment.status === 'approved'"
-                      @click="openDispatchModal(assignment)"
+                      @click="dispatchAssignment(assignment)"
                       class="text-purple-600 hover:text-purple-900"
                       title="Dispatch"
                     >
@@ -295,7 +295,7 @@
           <div class="mb-4">
             <label class="block text-sm font-medium text-gray-700 mb-1">Notes</label>
             <textarea
-              v-model="dispatchForm.notes"
+              v-model="dispatchForm.dispatch_notes"
               rows="3"
               class="w-full px-3 py-2 border border-gray-300 rounded-md"
               placeholder="Additional notes about the dispatch"
@@ -327,312 +327,352 @@
     </div>
   </template>
   
-  <script>
+  <script setup>
   import { ref, reactive, onMounted } from "vue"
   import axios from "axios"
   import Swal from "sweetalert2"
+  import Modal from '../../components/Modal.vue'
+  import { useToast } from 'vue-toastification'
   
-  export default {
-    setup() {
-      // State
-      const assignments = ref([])
-      const departments = ref([])
-      const loading = ref(false)
-      const processing = ref(false)
-      const pagination = ref({
-        current_page: 1,
-        last_page: 1,
-        per_page: 15,
-        total: 0,
+  // State
+  const assignments = ref([])
+  const departments = ref([])
+  const loading = ref(false)
+  const processing = ref(false)
+  const pagination = ref({
+    current_page: 1,
+    last_page: 1,
+    per_page: 15,
+    total: 0,
+  })
+  const filters = reactive({
+    search: "",
+    department_id: "",
+    status: "", // Default to show only approved assignments
+    page: 1,
+    per_page: 15,
+  })
+  const selectedAssignments = ref([])
+  const selectAll = ref(false)
+  const showDispatchModal = ref(false)
+  const selectedAssignment = ref(null)
+  const dispatchForm = ref({
+    dispatch_date: new Date().toISOString().split('T')[0],
+    dispatch_method: "vehicle",
+    dispatch_notes: ""
+  })
+  const toast = useToast()
+  
+  // Load assignments with filters
+  const loadAssignments = async () => {
+    loading.value = true
+    try {
+      const queryParams = new URLSearchParams()
+  
+      // Add filters to query params
+      Object.keys(filters).forEach((key) => {
+        if (filters[key]) {
+          queryParams.append(key, filters[key])
+        }
       })
-      const filters = reactive({
-        search: "",
-        department_id: "",
-        status: "", // Default to show only approved assignments
-        page: 1,
-        per_page: 15,
-      })
-      const selectedAssignments = ref([])
-      const selectAll = ref(false)
-      const showDispatchModal = ref(false)
-      const selectedAssignment = ref(null)
-      const dispatchForm = ref({
-        dispatch_date: new Date().toISOString().split('T')[0],
-        dispatch_method: "vehicle",
-        notes: ""
-      })
   
-      // Load assignments with filters
-      const loadAssignments = async () => {
-        loading.value = true
-        try {
-          const queryParams = new URLSearchParams()
+      // Load departments if not already loaded
+      if (departments.value.length === 0) {
+        const deptResponse = await axios.get("/departments")
+        departments.value = deptResponse.data
+      }
   
-          // Add filters to query params
-          Object.keys(filters).forEach((key) => {
-            if (filters[key]) {
-              queryParams.append(key, filters[key])
-            }
-          })
+      // Load assignments
+      const response = await axios.get(`/order-assignments?${queryParams.toString()}`)
+      assignments.value = response.data.data
+      pagination.value = {
+        current_page: response.data.current_page,
+        last_page: response.data.last_page,
+        per_page: response.data.per_page,
+        total: response.data.total,
+      }
+    } catch (error) {
+      console.error("Error loading assignments:", error)
+      Swal.fire("Error!", "Failed to load assignments.", "error")
+    } finally {
+      loading.value = false
+    }
+  }
   
-          // Load departments if not already loaded
-          if (departments.value.length === 0) {
-            const deptResponse = await axios.get("/departments")
-            departments.value = deptResponse.data
-          }
+  // Format status for display
+  const formatStatus = (status) => {
+    if (!status) return "N/A"
+    return status
+      .split("_")
+      .map((word) => word.charAt(0).toUpperCase() + word.slice(1))
+      .join(" ")
+  }
   
-          // Load assignments
-          const response = await axios.get(`/order-assignments?${queryParams.toString()}`)
-          assignments.value = response.data.data
-          pagination.value = {
-            current_page: response.data.current_page,
-            last_page: response.data.last_page,
-            per_page: response.data.per_page,
-            total: response.data.total,
-          }
-        } catch (error) {
-          console.error("Error loading assignments:", error)
-          Swal.fire("Error!", "Failed to load assignments.", "error")
-        } finally {
-          loading.value = false
+  // Format date
+  const formatDate = (dateString) => {
+    if (!dateString) return "N/A"
+    const date = new Date(dateString)
+    return date.toLocaleDateString("en-US", { year: "numeric", month: "short", day: "numeric" })
+  }
+  
+  // Get status class for styling
+  const getStatusClass = (status) => {
+    const classes = {
+      pending: "bg-yellow-100 text-yellow-800",
+      in_production: "bg-blue-100 text-blue-800",
+      completed: "bg-orange-100 text-orange-800",
+      approved: "bg-green-100 text-green-800",
+      dispatched: "bg-purple-100 text-purple-800",
+    }
+    return classes[status] || "bg-gray-100 text-gray-800"
+  }
+  
+  // Toggle select all
+  const toggleSelectAll = () => {
+    selectAll.value = !selectAll.value
+    if (selectAll.value) {
+      selectedAssignments.value = assignments.value
+        .filter((a) => a.status === "approved")
+        .map((a) => a.id)
+    } else {
+      selectedAssignments.value = []
+    }
+  }
+  
+  // Open dispatch modal for a single assignment
+  const openDispatchModal = (assignment) => {
+    selectedAssignment.value = assignment
+    dispatchForm.value = {
+      dispatch_date: new Date().toISOString().split('T')[0],
+      dispatch_method: "vehicle",
+      dispatch_notes: ""
+    }
+    showDispatchModal.value = true
+  }
+  
+  // Confirm dispatch for a single assignment
+  const confirmDispatch = async () => {
+    if (loading.value) return
+  
+    loading.value = true
+    try {
+      const response = await axios.post(`/api/order-assignments/${selectedAssignment.value.id}/dispatch`, dispatchForm.value)
+      
+      if (response.data.success) {
+        toast.success('Assignment dispatched successfully')
+        showDispatchModal.value = false
+        loadAssignments()
+      } else {
+        toast.error(response.data.message || 'Failed to dispatch assignment')
+      }
+    } catch (error) {
+      console.error('Dispatch error:', error)
+      toast.error(error.response?.data?.message || 'Failed to dispatch assignment')
+    } finally {
+      loading.value = false
+    }
+  }
+  
+  // Bulk dispatch selected assignments
+  const bulkDispatch = () => {
+    if (selectedAssignments.value.length === 0) return
+  
+    Swal.fire({
+      title: 'Dispatch Multiple Assignments',
+      html: `
+        <div class="mb-4">
+          <label class="block text-sm font-medium text-gray-700">Dispatch Date</label>
+          <input id="swal-dispatch-date" type="date" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm" value="${new Date().toISOString().split('T')[0]}">
+        </div>
+        <div class="mb-4">
+          <label class="block text-sm font-medium text-gray-700">Dispatch Method</label>
+          <select id="swal-dispatch-method" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm">
+            <option value="vehicle">Vehicle</option>
+            <option value="runner">Runner</option>
+            <option value="courier">Courier</option>
+            <option value="pickup">Pickup</option>
+          </select>
+        </div>
+        <div>
+          <label class="block text-sm font-medium text-gray-700">Notes</label>
+          <textarea id="swal-dispatch-notes" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm" rows="3"></textarea>
+        </div>
+      `,
+      showCancelButton: true,
+      confirmButtonText: 'Dispatch',
+      preConfirm: () => {
+        return {
+          dispatch_date: document.getElementById('swal-dispatch-date').value,
+          dispatch_method: document.getElementById('swal-dispatch-method').value,
+          dispatch_notes: document.getElementById('swal-dispatch-notes').value
         }
       }
-  
-      // Format status for display
-      const formatStatus = (status) => {
-        if (!status) return "N/A"
-        return status
-          .split("_")
-          .map((word) => word.charAt(0).toUpperCase() + word.slice(1))
-          .join(" ")
-      }
-  
-      // Format date
-      const formatDate = (dateString) => {
-        if (!dateString) return "N/A"
-        const date = new Date(dateString)
-        return date.toLocaleDateString("en-US", { year: "numeric", month: "short", day: "numeric" })
-      }
-  
-      // Get status class for styling
-      const getStatusClass = (status) => {
-        const classes = {
-          pending: "bg-yellow-100 text-yellow-800",
-          in_production: "bg-blue-100 text-blue-800",
-          completed: "bg-orange-100 text-orange-800",
-          approved: "bg-green-100 text-green-800",
-          dispatched: "bg-purple-100 text-purple-800",
-        }
-        return classes[status] || "bg-gray-100 text-gray-800"
-      }
-  
-      // Toggle select all
-      const toggleSelectAll = () => {
-        selectAll.value = !selectAll.value
-        if (selectAll.value) {
-          selectedAssignments.value = assignments.value
-            .filter((a) => a.status === "approved")
-            .map((a) => a.id)
-        } else {
-          selectedAssignments.value = []
-        }
-      }
-  
-      // Open dispatch modal for a single assignment
-      const openDispatchModal = (assignment) => {
-        selectedAssignment.value = assignment
-        dispatchForm.value = {
-          dispatch_date: new Date().toISOString().split('T')[0],
-          dispatch_method: "vehicle",
-          notes: ""
-        }
-        showDispatchModal.value = true
-      }
-  
-      // Confirm dispatch for a single assignment
-      const confirmDispatch = async () => {
+    }).then((result) => {
+      if (result.isConfirmed) {
         processing.value = true
-        try {
-          await axios.patch(`/order-assignments/${selectedAssignment.value.id}/dispatch`, dispatchForm.value)
-          showDispatchModal.value = false
-          Swal.fire("Success!", "Assignment dispatched successfully", "success")
+        axios.post("/api/order-assignments/bulk-dispatch", {
+          assignment_ids: selectedAssignments.value,
+          ...result.value
+        })
+        .then(() => {
+          Swal.fire("Success!", "Assignments dispatched successfully", "success")
+          selectedAssignments.value = []
+          selectAll.value = false
           loadAssignments()
-        } catch (error) {
-          console.error("Error dispatching assignment:", error)
-          Swal.fire("Error!", "Failed to dispatch assignment.", "error")
-        } finally {
+        })
+        .catch((error) => {
+          console.error("Error bulk dispatching assignments:", error)
+          Swal.fire("Error!", "Failed to dispatch assignments.", "error")
+        })
+        .finally(() => {
           processing.value = false
-        }
+        })
       }
+    })
+  }
   
-      // Bulk dispatch selected assignments
-      const bulkDispatch = async () => {
-        if (selectedAssignments.value.length === 0) return
+  // Download challan for a dispatched assignment
+  const downloadChallan = async (assignment) => {
+    try {
+      const response = await axios.get(`/order-assignments/${assignment.id}/challan`, {
+        responseType: "blob",
+      })
   
-        Swal.fire({
-          title: 'Dispatch Multiple Assignments',
-          html: `
-            <div class="mb-4">
+      // Create a blob URL and trigger download
+      const blob = new Blob([response.data], { type: "application/pdf" })
+      const url = window.URL.createObjectURL(blob)
+      const link = document.createElement("a")
+      link.href = url
+      link.setAttribute("download", `challan-${assignment.order.order_id}-${assignment.id}.pdf`)
+      document.body.appendChild(link)
+      link.click()
+      document.body.removeChild(link)
+      window.URL.revokeObjectURL(url)
+    } catch (error) {
+      console.error("Error downloading challan:", error)
+      Swal.fire("Error!", "Failed to download challan.", "error")
+    }
+  }
+  
+  // View assignment details
+  const viewDetails = (assignment) => {
+    // Navigate to order details page
+    window.location.href = `/orders/${assignment.order_id}`
+  }
+  
+  // Debounce search input
+  let searchTimeout
+  const debounceSearch = () => {
+    clearTimeout(searchTimeout)
+    searchTimeout = setTimeout(() => {
+      loadAssignments()
+    }, 500)
+  }
+  
+  // Handle pagination
+  const handlePageChange = (page) => {
+    if (page < 1 || page > pagination.value.last_page) return
+    filters.page = page
+    loadAssignments()
+  }
+  
+  // Get page numbers for pagination
+  const getPageNumbers = () => {
+    const current = pagination.value.current_page
+    const last = pagination.value.last_page
+  
+    if (last <= 7) {
+      return Array.from({ length: last }, (_, i) => i + 1)
+    }
+  
+    if (current <= 3) {
+      return [1, 2, 3, 4, "...", last - 1, last]
+    }
+  
+    if (current >= last - 2) {
+      return [1, 2, "...", last - 3, last - 2, last - 1, last]
+    }
+  
+    return [1, "...", current - 1, current, current + 1, "...", last]
+  }
+  
+  // Reset filters
+  const resetFilters = () => {
+    Object.keys(filters).forEach((key) => {
+      if (key !== "page" && key !== "per_page" && key !== "status") {
+        filters[key] = ""
+      }
+    })
+    filters.page = 1
+    filters.status = "approved" // Keep the status filter
+    loadAssignments()
+  }
+  
+  // Load assignments on component mount
+  onMounted(() => {
+    loadAssignments()
+  })
+  
+  // Dispatch assignment
+  const dispatchAssignment = async (assignment) => {
+    try {
+      const result = await Swal.fire({
+        title: 'Dispatch Assignment',
+        html: `
+          <div class="space-y-4">
+            <div>
               <label class="block text-sm font-medium text-gray-700">Dispatch Date</label>
-              <input id="swal-dispatch-date" type="date" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm" value="${new Date().toISOString().split('T')[0]}">
+              <input type="date" id="dispatch_date" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-emerald-500 focus:ring-emerald-500" required>
             </div>
-            <div class="mb-4">
+            <div>
               <label class="block text-sm font-medium text-gray-700">Dispatch Method</label>
-              <select id="swal-dispatch-method" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm">
-                <option value="vehicle">Vehicle</option>
-                <option value="runner">Runner</option>
+              <select id="dispatch_method" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-emerald-500 focus:ring-emerald-500" required>
                 <option value="courier">Courier</option>
+                <option value="hand_delivery">Hand Delivery</option>
                 <option value="pickup">Pickup</option>
+                <option value="vehicle_runner">Vehicle Runner</option>
               </select>
             </div>
             <div>
               <label class="block text-sm font-medium text-gray-700">Notes</label>
-              <textarea id="swal-dispatch-notes" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm" rows="3"></textarea>
+              <textarea id="dispatch_notes" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-emerald-500 focus:ring-emerald-500" rows="3"></textarea>
             </div>
-          `,
-          showCancelButton: true,
-          confirmButtonText: 'Dispatch',
-          preConfirm: () => {
-            return {
-              dispatch_date: document.getElementById('swal-dispatch-date').value,
-              dispatch_method: document.getElementById('swal-dispatch-method').value,
-              notes: document.getElementById('swal-dispatch-notes').value
-            }
+          </div>
+        `,
+        showCancelButton: true,
+        confirmButtonText: 'Dispatch',
+        cancelButtonText: 'Cancel',
+        preConfirm: () => {
+          return {
+            dispatch_date: document.getElementById('dispatch_date').value,
+            dispatch_method: document.getElementById('dispatch_method').value,
+            dispatch_notes: document.getElementById('dispatch_notes').value
           }
-        }).then((result) => {
-          if (result.isConfirmed) {
-            processing.value = true
-            axios.post("/order-assignments/bulk-dispatch", {
-              assignment_ids: selectedAssignments.value,
-              ...result.value
-            })
-            .then(() => {
-              Swal.fire("Success!", "Assignments dispatched successfully", "success")
-              selectedAssignments.value = []
-              selectAll.value = false
-              loadAssignments()
-            })
-            .catch((error) => {
-              console.error("Error bulk dispatching assignments:", error)
-              Swal.fire("Error!", "Failed to dispatch assignments.", "error")
-            })
-            .finally(() => {
-              processing.value = false
-            })
-          }
-        })
-      }
-  
-      // Download challan for a dispatched assignment
-      const downloadChallan = async (assignment) => {
-        try {
-          const response = await axios.get(`/order-assignments/${assignment.id}/challan`, {
-            responseType: "blob",
-          })
-  
-          // Create a blob URL and trigger download
-          const blob = new Blob([response.data], { type: "application/pdf" })
-          const url = window.URL.createObjectURL(blob)
-          const link = document.createElement("a")
-          link.href = url
-          link.setAttribute("download", `challan-${assignment.order.order_id}-${assignment.id}.pdf`)
-          document.body.appendChild(link)
-          link.click()
-          document.body.removeChild(link)
-          window.URL.revokeObjectURL(url)
-        } catch (error) {
-          console.error("Error downloading challan:", error)
-          Swal.fire("Error!", "Failed to download challan.", "error")
         }
-      }
-  
-      // View assignment details
-      const viewDetails = (assignment) => {
-        // Navigate to order details page
-        window.location.href = `/orders/${assignment.order_id}`
-      }
-  
-      // Debounce search input
-      let searchTimeout
-      const debounceSearch = () => {
-        clearTimeout(searchTimeout)
-        searchTimeout = setTimeout(() => {
-          loadAssignments()
-        }, 500)
-      }
-  
-      // Handle pagination
-      const handlePageChange = (page) => {
-        if (page < 1 || page > pagination.value.last_page) return
-        filters.page = page
-        loadAssignments()
-      }
-  
-      // Get page numbers for pagination
-      const getPageNumbers = () => {
-        const current = pagination.value.current_page
-        const last = pagination.value.last_page
-  
-        if (last <= 7) {
-          return Array.from({ length: last }, (_, i) => i + 1)
-        }
-  
-        if (current <= 3) {
-          return [1, 2, 3, 4, "...", last - 1, last]
-        }
-  
-        if (current >= last - 2) {
-          return [1, 2, "...", last - 3, last - 2, last - 1, last]
-        }
-  
-        return [1, "...", current - 1, current, current + 1, "...", last]
-      }
-  
-      // Reset filters
-      const resetFilters = () => {
-        Object.keys(filters).forEach((key) => {
-          if (key !== "page" && key !== "per_page" && key !== "status") {
-            filters[key] = ""
-          }
-        })
-        filters.page = 1
-        filters.status = "approved" // Keep the status filter
-        loadAssignments()
-      }
-  
-      // Load assignments on component mount
-      onMounted(() => {
-        loadAssignments()
       })
-  
-      return {
-        assignments,
-        departments,
-        loading,
-        processing,
-        pagination,
-        filters,
-        selectedAssignments,
-        selectAll,
-        showDispatchModal,
-        selectedAssignment,
-        dispatchForm,
-        formatStatus,
-        formatDate,
-        getStatusClass,
-        toggleSelectAll,
-        openDispatchModal,
-        confirmDispatch,
-        downloadChallan,
-        bulkDispatch,
-        viewDetails,
-        debounceSearch,
-        handlePageChange,
-        getPageNumbers,
-        resetFilters,
-        loadAssignments,
+
+      if (result.isConfirmed) {
+        processing.value = true
+        await axios.patch(`/order-assignments/${assignment.id}/dispatch`, result.value)
+        await loadAssignments()
+        Swal.fire({
+          icon: 'success',
+          title: 'Success',
+          text: 'Assignment dispatched successfully',
+          showConfirmButton: false,
+          timer: 1500
+        })
       }
-    },
+    } catch (error) {
+      console.error('Error dispatching assignment:', error)
+      Swal.fire({
+        icon: 'error',
+        title: 'Error',
+        text: error.response?.data?.message || 'Failed to dispatch assignment'
+      })
+    } finally {
+      processing.value = false
+    }
   }
   </script>
   

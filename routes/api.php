@@ -2,6 +2,7 @@
 
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
+use App\Http\Controllers\NotificationController;
 
 /**
  * ------------------------------------------------------------------------
@@ -230,9 +231,14 @@ Route::middleware('auth:sanctum')->group(function () {
             ->middleware('permission:orders-all|orders-edit');
         Route::post('/bulk-dispatch', [\App\Http\Controllers\OrderAssignmentController::class, 'bulkDispatch'])
             ->middleware('permission:orders-all|orders-edit');
-        // Add new route for downloading dispatch challan
         Route::get('/{id}/challan', [\App\Http\Controllers\OrderAssignmentController::class, 'downloadDispatchChallan'])
             ->middleware('permission:orders-all|orders-view');
+
+        // Add new routes for update and delete
+        Route::put('/{id}', [\App\Http\Controllers\OrderAssignmentController::class, 'update'])
+            ->middleware('permission:orders-all|orders-edit');
+        Route::delete('/{id}', [\App\Http\Controllers\OrderAssignmentController::class, 'destroy'])
+            ->middleware('permission:orders-all|orders-delete');
     });
 
     // Add the missing route for order assignments
@@ -296,10 +302,20 @@ Route::middleware('auth:sanctum')->group(function () {
             ->middleware('permission:wool-all|wool-view');
     });
 
-    // Wage Calculation Routes
+    /**
+     * ------------------------------------------------------------------------
+     * wages routes
+     * ------------------------------------------------------------------------
+     */
     Route::prefix('wages')->group(function () {
-        Route::get('/calculations', [\App\Http\Controllers\WageController::class, 'calculations']);
-        Route::post('/export', [\App\Http\Controllers\WageController::class, 'export']);
+        Route::get('/calculations', [\App\Http\Controllers\WageController::class, 'calculations'])
+            ->middleware('permission:wages-all|wages-view');
+        Route::get('/export', [\App\Http\Controllers\WageController::class, 'export'])
+            ->middleware('permission:wages-all|wages-view');
+        Route::get('/report', [\App\Http\Controllers\WageController::class, 'report'])
+            ->middleware('permission:wages-all|wages-view');
+        Route::get('/report/export', [\App\Http\Controllers\WageController::class, 'exportReport'])
+            ->middleware('permission:wages-all|wages-view');
     });
 
     /**
@@ -340,4 +356,9 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::get('/products/inventory-summary', [\App\Http\Controllers\ProductController::class, 'getInventorySummary'])
             ->middleware('permission:inventory-all|inventory-view');
     });
+
+    // Notifications
+    Route::get('/notifications', [NotificationController::class, 'index']);
+    Route::post('/notifications/{notification}/mark-as-read', [NotificationController::class, 'markAsRead']);
+    Route::post('/notifications/mark-all-as-read', [NotificationController::class, 'markAllAsRead']);
 });

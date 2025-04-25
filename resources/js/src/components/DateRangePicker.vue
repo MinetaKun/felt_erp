@@ -28,8 +28,8 @@
     data() {
       return {
         localRange: {
-          startDate: this.modelValue.startDate,
-          endDate: this.modelValue.endDate,
+          startDate: this.modelValue?.startDate || null,
+          endDate: this.modelValue?.endDate || null,
         },
       };
     },

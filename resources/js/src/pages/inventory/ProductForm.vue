@@ -118,10 +118,10 @@
             </div>
 
             <!-- Preview Image -->
-            <div v-if="form.image_path" class="mt-4">
+            <div v-if="imagePreview" class="mt-4">
               <label class="block text-sm font-medium text-gray-700 mb-1">Preview</label>
               <div class="mt-1">
-                <img :src="form.image_path" alt="Product preview" class="h-32 w-32 object-cover rounded-md">
+                <img :src="imagePreview" alt="Product preview" class="h-32 w-32 object-cover rounded-md">
               </div>
             </div>
 
@@ -152,9 +152,14 @@
 
 <script>
 import axios from 'axios';
+import { useToast } from 'vue-toastification';
 
 export default {
   name: 'ProductForm',
+  setup() {
+    const toast = useToast();
+    return { toast };
+  },
   data() {
     return {
       form: {
@@ -166,6 +171,7 @@ export default {
         details: '',
         image_path: ''
       },
+      imagePreview: null,
       loading: false,
       isEditing: false
     };
@@ -180,10 +186,17 @@ export default {
     async fetchProduct() {
       try {
         const response = await axios.get(`/inventory/products/${this.$route.params.id}`);
-        this.form = response.data;
+        if (response.data.success) {
+          this.form = response.data.data;
+          if (this.form.image_path) {
+            this.imagePreview = `/storage/${this.form.image_path}`;
+          }
+        } else {
+          throw new Error(response.data.message || 'Failed to fetch product');
+        }
       } catch (error) {
         console.error('Error fetching product:', error);
-        this.$toast.error('Failed to fetch product');
+        this.toast.error('Failed to fetch product');
         this.goBack();
       }
     },
@@ -192,6 +205,7 @@ export default {
       if (file) {
         const reader = new FileReader();
         reader.onload = (e) => {
+          this.imagePreview = e.target.result;
           this.form.image_path = e.target.result;
         };
         reader.readAsDataURL(file);
@@ -208,17 +222,21 @@ export default {
         
         const response = await axios[method](url, this.form);
         
-        if (response.data && response.data.success) {
+        // Check if we have a valid response
+        if (response && response.status >= 200 && response.status < 300) {
           // Show success message
-          this.$toast.success(response.data.message || `Product ${this.isEditing ? 'updated' : 'created'} successfully`);
+          this.toast.success(`Product ${this.isEditing ? 'updated' : 'created'} successfully`);
           this.goBack();
         } else {
-          throw new Error(response.data?.message || 'Failed to save product');
+          throw new Error('Failed to save product: Invalid response from server');
         }
       } catch (error) {
         console.error('Error saving product:', error);
         // Show error message
-        this.$toast.error(error.response?.data?.message || error.message || 'Failed to save product');
+        const errorMessage = error.response?.data?.message || 
+                           error.message || 
+                           'Failed to save product. Please try again.';
+        this.toast.error(errorMessage);
       } finally {
         this.loading = false;
       }
@@ -230,17 +248,4 @@ export default {
 };
 </script>
 
-<style scoped>
-.animate-spin {
-  animation: spin 1s linear infinite;
-}
 
-@keyframes spin {
-  from {
-    transform: rotate(0deg);
-  }
-  to {
-    transform: rotate(360deg);
-  }
-}
-</style> 

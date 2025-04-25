@@ -50,7 +50,7 @@
         </div>
         
         <div v-for="(assignment, index) in assignments" :key="index" class="mb-6 p-4 border border-gray-200 rounded-lg">
-          <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+          <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div>
               <label class="block text-sm font-medium mb-1">Artisan</label>
               <select 
@@ -75,30 +75,6 @@
                 required
               />
             </div>
-            
-            <div>
-              <label class="block text-sm font-medium mb-1">Status</label>
-              <select 
-                v-model="assignment.status" 
-                class="w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
-                required
-              >
-                <option value="pending">Pending</option>
-                <option value="in_production">In Production</option>
-                <option value="completed">Completed</option>
-                <option value="approved">Approved</option>
-                <option value="dispatched">Dispatched</option>
-              </select>
-            </div>
-          </div>
-          
-          <div class="mt-2">
-            <label class="block text-sm font-medium mb-1">Notes (Optional)</label>
-            <textarea 
-              v-model="assignment.notes" 
-              class="w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
-              rows="2"
-            ></textarea>
           </div>
           
           <div class="mt-3 flex justify-end">
@@ -133,8 +109,12 @@
               class="bg-blue-500 hover:bg-blue-600 text-white px-4 py-2 rounded-md"
               :disabled="assignments.length === 0 || saving"
             >
-              <span v-if="saving">Saving...</span>
-              <span v-else>Save Assignments</span>
+              <span v-if="saving">
+                <i class="fas fa-spinner fa-spin mr-2"></i>Saving...
+              </span>
+              <span v-else>
+                Save Assignments
+              </span>
             </button>
           </div>
         </div>
@@ -154,6 +134,7 @@
   <script>
   import { ref, reactive, computed, onMounted } from "vue"
 import axios from "axios"
+import Swal from "sweetalert2"
 
 export default {
   props: {
@@ -205,7 +186,11 @@ export default {
         availableArtisans.value = response.data.data
       } catch (error) {
         console.error("Error loading artisans:", error)
-        alert("Failed to load artisans. Please try again.")
+        Swal.fire({
+          icon: 'error',
+          title: 'Error',
+          text: 'Failed to load artisans. Please try again.'
+        })
       } finally {
         loading.value = false
       }
@@ -216,8 +201,7 @@ export default {
       assignments.value.push({
         artisan_id: "",
         quantity: 1,
-        status: "pending", // Default status
-        notes: "",
+        status: "in_production",
       })
     }
 
@@ -230,7 +214,11 @@ export default {
     async function saveAssignments() {
       if (assignments.value.length === 0) return
       if (remainingQuantity.value < 0) {
-        alert("You have assigned more than the available quantity")
+        Swal.fire({
+          icon: 'warning',
+          title: 'Warning',
+          text: 'You have assigned more than the available quantity'
+        })
         return
       }
 
@@ -241,23 +229,37 @@ export default {
         const assignmentsData = assignments.value.map((assignment) => ({
           artisan_id: assignment.artisan_id,
           assigned_quantity: assignment.quantity,
-          status: assignment.status,
-          notes: assignment.notes,
+          status: assignment.status
         }))
 
         const response = await axios.post(`/orders/${props.order.id}/assignments`, {
           assignments: assignmentsData,
         })
 
-        alert("Assignments saved successfully")
+        Swal.fire({
+          icon: 'success',
+          title: 'Success',
+          text: 'Assignments saved successfully',
+          showConfirmButton: false,
+          timer: 1500
+        })
         emit("saved", response.data)
       } catch (error) {
         console.error("Error saving assignments:", error)
 
         if (error.response && error.response.data && error.response.data.errors) {
           errors.value = error.response.data.errors
+          Swal.fire({
+            icon: 'error',
+            title: 'Validation Error',
+            text: 'Please check the form for errors'
+          })
         } else {
-          alert("Failed to save assignments. Please try again.")
+          Swal.fire({
+            icon: 'error',
+            title: 'Error',
+            text: 'Failed to save assignments. Please try again.'
+          })
         }
       } finally {
         saving.value = false

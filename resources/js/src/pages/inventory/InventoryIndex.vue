@@ -16,7 +16,7 @@
           <p class="mt-2 text-3xl font-bold text-blue-600">{{ rawMaterialsCount }}</p>
         </div>
         <div class="bg-white rounded-lg shadow p-6">
-          <h3 class="text-lg font-medium text-gray-900">Total Finished Products</h3>
+          <h3 class="text-lg font-medium text-gray-900">Total Products</h3>
           <p class="mt-2 text-3xl font-bold text-green-600">{{ finishedProductsCount }}</p>
         </div>
         <div class="bg-white rounded-lg shadow p-6">

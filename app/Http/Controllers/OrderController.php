@@ -9,6 +9,9 @@ use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
+use App\Notifications\OrderNotification;
+use App\Models\User;
+use App\Notifications\OrderStatusChanged;
 
 class OrderController extends Controller
 {
@@ -91,6 +94,21 @@ class OrderController extends Controller
         DB::beginTransaction();
         try {
             $order = Order::create($validated);
+
+            // Send notification to all users who should be notified
+            $users = User::whereHas('roles', function ($query) {
+                $query->whereIn('name', ['super-admin', 'admin']);
+            })->get();
+
+            foreach ($users as $user) {
+                $user->notify(new OrderStatusChanged(
+                    $order,
+                    null,
+                    'pending',
+                    "New order #{$order->order_id} has been created"
+                ));
+            }
+
             DB::commit();
 
             return response()->json([
@@ -248,7 +266,22 @@ class OrderController extends Controller
             'status' => 'required|in:pending,in_production,approved,dispatched',
         ]);
 
+        $oldStatus = $order->status;
         $order->update(['status' => $validated['status']]);
+
+        // Send notification for status change
+        $users = User::whereHas('roles', function ($query) {
+            $query->whereIn('name', ['super-admin', 'admin']);
+        })->get();
+
+        foreach ($users as $user) {
+            $user->notify(new OrderStatusChanged(
+                $order,
+                $oldStatus,
+                $validated['status'],
+                "Order #{$order->order_id} status changed from {$oldStatus} to {$validated['status']}"
+            ));
+        }
 
         return response()->json([
             'success' => true,
