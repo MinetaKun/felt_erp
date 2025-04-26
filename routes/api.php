@@ -442,6 +442,8 @@ Route::middleware('auth:sanctum')->group(function () {
             ->middleware('permission:payroll-all|payroll-view');
         Route::get('/bank-transfer-csv', [\App\Http\Controllers\PayrollController::class, 'exportBankTransferCSV'])
             ->middleware('permission:payroll-all|payroll-view');
+        Route::post('/bank-transfer-email', [\App\Http\Controllers\PayrollController::class, 'sendBankPaymentEmail'])
+            ->middleware('permission:payroll-all|payroll-view');
 
         // Cash Payment
         Route::get('/cash-payments', [\App\Http\Controllers\PayrollController::class, 'getCashPayments'])

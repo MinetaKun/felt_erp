@@ -86,7 +86,7 @@
     </div>
 
     <div class="date">
-        Date: {{ \Carbon\Carbon::now()->format('jS F, Y') }}
+        Generated Date: {{ \Carbon\Carbon::now()->format('jS F, Y') }}
     </div>
 
     <div class="subject">
@@ -96,7 +96,7 @@
     @php
     $total = 0;
     foreach($payrolls as $payroll) {
-    $total += $payroll->net_salary;
+    $total += $payroll['net_salary'];
     }
     @endphp
 
@@ -127,13 +127,13 @@
             @foreach($payrolls as $index => $payroll)
             <tr>
                 <td>{{ $index + 1 }}</td>
-                <td>{{ $payroll->artisan_name }}</td>
-                <td>{{ $payroll->phone_number }}</td>
-                <td>Rs{{ number_format($payroll->net_salary, 2) }}</td>
+                <td>{{ $payroll['name'] }}</td>
+                <td>{{ $payroll['phone_number'] }}</td>
+                <td>Rs{{ number_format($payroll['net_salary'], 2) }}</td>
                 <td style="height: 50px;"></td>
             </tr>
             @php
-            $total += $payroll->net_salary;
+            $total += $payroll['net_salary'];
             @endphp
             @endforeach
             <tr>

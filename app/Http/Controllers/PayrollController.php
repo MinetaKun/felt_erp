@@ -14,6 +14,7 @@ use Carbon\Carbon;
 use League\Csv\Writer;
 use SplTempFileObject;
 use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\Mail;
 
 class PayrollController extends Controller
 {
@@ -134,56 +135,79 @@ class PayrollController extends Controller
         $endDate = Carbon::createFromFormat('Y-m-d', $request->end_date);
         $month = $startDate->format('F Y');
 
-        // First get the wages from order assignments
-        $artisanWages = DB::table('order_assignments')
-            ->join('orders', 'order_assignments.order_id', '=', 'orders.id')
-            ->whereBetween('order_assignments.approved_at', [$startDate, $endDate])
-            ->where('order_assignments.status', 'dispatched')
-            ->where('order_assignments.approved_quantity', '>', 0)
-            ->groupBy('order_assignments.artisan_id')
-            ->select(
-                'order_assignments.artisan_id',
-                DB::raw('SUM(order_assignments.approved_quantity * orders.wages_per_unit) as total_wages')
-            );
+        $query = Artisan::with(['orderAssignments.order']);
 
-        // Get advances
-        $artisanAdvances = DB::table('payroll_advances')
-            ->whereBetween('date', [$startDate, $endDate])
-            ->groupBy('artisan_id')
-            ->select(
-                'artisan_id',
-                DB::raw('SUM(amount) as total_advances')
-            );
+        $artisans = $query->get()->map(function ($artisan) use ($request) {
+            // Get saved salary calculations
+            $salaryCalculation = DB::table('salary_calculations')
+                ->where('artisan_id', $artisan->id)
+                ->when($request->has('start_date') && !empty($request->start_date), function ($q) use ($request) {
+                    $q->where('start_date', '>=', $request->start_date);
+                })
+                ->when($request->has('end_date') && !empty($request->end_date), function ($q) use ($request) {
+                    $q->where('end_date', '<=', $request->end_date);
+                })
+                ->first();
 
-        $salaryCalculations = DB::table('salary_calculations')
-            ->join('artisans', 'salary_calculations.artisan_id', '=', 'artisans.id')
-            ->leftJoinSub($artisanWages, 'wages', function ($join) {
-                $join->on('salary_calculations.artisan_id', '=', 'wages.artisan_id');
-            })
-            ->leftJoinSub($artisanAdvances, 'advances', function ($join) {
-                $join->on('salary_calculations.artisan_id', '=', 'advances.artisan_id');
-            })
-            ->where('salary_calculations.start_date', '>=', $startDate)
-            ->where('salary_calculations.end_date', '<=', $endDate)
-            ->whereNull('artisans.bank_account_number')
-            ->select(
-                'salary_calculations.*',
-                'artisans.name as artisan_name',
-                'artisans.phone_number',
-                DB::raw('COALESCE(wages.total_wages, 0) as wages'),
-                DB::raw('COALESCE(advances.total_advances, 0) as advance'),
-                DB::raw('(
-                    COALESCE(salary_calculations.salary, 0) + 
-                    COALESCE(salary_calculations.food_allowance, 0) + 
-                    COALESCE(salary_calculations.allowances, 0) + 
-                    COALESCE(wages.total_wages, 0) - 
-                    COALESCE(advances.total_advances, 0)
-                ) as net_salary')
-            )
-            ->get();
+            // Calculate wages from orders
+            $wages = $artisan->orderAssignments()
+                ->with('order')
+                ->when($request->has('start_date') && !empty($request->start_date), function ($q) use ($request) {
+                    $q->where('approved_at', '>=', $request->start_date);
+                })
+                ->when($request->has('end_date') && !empty($request->end_date), function ($q) use ($request) {
+                    $q->where('approved_at', '<=', $request->end_date);
+                })
+                ->where('status', 'dispatched')
+                ->where('approved_quantity', '>', 0)
+                ->get();
+
+            $totalWages = $wages->sum(function ($assignment) {
+                return $assignment->approved_quantity * $assignment->order->wages_per_unit;
+            });
+
+            // Get advances
+            $advances = PayrollAdvance::where('artisan_id', $artisan->id)
+                ->when($request->has('start_date') && !empty($request->start_date), function ($q) use ($request) {
+                    $q->where('date', '>=', $request->start_date);
+                })
+                ->when($request->has('end_date') && !empty($request->end_date), function ($q) use ($request) {
+                    $q->where('date', '<=', $request->end_date);
+                })
+                ->sum('amount');
+
+            return [
+                'name' => $artisan->name,
+                'phone_number' => $artisan->phone_number,
+                'net_salary' => (float)(
+                    ($salaryCalculation ? $salaryCalculation->salary : $artisan->basic_salary) +
+                    ($salaryCalculation ? $salaryCalculation->food_allowance : 0) +
+                    $totalWages +
+                    ($salaryCalculation ? $salaryCalculation->allowances : 0) -
+                    $advances
+                )
+            ];
+        });
+
+        // Filter out artisans with bank accounts
+        $artisans = $artisans->filter(function ($artisan) {
+            return empty($artisan->bank_account_number);
+        });
+
+        // Debug the results
+        Log::info('Salary Calculations Data:', ['data' => $artisans->toArray()]);
+
+        // Check if we have any data
+        if ($artisans->isEmpty()) {
+            Log::warning('No salary calculations found for the given date range');
+            return response()->json([
+                'success' => false,
+                'message' => 'No salary calculations found for the given date range'
+            ], 404);
+        }
 
         $pdf = PDF::loadView('payroll.cash-payment-sheet', [
-            'payrolls' => $salaryCalculations,
+            'payrolls' => $artisans,
             'month' => $month
         ]);
 
@@ -201,56 +225,82 @@ class PayrollController extends Controller
         $endDate = Carbon::createFromFormat('Y-m-d', $request->end_date);
         $month = $startDate->format('F Y');
 
-        // First get the wages from order assignments
-        $artisanWages = DB::table('order_assignments')
-            ->join('orders', 'order_assignments.order_id', '=', 'orders.id')
-            ->whereBetween('order_assignments.approved_at', [$startDate, $endDate])
-            ->where('order_assignments.status', 'dispatched')
-            ->where('order_assignments.approved_quantity', '>', 0)
-            ->groupBy('order_assignments.artisan_id')
-            ->select(
-                'order_assignments.artisan_id',
-                DB::raw('SUM(order_assignments.approved_quantity * orders.wages_per_unit) as total_wages')
-            );
+        $query = Artisan::with(['orderAssignments.order'])
+            ->whereNotNull('bank_account_number')
+            ->where('bank_account_number', '!=', '');
 
-        // Get advances
-        $artisanAdvances = DB::table('payroll_advances')
-            ->whereBetween('date', [$startDate, $endDate])
-            ->groupBy('artisan_id')
-            ->select(
-                'artisan_id',
-                DB::raw('SUM(amount) as total_advances')
-            );
+        $artisans = $query->get()->map(function ($artisan) use ($request) {
+            // Get saved salary calculations
+            $salaryCalculation = DB::table('salary_calculations')
+                ->where('artisan_id', $artisan->id)
+                ->when($request->has('start_date') && !empty($request->start_date), function ($q) use ($request) {
+                    $q->where('start_date', '>=', $request->start_date);
+                })
+                ->when($request->has('end_date') && !empty($request->end_date), function ($q) use ($request) {
+                    $q->where('end_date', '<=', $request->end_date);
+                })
+                ->first();
 
-        $salaryCalculations = DB::table('salary_calculations')
-            ->join('artisans', 'salary_calculations.artisan_id', '=', 'artisans.id')
-            ->leftJoinSub($artisanWages, 'wages', function ($join) {
-                $join->on('salary_calculations.artisan_id', '=', 'wages.artisan_id');
-            })
-            ->leftJoinSub($artisanAdvances, 'advances', function ($join) {
-                $join->on('salary_calculations.artisan_id', '=', 'advances.artisan_id');
-            })
-            ->where('salary_calculations.start_date', '>=', $startDate)
-            ->where('salary_calculations.end_date', '<=', $endDate)
-            ->whereNotNull('artisans.bank_account_number')
-            ->select(
-                'salary_calculations.*',
-                'artisans.name as artisan_name',
-                'artisans.bank_account_number',
-                DB::raw('COALESCE(wages.total_wages, 0) as wages'),
-                DB::raw('COALESCE(advances.total_advances, 0) as advance'),
-                DB::raw('(
-                    COALESCE(salary_calculations.salary, 0) + 
-                    COALESCE(salary_calculations.food_allowance, 0) + 
-                    COALESCE(salary_calculations.allowances, 0) + 
-                    COALESCE(wages.total_wages, 0) - 
-                    COALESCE(advances.total_advances, 0)
-                ) as net_salary')
-            )
-            ->get();
+            // Calculate wages from orders
+            $wages = $artisan->orderAssignments()
+                ->with('order')
+                ->when($request->has('start_date') && !empty($request->start_date), function ($q) use ($request) {
+                    $q->where('approved_at', '>=', $request->start_date);
+                })
+                ->when($request->has('end_date') && !empty($request->end_date), function ($q) use ($request) {
+                    $q->where('approved_at', '<=', $request->end_date);
+                })
+                ->where('status', 'dispatched')
+                ->where('approved_quantity', '>', 0)
+                ->get();
+
+            $totalWages = $wages->sum(function ($assignment) {
+                return $assignment->approved_quantity * $assignment->order->wages_per_unit;
+            });
+
+            // Get advances
+            $advances = PayrollAdvance::where('artisan_id', $artisan->id)
+                ->when($request->has('start_date') && !empty($request->start_date), function ($q) use ($request) {
+                    $q->where('date', '>=', $request->start_date);
+                })
+                ->when($request->has('end_date') && !empty($request->end_date), function ($q) use ($request) {
+                    $q->where('date', '<=', $request->end_date);
+                })
+                ->sum('amount');
+
+            return [
+                'name' => $artisan->name,
+                'bank_account_number' => $artisan->bank_account_number,
+                'net_salary' => (float)(
+                    ($salaryCalculation ? $salaryCalculation->salary : $artisan->basic_salary) +
+                    ($salaryCalculation ? $salaryCalculation->food_allowance : 0) +
+                    $totalWages +
+                    ($salaryCalculation ? $salaryCalculation->allowances : 0) -
+                    $advances
+                )
+            ];
+        });
+
+        // Debug the results
+        Log::info('Bank Transfer Data:', [
+            'date_range' => [
+                'start' => $startDate->format('Y-m-d'),
+                'end' => $endDate->format('Y-m-d')
+            ],
+            'data' => $artisans->toArray()
+        ]);
+
+        // Check if we have any data
+        if ($artisans->isEmpty()) {
+            Log::warning('No bank transfer data found for the given date range');
+            return response()->json([
+                'success' => false,
+                'message' => 'No bank transfer data found for the given date range'
+            ], 404);
+        }
 
         $pdf = PDF::loadView('payroll.bank-transfer-sheet', [
-            'payrolls' => $salaryCalculations,
+            'payrolls' => $artisans,
             'month' => $month
         ]);
 
@@ -910,5 +960,124 @@ class PayrollController extends Controller
         };
 
         return response()->stream($callback, 200, $headers);
+    }
+
+    public function sendBankPaymentEmail(Request $request)
+    {
+        $request->validate([
+            'start_date' => 'required|date_format:Y-m-d',
+            'end_date' => 'required|date_format:Y-m-d|after_or_equal:start_date',
+            'email' => 'required|email'
+        ]);
+
+        $startDate = Carbon::createFromFormat('Y-m-d', $request->start_date);
+        $endDate = Carbon::createFromFormat('Y-m-d', $request->end_date);
+        $month = $startDate->format('F Y');
+
+        $query = Artisan::with(['orderAssignments.order'])
+            ->whereNotNull('bank_account_number')
+            ->where('bank_account_number', '!=', '');
+
+        $artisans = $query->get()->map(function ($artisan) use ($request) {
+            // Get saved salary calculations
+            $salaryCalculation = DB::table('salary_calculations')
+                ->where('artisan_id', $artisan->id)
+                ->when($request->has('start_date') && !empty($request->start_date), function ($q) use ($request) {
+                    $q->where('start_date', '>=', $request->start_date);
+                })
+                ->when($request->has('end_date') && !empty($request->end_date), function ($q) use ($request) {
+                    $q->where('end_date', '<=', $request->end_date);
+                })
+                ->first();
+
+            // Calculate wages from orders
+            $wages = $artisan->orderAssignments()
+                ->with('order')
+                ->when($request->has('start_date') && !empty($request->start_date), function ($q) use ($request) {
+                    $q->where('approved_at', '>=', $request->start_date);
+                })
+                ->when($request->has('end_date') && !empty($request->end_date), function ($q) use ($request) {
+                    $q->where('approved_at', '<=', $request->end_date);
+                })
+                ->where('status', 'dispatched')
+                ->where('approved_quantity', '>', 0)
+                ->get();
+
+            $totalWages = $wages->sum(function ($assignment) {
+                return $assignment->approved_quantity * $assignment->order->wages_per_unit;
+            });
+
+            // Get advances
+            $advances = PayrollAdvance::where('artisan_id', $artisan->id)
+                ->when($request->has('start_date') && !empty($request->start_date), function ($q) use ($request) {
+                    $q->where('date', '>=', $request->start_date);
+                })
+                ->when($request->has('end_date') && !empty($request->end_date), function ($q) use ($request) {
+                    $q->where('date', '<=', $request->end_date);
+                })
+                ->sum('amount');
+
+            return [
+                'name' => $artisan->name,
+                'bank_account_number' => $artisan->bank_account_number,
+                'net_salary' => (float)(
+                    ($salaryCalculation ? $salaryCalculation->salary : $artisan->basic_salary) +
+                    ($salaryCalculation ? $salaryCalculation->food_allowance : 0) +
+                    $totalWages +
+                    ($salaryCalculation ? $salaryCalculation->allowances : 0) -
+                    $advances
+                )
+            ];
+        });
+
+        if ($artisans->isEmpty()) {
+            return response()->json([
+                'success' => false,
+                'message' => 'No bank transfer data found for the given date range'
+            ], 404);
+        }
+
+        // Generate PDF
+        $pdf = PDF::loadView('payroll.bank-transfer-sheet', [
+            'payrolls' => $artisans,
+            'month' => $month
+        ]);
+
+        // Generate CSV
+        $csv = Writer::createFromFileObject(new SplTempFileObject());
+        $csv->insertOne(['S.N.', 'Account Holder Name', 'Account No.', 'Amount(NPR)']);
+
+        foreach ($artisans as $index => $artisan) {
+            $csv->insertOne([
+                $index + 1,
+                $artisan['name'],
+                $artisan['bank_account_number'],
+                number_format($artisan['net_salary'], 2)
+            ]);
+        }
+
+        // Send email
+        try {
+            Mail::send('emails.bank-payment', [
+                'payrolls' => $artisans,
+                'month' => $month
+            ], function ($message) use ($request, $pdf, $csv, $month) {
+                $message->to($request->email)
+                    ->subject('Salary Payment Details - ' . $month)
+                    ->attachData($pdf->output(), 'bank-transfer-sheet-' . $month . '.pdf')
+                    ->attachData($csv->toString(), 'bank-transfer-sheet-' . $month . '.csv');
+            });
+
+            return response()->json([
+                'success' => true,
+                'message' => 'Email sent successfully with attachments'
+            ]);
+        } catch (\Exception $e) {
+            Log::error('Failed to send bank payment email: ' . $e->getMessage());
+            return response()->json([
+                'success' => false,
+                'message' => 'Failed to send email: ' . $e->getMessage()
+            ], 500);
+        }
     }
 }

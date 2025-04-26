@@ -11,6 +11,9 @@
           <button @click="generateBankTransferSheet" class="inline-flex items-center px-4 py-2 bg-white text-blue-700 text-sm font-medium rounded-lg hover:bg-blue-50 transition duration-200 shadow-sm">
             <i class="fas fa-university mr-2"></i> Bank Transfer Sheet
           </button>
+          <button @click="sendBankPaymentEmail" class="inline-flex items-center px-4 py-2 bg-white text-blue-700 text-sm font-medium rounded-lg hover:bg-blue-50 transition duration-200 shadow-sm">
+            <i class="fas fa-envelope mr-2"></i> Send Bank Email
+          </button>
           <button @click="generateCashPaymentSheet" class="inline-flex items-center px-4 py-2 bg-white text-blue-700 text-sm font-medium rounded-lg hover:bg-blue-50 transition duration-200 shadow-sm">
             <i class="fas fa-money-bill-wave mr-2"></i> Cash Payment Sheet
           </button>
@@ -127,6 +130,7 @@
 <script setup>
 import { ref, computed, onMounted } from 'vue'
 import axios from 'axios'
+import Swal from 'sweetalert2'
 
 const payrolls = ref([])
 const loading = ref(false)
@@ -298,6 +302,67 @@ const generateCashPaymentSheet = async () => {
   } catch (error) {
     console.error('Error generating cash payment sheet:', error)
     alert('Failed to generate cash payment sheet. Please try again.')
+  }
+}
+
+const sendBankPaymentEmail = async () => {
+  if (!startDate.value || !endDate.value) {
+    alert('Please select both start and end dates')
+    return
+  }
+
+  try {
+    const email = await Swal.fire({
+      title: 'Enter Bank Email',
+      input: 'email',
+      inputLabel: 'Bank Email Address',
+      inputPlaceholder: 'Enter bank email address',
+      showCancelButton: true,
+      inputValidator: (value) => {
+        if (!value) {
+          return 'Please enter an email address'
+        }
+        if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value)) {
+          return 'Please enter a valid email address'
+        }
+      }
+    })
+
+    if (email.isConfirmed) {
+      Swal.fire({
+        title: 'Sending Email...',
+        text: 'Please wait while we send the email with attachments.',
+        allowOutsideClick: false,
+        didOpen: () => {
+          Swal.showLoading()
+        }
+      })
+
+      const response = await axios.post('/payroll/bank-transfer-email', {
+        start_date: startDate.value,
+        end_date: endDate.value,
+        email: email.value
+      })
+
+      if (response.data.success) {
+        Swal.fire({
+          icon: 'success',
+          title: 'Email Sent!',
+          text: 'Bank payment details have been sent successfully.',
+          timer: 2000,
+          showConfirmButton: false
+        })
+      } else {
+        throw new Error(response.data.message || 'Failed to send email')
+      }
+    }
+  } catch (error) {
+    console.error('Error sending bank payment email:', error)
+    Swal.fire({
+      icon: 'error',
+      title: 'Failed to Send Email',
+      text: error.response?.data?.message || 'Failed to send email. Please try again.'
+    })
   }
 }
 

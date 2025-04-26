@@ -2,8 +2,6 @@
 <html>
 
 <head>
-    <meta charset="utf-8">
-    <title>Bank Transfer Sheet</title>
     <style>
         body {
             font-family: Arial, sans-serif;
@@ -28,19 +26,6 @@
             margin-bottom: 20px;
         }
 
-        .date {
-            text-align: right;
-            margin-bottom: 20px;
-        }
-
-        .to-section {
-            margin-bottom: 20px;
-        }
-
-        .subject {
-            margin-bottom: 20px;
-        }
-
         table {
             width: 100%;
             border-collapse: collapse;
@@ -49,7 +34,7 @@
 
         th,
         td {
-            border: 1px solid #000;
+            border: 1px solid #ddd;
             padding: 8px;
             text-align: left;
         }
@@ -67,12 +52,6 @@
             margin-top: 50px;
             text-align: right;
         }
-
-        .footer {
-            margin-top: 50px;
-            text-align: center;
-            font-size: 12px;
-        }
     </style>
 </head>
 
@@ -82,31 +61,9 @@
         <div class="address">KATHMANDU, BANASTHALI - 16</div>
     </div>
 
-    <div class="date">
-        Date: {{ \Carbon\Carbon::now()->format('jS F, Y') }}
-    </div>
+    <p>Dear Sir/Madam,</p>
 
-    <div class="to-section">
-        To,<br>
-        Global IME Bank Pvt. Ltd.<br>
-        Kharibot Branch Banasthali,<br>
-        Kathmandu, Nepal
-    </div>
-
-    <div class="subject">
-        Sub: Request to deposit salary into salary account.
-    </div>
-
-    <div>
-        This is about the above subject matter. We kindly request you to deposit salary for the month of {{ $month }}, as per the following details, and debit from our Account No. 1001010008136
-    </div>
-
-    @php
-    $total = 0;
-    foreach($payrolls as $payroll) {
-    $total += $payroll['net_salary'];
-    }
-    @endphp
+    <p>This is regarding the salary payment for the month of {{ $month }}. Please find below the details of the salary payments to be made to our employees:</p>
 
     <table>
         <thead>
@@ -139,6 +96,8 @@
         </tbody>
     </table>
 
+    <p>Please process these payments and debit the total amount of Rs{{ number_format($total, 2) }} from our Account No. 1001010008136.</p>
+
     <div class="signature">
         THANKING YOU,<br>
         Yours truly,<br>
@@ -147,9 +106,7 @@
     </div>
 
     <div class="footer">
-        Banasthali - 16, Kharibot, Kathmandu, Nepal.<br>
-        Number: 9818781999, 9840633297<br>
-        E-mail: maatabanasthalihandicraft09@gmail.com
+        <p>Note: Please find attached the detailed PDF and CSV files for your reference.</p>
     </div>
 </body>
 
