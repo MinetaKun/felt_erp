@@ -168,17 +168,6 @@
           <p class="text-gray-500">No citizenship document available</p>
         </div>
         
-        <!-- Attendance Section -->
-        <div class="bg-white shadow-md rounded-xl p-6">
-          <h2 class="text-xl font-bold text-gray-800 mb-4 flex items-center">
-            <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 mr-2 text-blue-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
-            </svg>
-            Attendance Record
-          </h2>
-          <AttendanceTable :artisanId="artisan.id" />
-        </div>
-
         <!-- Basic Information -->
         <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
           <div class="bg-white rounded-lg shadow p-6">
@@ -258,10 +247,8 @@
 
 <script>
 import axios from 'axios';
-import AttendanceTable from './AttendanceTable.vue';
 
 export default {
-  components: { AttendanceTable },
   data() {
     return {
       artisan: null,

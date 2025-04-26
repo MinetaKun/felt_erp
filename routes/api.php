@@ -50,7 +50,7 @@ Route::middleware('auth:sanctum')->group(function () {
         'store',
     ])->middleware('permission:users-all|users-create');
 
-    Route::patch('users/{userId}', [
+    Route::match(['PUT', 'PATCH'], 'users/{userId}', [
         \App\Http\Controllers\UserController::class,
         'update',
     ])->middleware('permission:users-all|users-edit');

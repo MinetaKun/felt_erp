@@ -132,7 +132,7 @@ class ArtisanController extends Controller
             'pan_number' => $artisan->pan_number,
             'department' => $artisan->department,
             'status' => $artisan->status,
-            'skills' => $artisan->skills ? json_decode($artisan->skills, true) : [],
+            'skills' => is_string($artisan->skills) ? json_decode($artisan->skills, true) : ($artisan->skills ?? []),
             'profile_photo_url' => $artisan->profile_photo ? asset('storage/' . $artisan->profile_photo) : null,
             'citizenship_photo_url' => $artisan->citizenship_photo ? asset('storage/' . $artisan->citizenship_photo) : null,
             'created_at' => $artisan->created_at,

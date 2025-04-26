@@ -20,8 +20,13 @@ const useModalToast = () => {
         emitter.emit('show-confirm-modal', data, callback);
     };
 
-    const showToast = (message, type = 'success', options = {}) => {
-        toast[type](message, options);
+    const showToast = (data) => {
+        if (typeof data === 'string') {
+            toast.success(data);
+        } else if (typeof data === 'object') {
+            const { type = 'success', message, duration = 3000 } = data;
+            toast[type](message, { timeout: duration });
+        }
     };
 
     return {

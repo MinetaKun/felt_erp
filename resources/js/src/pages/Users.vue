@@ -8,6 +8,7 @@ import useModalToast from '../composables/useModalToast';
 import useHttpRequest from '../composables/useHttpRequest';
 import CreateButton from '../components/ui/CreateButton.vue';
 import UserSlider from '../components/page/UserSlider.vue';
+import axios from 'axios';
 
 const userStore = useUserStore();
 const roleStore = useRoleStore();
@@ -32,28 +33,22 @@ const filteredUsers = computed(() => {
   );
 });
 
-const onDelete = (user) => {
-  if (deleting.value) return;
-  
-  showConfirmModal({
-    title: 'Delete User',
-    message: `Are you sure you want to delete "${user?.name}"?`,
-    confirmText: 'Delete',
-    cancelText: 'Cancel',
-    confirmVariant: 'danger'
-  }, async (confirmed) => {
-    if (!confirmed) return;
-    
-    const isDeleted = await deleteUser(user?.id);
-    if (isDeleted) {
-      showToast({
-        type: 'success',
-        message: `"${user?.name}" deleted successfully.`,
-        duration: 3000
-      });
-      userStore.loadUsers();
-    }
-  });
+const onDelete = async (user) => {
+  try {
+    await axios.delete(`/users/${user.id}`);
+    showToast({
+      message: `User "${user?.name}" has been deleted successfully`,
+      type: 'success',
+      duration: 3000
+    });
+    await userStore.loadUsers();
+  } catch (error) {
+    showToast({
+      message: 'Failed to delete user',
+      type: 'error',
+      duration: 3000
+    });
+  }
 };
 
 // Get initials from name

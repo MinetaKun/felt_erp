@@ -87,27 +87,32 @@ class UserController extends Controller
         }
     }
 
-    public function update(Request $request)
+    public function update(Request $request, $userId)
     {
         try {
+            // Log the incoming request data
+            \Illuminate\Support\Facades\Log::info('Update request data:', $request->all());
+
             $validated = $request->validate([
-                'name' => ['sometimes', 'required', 'string', 'max:255'],
+                'name' => ['sometimes', 'string', 'max:255'],
                 'email' => [
                     'sometimes',
-                    'required',
                     'email',
-                    Rule::unique('users')->ignore($request->userId),
+                    Rule::unique('users')->ignore($userId),
                 ],
-                'phone_number' => ['sometimes', 'required', 'digits:10'],
+                'phone_number' => ['nullable', 'string', 'regex:/^[0-9]{10}$/'],
                 'profile_photo' => ['nullable', 'image', 'max:2048'],
                 'password' => ['sometimes', 'string', 'min:8'],
-                'roles' => ['sometimes', 'required', 'array'],
+                'roles' => ['sometimes', 'array'],
             ]);
 
-            $user = User::with('roles')->find($request->userId);
-            if (!$user) {
-                throw new \Exception('Error|User not found--404', 13333);
-            }
+            // Log validated data
+            \Illuminate\Support\Facades\Log::info('Validated data:', $validated);
+
+            $user = User::with('roles')->findOrFail($userId);
+
+            // Log current user data
+            \Illuminate\Support\Facades\Log::info('User before update:', $user->toArray());
 
             $usersSuperAdminRole = $user->roles->firstWhere('name', 'super-admin');
             if ($usersSuperAdminRole) {
@@ -131,12 +136,17 @@ class UserController extends Controller
                 $validated['password'] = Hash::make($validated['password']);
             }
 
-            foreach ($validated as $key => $val) {
-                if ($key !== 'roles') {
-                    $user->{$key} = $val;
-                }
+            // Clean phone number if provided
+            if (isset($validated['phone_number'])) {
+                $validated['phone_number'] = preg_replace('/[^0-9]/', '', $validated['phone_number']);
             }
+
+            // Update the user with validated data
+            $user->fill($validated);
             $user->save();
+
+            // Log updated user data
+            \Illuminate\Support\Facades\Log::info('User after update:', $user->toArray());
 
             if (isset($request->roles) && is_array($request->roles)) {
                 $superAdminRole = Role::where('name', 'super-admin')->first();
@@ -159,6 +169,10 @@ class UserController extends Controller
 
             return response()->json($user);
         } catch (\Exception $error) {
+            \Illuminate\Support\Facades\Log::error('Error updating user:', [
+                'error' => $error->getMessage(),
+                'trace' => $error->getTraceAsString()
+            ]);
             return $this->errorResponse($error);
         }
     }

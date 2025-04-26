@@ -148,7 +148,7 @@ const { handleSubmit, errors, values: form } = useForm({
 
 onMounted(async () => {
   try {
-    const rolesResponse = await axios.get('/api/roles')
+    const rolesResponse = await axios.get('/roles')
     roles.value = rolesResponse.data
   } catch (error) {
     console.error('Error fetching data:', error)
@@ -157,7 +157,7 @@ onMounted(async () => {
 
 const handleSubmit = handleSubmit(async (values) => {
   try {
-    const url = isEditing ? `/api/users/${props.user.id}` : '/api/users'
+    const url = isEditing ? `/users/${props.user.id}` : '/users'
     const method = isEditing ? 'put' : 'post'
     
     await axios[method](url, values)
