@@ -5,6 +5,7 @@ use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\NotificationController;
 use App\Http\Controllers\ArtisanProductivityController;
 use App\Http\Controllers\DashboardController;
+use App\Http\Controllers\ReportController;
 
 /**
  * ------------------------------------------------------------------------
@@ -123,6 +124,8 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::post('artisans/import', [\App\Http\Controllers\ArtisanController::class, 'import'])
         ->middleware('permission:artisans-all|artisans-create');
     Route::get('artisans/productivity', [ArtisanProductivityController::class, 'index'])
+        ->middleware('permission:artisans-all|artisans-view');
+    Route::get('artisans/productivity/export', [ArtisanProductivityController::class, 'export'])
         ->middleware('permission:artisans-all|artisans-view');
 
     // Wildcard routes come after specific routes
@@ -453,4 +456,39 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::get('/cash-payment-csv', [\App\Http\Controllers\PayrollController::class, 'exportCashPaymentCSV'])
             ->middleware('permission:payroll-all|payroll-view');
     });
+
+    // Reports Routes
+    Route::get('/reports/orders', [ReportController::class, 'ordersReport']);
+    Route::get('/reports/inventory', [ReportController::class, 'inventoryReport']);
+    Route::get('/reports/attendance', [ReportController::class, 'attendanceReport']);
+
+    /**
+     * ------------------------------------------------------------------------
+     * reports routes
+     * ------------------------------------------------------------------------
+     */
+    Route::prefix('reports')->group(function () {
+        // Attendance reports
+        Route::get('/attendance/{subtype}', [ReportController::class, 'export'])
+            ->middleware('permission:reports-all|reports-view');
+
+        // Inventory reports
+        Route::get('/inventory/{subtype}', [ReportController::class, 'export'])
+            ->middleware('permission:reports-all|reports-view');
+
+        // Orders reports
+        Route::get('/orders/{subtype}', [ReportController::class, 'export'])
+            ->middleware('permission:reports-all|reports-view');
+
+        // Financial reports
+        Route::get('/financial/{subtype}', [ReportController::class, 'export'])
+            ->middleware('permission:reports-all|reports-view');
+
+        // Wool management reports
+        Route::get('/wool/{subtype}', [ReportController::class, 'export'])
+            ->middleware('permission:reports-all|reports-view');
+    });
+
+    Route::get('reports/{type}/{subtype}', [ReportController::class, 'downloadReport'])
+        ->middleware('permission:reports-all|reports-view');
 });

@@ -81,32 +81,37 @@ const getAvatarColor = (userId) => {
     <div class="max-w-7xl mx-auto">
       <!-- Header Section -->
       <header class="mb-8">
-        <div class="flex flex-col md:flex-row justify-between items-center space-y-4 md:space-y-0">
-          <h1 class="text-3xl font-extrabold text-gray-900">
-            User <span class="text-blue-600">Management</span>
-          </h1>
-          
-          <div class="flex flex-col md:flex-row items-center space-y-3 md:space-y-0 md:space-x-4 w-full md:w-auto">
-            <!-- Search Input with Enhanced Styling -->
-            <div class="relative w-full md:w-72">
-              <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                <Search class="w-5 h-5 text-gray-400" />
-              </div>
-              <input
-                v-model="searchQuery"
-                type="text"
-                placeholder="Search users by name or email..."
-                class="w-full pl-10 pr-4 py-2.5 rounded-lg border border-gray-300 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all duration-300 text-sm"
-              />
+        <div class="bg-gradient-to-r from-indigo-600 to-blue-500 rounded-lg shadow-lg p-6">
+          <div class="flex flex-col md:flex-row justify-between items-center space-y-4 md:space-y-0">
+            <div class="flex flex-col">
+              <h1 class="text-3xl font-extrabold text-white">
+                User <span class="text-indigo-200">Management</span>
+              </h1>
+              <p class="text-indigo-100 text-sm mt-1">Manage system users and their roles</p>
             </div>
             
-            <!-- Add User Button -->
-            <CreateButton 
-              @click="showSlider(true)" 
-              label="Add User"
-              :icon="UserPlus"
-              class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2.5 rounded-lg transition-colors duration-300"
-            />
+            <div class="flex flex-col md:flex-row items-center space-y-3 md:space-y-0 md:space-x-4 w-full md:w-auto">
+              <!-- Search Input with Enhanced Styling -->
+              <div class="relative w-full md:w-72">
+                <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                  <Search class="w-5 h-5 text-indigo-300" />
+                </div>
+                <input
+                  v-model="searchQuery"
+                  type="text"
+                  placeholder="Search users by name or email..."
+                  class="w-full pl-10 pr-4 py-2.5 rounded-lg border border-indigo-300 bg-white/10 backdrop-blur-sm text-white placeholder-indigo-200 focus:ring-2 focus:ring-indigo-400 focus:border-indigo-400 transition-all duration-300 text-sm"
+                />
+              </div>
+              
+              <!-- Add User Button -->
+              <CreateButton 
+                @click="showSlider(true)" 
+                label="Add User"
+                :icon="UserPlus"
+                class="bg-emerald-500 hover:bg-emerald-600 text-white px-4 py-2.5 rounded-lg transition-colors duration-300"
+              />
+            </div>
           </div>
         </div>
       </header>
@@ -164,8 +169,6 @@ const getAvatarColor = (userId) => {
                 <th class="px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">User</th>
                 <th class="px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Contact</th>
                 <th class="px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Roles</th>
-                <th class="px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
-                <th class="px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Department</th>
                 <th class="px-6 py-4 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
               </tr>
             </thead>
@@ -226,23 +229,6 @@ const getAvatarColor = (userId) => {
                     </span>
                     <span v-if="!user.roles?.length" class="text-gray-400 text-xs italic">No roles</span>
                   </div>
-                </td>
-
-                <!-- Status -->
-                <td class="px-6 py-4 whitespace-nowrap">
-                  <span 
-                    :class="[
-                      user.is_active ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800', 
-                      'inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium'
-                    ]"
-                  >
-                    {{ user.is_active ? 'Active' : 'Inactive' }}
-                  </span>
-                </td>
-
-                <!-- Department -->
-                <td class="px-6 py-4 whitespace-nowrap">
-                  <div class="text-sm text-gray-900">{{ user?.department?.name || 'N/A' }}</div>
                 </td>
 
                 <!-- Actions -->

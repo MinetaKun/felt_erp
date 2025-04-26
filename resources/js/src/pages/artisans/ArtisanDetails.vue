@@ -178,6 +178,64 @@
           </h2>
           <AttendanceTable :artisanId="artisan.id" />
         </div>
+
+        <!-- Basic Information -->
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+          <div class="bg-white rounded-lg shadow p-6">
+            <h3 class="text-lg font-semibold mb-4">Basic Information</h3>
+            <div class="space-y-4">
+              <div>
+                <label class="text-sm font-medium text-gray-500">Name</label>
+                <p class="mt-1 text-sm text-gray-900">{{ artisan.name }}</p>
+              </div>
+              <div>
+                <label class="text-sm font-medium text-gray-500">Email</label>
+                <p class="mt-1 text-sm text-gray-900">{{ artisan.email }}</p>
+              </div>
+              <div>
+                <label class="text-sm font-medium text-gray-500">Phone Number</label>
+                <p class="mt-1 text-sm text-gray-900">{{ artisan.phone_number }}</p>
+              </div>
+              <div>
+                <label class="text-sm font-medium text-gray-500">PAN Number</label>
+                <p class="mt-1 text-sm text-gray-900">{{ artisan.pan_number }}</p>
+              </div>
+              <div>
+                <label class="text-sm font-medium text-gray-500">Bank Account Number</label>
+                <p class="mt-1 text-sm text-gray-900">{{ artisan.bank_account_number }}</p>
+              </div>
+              <div>
+                <label class="text-sm font-medium text-gray-500">Basic Salary</label>
+                <p class="mt-1 text-sm text-gray-900">Rs. {{ artisan.basic_salary }}</p>
+              </div>
+              <div>
+                <label class="text-sm font-medium text-gray-500">Department</label>
+                <p class="mt-1 text-sm text-gray-900">{{ artisan.department?.name }}</p>
+              </div>
+              <div>
+                <label class="text-sm font-medium text-gray-500">Status</label>
+                <p class="mt-1">
+                  <span :class="artisan.status === 'active' ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'" 
+                        class="px-2 py-1 text-xs font-medium rounded-full">
+                    {{ artisan.status }}
+                  </span>
+                </p>
+              </div>
+            </div>
+          </div>
+
+          <!-- Skills -->
+          <div class="bg-white rounded-lg shadow p-6">
+            <h3 class="text-lg font-semibold mb-4">Skills</h3>
+            <div class="flex flex-wrap gap-2">
+              <span v-for="skill in artisan.skills" :key="skill"
+                    class="inline-flex items-center px-3 py-1 rounded-full text-sm bg-indigo-100 text-indigo-700">
+                {{ skill }}
+              </span>
+              <span v-if="!artisan.skills?.length" class="text-gray-500 text-sm">No skills added</span>
+            </div>
+          </div>
+        </div>
       </div>
 
       <!-- Not Found Message -->

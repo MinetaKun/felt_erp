@@ -56,6 +56,25 @@ class ArtisanController extends Controller
         $perPage = $request->has('per_page') ? $request->per_page : 15;
         $artisans = $query->paginate($perPage);
 
+        // Transform the response to include skills
+        $artisans->getCollection()->transform(function ($artisan) {
+            return [
+                'id' => $artisan->id,
+                'name' => $artisan->name,
+                'email' => $artisan->email,
+                'phone_number' => $artisan->phone_number,
+                'basic_salary' => $artisan->basic_salary,
+                'pan_number' => $artisan->pan_number,
+                'department' => $artisan->department,
+                'status' => $artisan->status,
+                'skills' => is_string($artisan->skills) ? json_decode($artisan->skills, true) : ($artisan->skills ?? []),
+                'profile_photo_url' => $artisan->profile_photo ? asset('storage/' . $artisan->profile_photo) : null,
+                'citizenship_photo_url' => $artisan->citizenship_photo ? asset('storage/' . $artisan->citizenship_photo) : null,
+                'created_at' => $artisan->created_at,
+                'updated_at' => $artisan->updated_at,
+            ];
+        });
+
         return response()->json($artisans);
     }
 
@@ -65,10 +84,15 @@ class ArtisanController extends Controller
             'name' => 'required|string|max:255',
             'email' => 'required|email|unique:artisans,email',
             'phone_number' => 'required|string|max:20',
-            'basic_salary' => 'required|numeric',
+            'basic_salary' => 'required|numeric|min:0',
             'pan_number' => 'required|string|max:20|unique:artisans,pan_number',
+            'bank_account_number' => 'required|string|max:50|unique:artisans,bank_account_number',
             'department_id' => 'required|exists:departments,id',
             'status' => 'sometimes|in:active,inactive',
+            'skills' => 'required|array',
+            'skills.*' => 'required|string|max:255',
+            'profile_photo' => 'sometimes|image|max:2048',
+            'citizenship_photo' => 'sometimes|image|max:2048',
         ]);
 
         // Set default status if not provided
@@ -108,6 +132,7 @@ class ArtisanController extends Controller
             'pan_number' => $artisan->pan_number,
             'department' => $artisan->department,
             'status' => $artisan->status,
+            'skills' => $artisan->skills ? json_decode($artisan->skills, true) : [],
             'profile_photo_url' => $artisan->profile_photo ? asset('storage/' . $artisan->profile_photo) : null,
             'citizenship_photo_url' => $artisan->citizenship_photo ? asset('storage/' . $artisan->citizenship_photo) : null,
             'created_at' => $artisan->created_at,
@@ -128,28 +153,42 @@ class ArtisanController extends Controller
             'name' => 'sometimes|required|string|max:255',
             'email' => 'sometimes|required|email|unique:artisans,email,' . $artisan->id,
             'phone_number' => 'sometimes|required|string|max:20',
-            'basic_salary' => 'sometimes|required|numeric',
+            'basic_salary' => 'sometimes|required|numeric|min:0',
             'pan_number' => 'sometimes|required|string|max:20|unique:artisans,pan_number,' . $artisan->id,
+            'bank_account_number' => 'sometimes|required|string|max:50|unique:artisans,bank_account_number,' . $artisan->id,
             'department_id' => 'sometimes|required|exists:departments,id',
             'status' => 'sometimes|in:active,inactive',
+            'skills' => 'sometimes|required|array',
+            'skills.*' => 'required|string|max:255',
             'profile_photo' => 'sometimes|image|max:2048',
-            'citizenship_photo' => 'sometimes|image|max:2048'
+            'citizenship_photo' => 'sometimes|image|max:2048',
         ]);
 
-        foreach (['profile_photo', 'citizenship_photo'] as $fileField) {
-            if ($request->hasFile($fileField)) {
-                if ($artisan->$fileField) {
-                    Storage::disk('public')->delete($artisan->$fileField);
-                }
-                $validated[$fileField] = $request->file($fileField)->store('photos', 'public');
-            }
-        }
+        // Update the artisan with the validated data
+        $artisan->fill($validated);
+        $artisan->save();
 
-        $artisan->update($validated);
+        // Refresh the artisan to get updated data
+        $artisan = $artisan->fresh();
 
         return response()->json([
             'success' => true,
-            'data' => $artisan->fresh(),
+            'data' => [
+                'id' => $artisan->id,
+                'name' => $artisan->name,
+                'email' => $artisan->email,
+                'phone_number' => $artisan->phone_number,
+                'basic_salary' => $artisan->basic_salary,
+                'pan_number' => $artisan->pan_number,
+                'bank_account_number' => $artisan->bank_account_number,
+                'department' => $artisan->department,
+                'status' => $artisan->status,
+                'skills' => $artisan->skills,
+                'profile_photo_url' => $artisan->profile_photo ? asset('storage/' . $artisan->profile_photo) : null,
+                'citizenship_photo_url' => $artisan->citizenship_photo ? asset('storage/' . $artisan->citizenship_photo) : null,
+                'created_at' => $artisan->created_at,
+                'updated_at' => $artisan->updated_at,
+            ],
             'message' => 'Artisan updated successfully'
         ]);
     }

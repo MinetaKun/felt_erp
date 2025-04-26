@@ -20,11 +20,13 @@ class Artisan extends Model
         'citizenship_photo',
         'status',
         'bank_account_number',
-        'skills'
+        'skills',
+        'basic_salary'
     ];
 
     protected $casts = [
-        'skills' => 'array'
+        'skills' => 'array',
+        'basic_salary' => 'decimal:2'
     ];
 
     public static $rules = [
@@ -35,8 +37,25 @@ class Artisan extends Model
         'bank_account_number' => 'required|string|max:50|unique:artisans,bank_account_number',
         'department_id' => 'required|exists:departments,id',
         'status' => 'sometimes|in:active,inactive',
-        'skills' => 'nullable|array',
+        'skills' => 'required|array',
+        'skills.*' => 'required|string|max:255',
+        'basic_salary' => 'required|numeric|min:0',
     ];
+
+    protected static function boot()
+    {
+        parent::boot();
+
+        static::saving(function ($artisan) {
+            // Ensure skills is always an array
+            if (is_string($artisan->skills)) {
+                $artisan->skills = json_decode($artisan->skills, true) ?? [];
+            }
+            if (!is_array($artisan->skills)) {
+                $artisan->skills = [];
+            }
+        });
+    }
 
     public function department()
     {

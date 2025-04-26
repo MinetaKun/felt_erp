@@ -2,8 +2,14 @@
   <div class="p-6">
     <!-- Header Section -->
     <div class="mb-8">
-      <h1 class="text-2xl font-bold text-gray-800">Dashboard</h1>
-      <p class="text-gray-600">Welcome back! Here's an overview of your system.</p>
+      <div class="bg-gradient-to-r from-indigo-600 to-blue-500 rounded-lg shadow-lg p-6">
+        <div class="flex flex-col">
+          <h1 class="text-3xl font-extrabold text-white">
+            Dashboard <span class="text-indigo-200">Overview</span>
+          </h1>
+          <p class="text-indigo-100 text-sm mt-1">Welcome back! Here's an overview of your system.</p>
+        </div>
+      </div>
     </div>
 
     <!-- Stats Overview -->

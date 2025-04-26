@@ -14,10 +14,10 @@
           >
             <i class="fas fa-chart-line mr-2"></i> Productivity
           </router-link>
-          <label class="inline-flex items-center px-4 py-2 bg-white text-indigo-700 text-sm font-medium rounded-lg hover:bg-indigo-50 transition duration-200 shadow-sm cursor-pointer">
+          <!-- <label class="inline-flex items-center px-4 py-2 bg-white text-indigo-700 text-sm font-medium rounded-lg hover:bg-indigo-50 transition duration-200 shadow-sm cursor-pointer">
             <i class="fas fa-upload mr-2"></i> Import
             <input type="file" class="sr-only" @change="importArtisans" accept=".csv" />
-          </label>
+          </label> -->
           <button
             @click="exportArtisans"
             class="inline-flex items-center px-4 py-2 bg-white text-blue-700 text-sm font-medium rounded-lg hover:bg-blue-50 transition duration-200 shadow-sm"

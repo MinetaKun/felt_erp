@@ -57,6 +57,17 @@
             </div>
             
             <div class="mb-4">
+              <label for="bank_account_number" class="block text-sm font-medium text-gray-700 mb-1">Bank Account Number <span class="text-red-500">*</span></label>
+              <input
+                id="bank_account_number"
+                v-model="form.bank_account_number"
+                type="text"
+                required
+                class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-indigo-500 focus:border-indigo-500"
+              />
+            </div>
+            
+            <div class="mb-4">
               <label for="department_id" class="block text-sm font-medium text-gray-700 mb-1">Department <span class="text-red-500">*</span></label>
               <select
                 id="department_id"
@@ -94,6 +105,40 @@
                 <option value="inactive">Inactive</option>
               </select>
             </div>
+
+            <!-- Skills Input -->
+            <div class="mb-4">
+              <label for="skills" class="block text-sm font-medium text-gray-700 mb-1">Skills</label>
+              <div class="flex flex-wrap gap-2 mb-2">
+                <div v-for="(skill, index) in form.skills" :key="index" 
+                     class="inline-flex items-center px-3 py-1 rounded-full text-sm bg-indigo-100 text-indigo-700">
+                  {{ skill }}
+                  <button type="button" @click="removeSkill(index)" 
+                          class="ml-2 text-indigo-500 hover:text-indigo-700">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+                    </svg>
+                  </button>
+                </div>
+              </div>
+              <div class="flex gap-2">
+                <input
+                  type="text"
+                  v-model="newSkill"
+                  @keydown.enter.prevent="addSkill"
+                  placeholder="Type a skill and press Enter"
+                  class="flex-1 px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-indigo-500 focus:border-indigo-500"
+                />
+                <button
+                  type="button"
+                  @click="addSkill"
+                  class="px-4 py-2 bg-indigo-600 text-white rounded-md hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                >
+                  Add
+                </button>
+              </div>
+              <p class="mt-1 text-sm text-gray-500">Press Enter or click Add to add a skill</p>
+            </div>
           </div>
           
           <!-- Documents and Photos -->
@@ -105,7 +150,7 @@
               <div class="mt-1 flex items-center">
                 <div v-if="existingProfilePhoto || form.profile_photo" class="relative">
                   <img
-                    :src="existingProfilePhoto || (form.profile_photo ? URL.createObjectURL(form.profile_photo) : '')"
+                    :src="existingProfilePhoto || (form.profile_photo instanceof File ? URL.createObjectURL(form.profile_photo) : '')"
                     class="h-32 w-32 object-cover rounded-md"
                     alt="Profile Preview"
                   />
@@ -138,7 +183,7 @@
               <div class="mt-1 flex items-center">
                 <div v-if="existingCitizenshipPhoto || form.citizenship_photo" class="relative">
                   <img
-                    :src="existingCitizenshipPhoto || (form.citizenship_photo ? URL.createObjectURL(form.citizenship_photo) : '')"
+                    :src="existingCitizenshipPhoto || (form.citizenship_photo instanceof File ? URL.createObjectURL(form.citizenship_photo) : '')"
                     class="h-32 w-32 object-cover rounded-md"
                     alt="Citizenship Preview"
                   />
@@ -202,11 +247,14 @@ export default {
         phone_number: "",
         basic_salary: "",
         pan_number: "",
+        bank_account_number: "",
         department_id: "",
         profile_photo: null,
         citizenship_photo: null,
         status: "inactive",
+        skills: [],
       },
+      newSkill: "",
       departments: [],
       loading: false,
       isEdit: false,
@@ -245,10 +293,12 @@ export default {
           phone_number: artisan.phone_number || "",
           basic_salary: artisan.basic_salary || "",
           pan_number: artisan.pan_number || "",
+          bank_account_number: artisan.bank_account_number || "",
           department_id: artisan.department?.id || "",
           profile_photo: null,
           citizenship_photo: null,
           status: artisan.status || "inactive",
+          skills: artisan.skills || [],
         }
 
         // Store existing photo URLs for display
@@ -340,6 +390,15 @@ export default {
     },
     cancel() {
       this.$router.push("/artisans")
+    },
+    addSkill() {
+      if (this.newSkill.trim() && !this.form.skills.includes(this.newSkill.trim())) {
+        this.form.skills.push(this.newSkill.trim());
+        this.newSkill = "";
+      }
+    },
+    removeSkill(index) {
+      this.form.skills.splice(index, 1);
     },
   },
 }

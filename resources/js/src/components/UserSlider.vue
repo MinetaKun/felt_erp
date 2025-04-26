@@ -70,23 +70,6 @@
                   </div>
 
                   <div>
-                    <label for="department_id" class="block text-sm font-medium text-gray-700">Department</label>
-                    <div class="mt-1">
-                      <select
-                        id="department_id"
-                        v-model="form.department_id"
-                        class="block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm"
-                      >
-                        <option value="">Select Department</option>
-                        <option v-for="department in departmentsData" :key="department.id" :value="department.id">
-                          {{ department.name }}
-                        </option>
-                      </select>
-                      <p v-if="errors.department_id" class="mt-2 text-sm text-red-600">{{ errors.department_id }}</p>
-                    </div>
-                  </div>
-
-                  <div>
                     <label for="roles" class="block text-sm font-medium text-gray-700">Roles</label>
                     <div class="mt-1">
                       <VSelect
@@ -145,13 +128,11 @@ const emit = defineEmits(['close', 'saved'])
 
 const isEditing = !!props.user
 const roles = ref([])
-const departmentsData = ref([])
 
 const schema = yup.object({
   name: yup.string().required('Name is required'),
   email: yup.string().email('Invalid email').required('Email is required'),
   password: isEditing ? yup.string() : yup.string().required('Password is required'),
-  department_id: yup.number().nullable(),
   roles: yup.array().required('At least one role is required')
 })
 
@@ -161,19 +142,14 @@ const { handleSubmit, errors, values: form } = useForm({
     name: props.user?.name || '',
     email: props.user?.email || '',
     password: '',
-    department_id: props.user?.department_id || null,
     roles: props.user?.roles?.map(role => role.id) || []
   }
 })
 
 onMounted(async () => {
   try {
-    const [rolesResponse, departmentsResponse] = await Promise.all([
-      axios.get('/api/roles'),
-      axios.get('/api/departments')
-    ])
+    const rolesResponse = await axios.get('/api/roles')
     roles.value = rolesResponse.data
-    departmentsData.value = departmentsResponse.data
   } catch (error) {
     console.error('Error fetching data:', error)
   }

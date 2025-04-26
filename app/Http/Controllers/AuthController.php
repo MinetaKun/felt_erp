@@ -57,11 +57,13 @@ class AuthController extends Controller
     {
         try {
             Auth::guard('web')->logout();
-
             $request->session()->invalidate();
             $request->session()->regenerateToken();
 
-            return response()->json(true);
+            // Clear any cached user data
+            cache()->forget('user_' . Auth::id());
+
+            return response()->json(['message' => 'Logged out successfully']);
         } catch (\Exception $error) {
             return $this->errorResponse($error);
         }

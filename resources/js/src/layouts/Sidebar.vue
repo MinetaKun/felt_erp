@@ -59,36 +59,7 @@
             </div>
           </li>
 
-          <!-- Inventory Section -->
-          <li v-if="hasPermission(['inventory-all', 'inventory-view'])" class="mb-2">
-            <div>
-              <button @click="toggleDropdown('inventory')" 
-                      class="w-full flex items-center p-3 text-gray-300 hover:bg-gray-700 rounded-lg transition-colors"
-                      :class="{ 'justify-center': isCollapsed, 'bg-gray-700': isActive('/inventory') }">
-                <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4" />
-                </svg>
-                <span v-if="!isCollapsed" class="ml-3 flex-1 text-left">Inventory</span>
-                <svg v-if="!isCollapsed" xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 transition-transform"
-                     :class="{ 'rotate-180': dropdownOpen.inventory || shouldOpenDropdown.inventory }"
-                     fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" />
-                </svg>
-              </button>
-              
-              <div v-if="(!isCollapsed && (dropdownOpen.inventory || shouldOpenDropdown.inventory))" class="ml-8 mt-2 space-y-2">
-                <router-link to="/inventory" class="block p-2 text-gray-400 hover:text-white hover:bg-gray-700 rounded-lg transition-colors">
-                  Overview
-                </router-link>
-                <router-link to="/inventory/raw-materials" class="block p-2 text-gray-400 hover:text-white hover:bg-gray-700 rounded-lg transition-colors">
-                  Raw Materials
-                </router-link>
-                <router-link to="/inventory/products" class="block p-2 text-gray-400 hover:text-white hover:bg-gray-700 rounded-lg transition-colors">
-                  Products
-                </router-link>
-              </div>
-            </div>
-          </li>
+
 
           <!-- Departments Section -->
           <li v-if="hasPermission(['departments-all', 'departments-view'])" class="mb-2">
@@ -203,6 +174,7 @@
             </div>
           </li>
 
+         
           <!-- Attendance Section -->
           <li v-if="hasPermission(['attendance-all', 'attendance-view'])" class="mb-2">
             <div>
@@ -268,7 +240,36 @@
               </div>
             </div>
           </li>
-                    
+                    <!-- Inventory Section -->
+                    <li v-if="hasPermission(['inventory-all', 'inventory-view'])" class="mb-2">
+            <div>
+              <button @click="toggleDropdown('inventory')" 
+                      class="w-full flex items-center p-3 text-gray-300 hover:bg-gray-700 rounded-lg transition-colors"
+                      :class="{ 'justify-center': isCollapsed, 'bg-gray-700': isActive('/inventory') }">
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4" />
+                </svg>
+                <span v-if="!isCollapsed" class="ml-3 flex-1 text-left">Inventory</span>
+                <svg v-if="!isCollapsed" xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 transition-transform"
+                     :class="{ 'rotate-180': dropdownOpen.inventory || shouldOpenDropdown.inventory }"
+                     fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" />
+                </svg>
+              </button>
+              
+              <div v-if="(!isCollapsed && (dropdownOpen.inventory || shouldOpenDropdown.inventory))" class="ml-8 mt-2 space-y-2">
+                <router-link to="/inventory" class="block p-2 text-gray-400 hover:text-white hover:bg-gray-700 rounded-lg transition-colors">
+                  Overview
+                </router-link>
+                <router-link to="/inventory/raw-materials" class="block p-2 text-gray-400 hover:text-white hover:bg-gray-700 rounded-lg transition-colors">
+                  Raw Materials
+                </router-link>
+                <router-link to="/inventory/products" class="block p-2 text-gray-400 hover:text-white hover:bg-gray-700 rounded-lg transition-colors">
+                  Products
+                </router-link>
+              </div>
+            </div>
+          </li> 
           <!-- Wool Management Section -->
           <li v-if="hasPermission(['wool-all', 'wool-view'])" class="mb-2">
             <div>
@@ -322,6 +323,7 @@
 import { useRouter } from "vue-router"
 import useUserStore from "../store/useUserStore"
 import axios from "axios"
+import useAuth from '../composables/useAuth';
 
 const props = defineProps({
   collapsed: {
@@ -359,14 +361,15 @@ const dropdownOpen = ref({
   attendance: false,
   wool: false,
   userManagement: false,
-  inventory: false
+  inventory: false,
+  
 })
 
 const toggleDropdown = (section) => {
   dropdownOpen.value[section] = !dropdownOpen.value[section]
 }
 
-// Update the shouldOpenDropdown computed property to include wages routes for the payroll section
+
 const shouldOpenDropdown = computed(() => {
   return {
     pettyCash: isActive("/petty-cash"),
@@ -376,26 +379,17 @@ const shouldOpenDropdown = computed(() => {
     attendance: isActive("/attendance"),
     wool: isActive("/wool"),
     userManagement: isActive("/users") || isActive("/roles") || isActive("/permissions"),
-    inventory: isActive("/inventory")
+    inventory: isActive("/inventory"),
+    
   }
 })
 
-// Add logout method
-const logout = async () => {
-  try {
-    await axios.get("/logout")
-    userStore.setUser(null)
-    router.push("/login")
-  } catch (error) {
-    console.error("Logout failed:", error)
-  }
-}
+const { logout } = useAuth();
 
-// Update the watch function to include userManagement and inventory
+
 watch(
   () => router.currentRoute.value.path,
   () => {
-    // Auto-open dropdown based on current route
     dropdownOpen.value = {
       pettyCash: isActive("/petty-cash"),
       orders: isActive("/orders"),
@@ -404,12 +398,13 @@ watch(
       attendance: isActive("/attendance"),
       wool: isActive("/wool"),
       userManagement: isActive("/users") || isActive("/roles") || isActive("/permissions"),
-      inventory: isActive("/inventory")
+      inventory: isActive("/inventory"),
+      
     }
   },
 )
 
-// Update the onMounted function to include userManagement and inventory
+
 onMounted(() => {
   dropdownOpen.value = {
     pettyCash: isActive("/petty-cash"),
@@ -419,7 +414,8 @@ onMounted(() => {
     attendance: isActive("/attendance"),
     wool: isActive("/wool"),
     userManagement: isActive("/users") || isActive("/roles") || isActive("/permissions"),
-    inventory: isActive("/inventory")
+    inventory: isActive("/inventory"),
+   
   }
 })
 </script>

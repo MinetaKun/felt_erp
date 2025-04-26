@@ -56,33 +56,38 @@ const onDelete = (permission) => {
 <template>
   <div class="w-full space-y-6 py-6 px-8">
     <!-- Header with Add New Button and Search -->
-    <div class="flex flex-wrap justify-between items-center gap-4">
-      <h2 class="text-2xl font-bold text-gray-800">
-        <span class="text-blue-600">Permissions</span> Management
-      </h2>
-      
-      <div class="flex items-center gap-4">
-        <!-- Search Box -->
-        <div class="relative">
-          <input
-            v-model="searchQuery"
-            type="text"
-            placeholder="Search permissions..."
-            class="pl-10 pr-4 py-2 rounded-lg border border-gray-300 focus:border-blue-500 focus:ring-2 focus:ring-blue-200 text-sm transition-all duration-200 w-64"
-          />
-          <div class="absolute inset-y-0 left-0 flex items-center pl-3 pointer-events-none">
-            <svg class="w-4 h-4 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path>
-            </svg>
-          </div>
+    <div class="bg-gradient-to-r from-indigo-600 to-blue-500 rounded-lg shadow-lg p-6">
+      <div class="flex flex-wrap justify-between items-center gap-4">
+        <div class="flex flex-col">
+          <h2 class="text-2xl font-bold text-white">
+            <span class="text-indigo-200">Permissions</span> Management
+          </h2>
+          <p class="text-indigo-100 text-sm mt-1">Manage system permissions and access controls</p>
         </div>
         
-        <CreateButton 
-          @click="showSlider(true)" 
-          label="Add Permission"
-          icon="Key"
-          class="bg-blue-600 hover:bg-blue-700"
-        />
+        <div class="flex items-center gap-4">
+          <!-- Search Box -->
+          <div class="relative">
+            <input
+              v-model="searchQuery"
+              type="text"
+              placeholder="Search permissions..."
+              class="pl-10 pr-4 py-2 rounded-lg border border-indigo-300 bg-white/10 backdrop-blur-sm text-white placeholder-indigo-200 focus:ring-2 focus:ring-indigo-400 focus:border-indigo-400 transition-all duration-200 w-64"
+            />
+            <div class="absolute inset-y-0 left-0 flex items-center pl-3 pointer-events-none">
+              <svg class="w-4 h-4 text-indigo-300" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path>
+              </svg>
+            </div>
+          </div>
+          
+          <CreateButton 
+            @click="showSlider(true)" 
+            label="Add Permission"
+            icon="Key"
+            class="bg-emerald-500 hover:bg-emerald-600 text-white"
+          />
+        </div>
       </div>
     </div>
 

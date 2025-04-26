@@ -107,7 +107,7 @@ const formatDate = (dateString) => {
 </script>
 
 <template>
-    <header class="bg-gradient-to-r from-indigo-500 via-purple-500 to-pink-500 py-3 px-6 shadow-lg">
+    <header class="bg-gray-800 py-3 px-6 shadow-lg">
         <div class="container mx-auto flex justify-between items-center">
             <!-- Logo and Title -->
             <RouterLink :to="{ name: 'users' }" class="flex items-center gap-3 hover:opacity-90 transition-opacity">
@@ -116,7 +116,7 @@ const formatDate = (dateString) => {
                 </div>
                 <div>
                     <h1 class="text-2xl font-bold text-white">Maata Banasthali</h1>
-                    <span class="text-sm tracking-wider text-white text-opacity-80">Handicrafts</span>
+                    <span class="text-sm tracking-wider text-gray-300">Handicrafts</span>
                 </div>
             </RouterLink>
 
@@ -126,7 +126,7 @@ const formatDate = (dateString) => {
                 <div class="relative">
                     <button 
                         @click="showNotifications = !showNotifications"
-                        class="relative p-2 text-white hover:bg-white/10 rounded-full transition-colors"
+                        class="relative p-2 text-gray-300 hover:text-white hover:bg-gray-700 rounded-full transition-colors"
                     >
                         <svg 
                             class="w-6 h-6" 
@@ -152,15 +152,15 @@ const formatDate = (dateString) => {
                     <!-- Notifications dropdown -->
                     <div 
                         v-if="showNotifications"
-                        class="absolute right-0 mt-2 w-80 bg-white rounded-lg shadow-xl z-50"
+                        class="absolute right-0 mt-2 w-80 bg-gray-800 rounded-lg shadow-xl z-50 border border-gray-700"
                     >
-                        <div class="p-4 border-b">
+                        <div class="p-4 border-b border-gray-700">
                             <div class="flex justify-between items-center">
-                                <h3 class="font-semibold text-gray-900">Notifications</h3>
+                                <h3 class="font-semibold text-white">Notifications</h3>
                                 <button 
                                     v-if="unreadCount > 0"
                                     @click="markAllAsRead"
-                                    class="text-sm text-blue-600 hover:text-blue-800"
+                                    class="text-sm text-blue-400 hover:text-blue-300"
                                 >
                                     Mark all as read
                                 </button>
@@ -170,7 +170,7 @@ const formatDate = (dateString) => {
                         <div class="max-h-96 overflow-y-auto">
                             <div 
                                 v-if="notifications.length === 0"
-                                class="p-4 text-center text-gray-500"
+                                class="p-4 text-center text-gray-400"
                             >
                                 No notifications
                             </div>
@@ -178,20 +178,20 @@ const formatDate = (dateString) => {
                             <div 
                                 v-for="notification in notifications" 
                                 :key="notification.id"
-                                class="p-4 border-b hover:bg-gray-50 transition-colors cursor-pointer"
-                                :class="{ 'bg-gray-50': !notification.read_at }"
+                                class="p-4 border-b border-gray-700 hover:bg-gray-700 transition-colors cursor-pointer"
+                                :class="{ 'bg-gray-700': !notification.read_at }"
                                 @click="!notification.read_at && markAsRead(notification)"
                             >
                                 <div class="flex justify-between items-start">
                                     <div class="flex-1">
-                                        <p class="text-sm text-gray-900">{{ notification.data.message }}</p>
+                                        <p class="text-sm text-gray-200">{{ notification.data.message }}</p>
                                         <div class="flex items-center gap-2 mt-1">
-                                            <p class="text-xs text-gray-500">
+                                            <p class="text-xs text-gray-400">
                                                 {{ formatDate(notification.created_at) }}
                                             </p>
                                             <span 
                                                 v-if="!notification.read_at"
-                                                class="text-xs bg-blue-100 text-blue-800 px-2 py-0.5 rounded-full"
+                                                class="text-xs bg-blue-900 text-blue-300 px-2 py-0.5 rounded-full"
                                             >
                                                 New
                                             </span>
@@ -205,7 +205,7 @@ const formatDate = (dateString) => {
 
                 <!-- Profile and Logout -->
                 <div class="relative group">
-                    <button class="flex items-center gap-3 bg-white bg-opacity-20 hover:bg-opacity-30 px-4 py-2 rounded-full transition-all duration-200 text-white">
+                    <button class="flex items-center gap-3 bg-gray-700 hover:bg-gray-600 px-4 py-2 rounded-full transition-all duration-200 text-white">
                         <div class="bg-white p-1 rounded-full shadow-sm">
                             <img 
                                 src="../assets/logo.png" 
@@ -223,7 +223,7 @@ const formatDate = (dateString) => {
                             stroke-width="2" 
                             stroke-linecap="round" 
                             stroke-linejoin="round"
-                            class="text-white"
+                            class="text-gray-300"
                         >
                             <polyline points="6 9 12 15 18 9"></polyline>
                         </svg>
@@ -231,14 +231,14 @@ const formatDate = (dateString) => {
                     
                     <!-- Dropdown Menu -->
                     <div 
-                        class="absolute right-0 mt-2 w-48 overflow-hidden bg-white rounded-lg shadow-xl transition-all duration-300 transform origin-top-right opacity-0 invisible group-hover:opacity-100 group-hover:visible"
+                        class="absolute right-0 mt-2 w-48 overflow-hidden bg-gray-800 rounded-lg shadow-xl transition-all duration-300 transform origin-top-right opacity-0 invisible group-hover:opacity-100 group-hover:visible border border-gray-700"
                     >
                         <button
                             @click="onLogout"
-                            class="flex items-center w-full px-4 py-3 text-left text-gray-700 hover:bg-gray-100 transition-colors"
+                            class="flex items-center w-full px-4 py-3 text-left text-gray-300 hover:bg-gray-700 transition-colors"
                         >
                             <svg 
-                                class="w-5 h-5 mr-3 text-gray-500" 
+                                class="w-5 h-5 mr-3 text-gray-400" 
                                 viewBox="0 0 24 24" 
                                 fill="none" 
                                 stroke="currentColor" 

@@ -383,7 +383,15 @@ export default [
         permissions: ["payroll-all", "payroll-view"],
       },
     },
-    
-    
+    // Reports route
+    {
+      path: "/reports",
+      name: "reports",
+      component: () => import("../pages/Reports.vue"),
+      meta: {
+        layout: "dashboard",
+        permissions: ["reports-all", "reports-view"],
+      },
+    },
 ]
   

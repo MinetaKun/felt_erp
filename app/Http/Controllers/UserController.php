@@ -17,7 +17,7 @@ class UserController extends Controller
 
     public function index(Request $request)
     {
-        $users = User::with(['roles.permissions', 'department'])->get();
+        $users = User::with(['roles.permissions'])->get();
         $users = $users->map(
             fn($user) => $this->extractPermissionsFromUser($user)
         );
@@ -102,7 +102,6 @@ class UserController extends Controller
                 'profile_photo' => ['nullable', 'image', 'max:2048'],
                 'password' => ['sometimes', 'string', 'min:8'],
                 'roles' => ['sometimes', 'required', 'array'],
-                'department_id' => ['nullable', 'exists:departments,id'],
             ]);
 
             $user = User::with('roles')->find($request->userId);
@@ -148,7 +147,7 @@ class UserController extends Controller
                 $user->roles()->sync($roles);
             }
 
-            $user->load(['roles.permissions', 'department']);
+            $user->load(['roles.permissions']);
             $user = $this->extractPermissionsFromUser($user);
 
             // Add the full profile photo URL to the response

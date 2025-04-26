@@ -3,8 +3,21 @@
     <div class="bg-white rounded-lg shadow">
       <!-- Header Section -->
       <div class="p-5 bg-gradient-to-r from-indigo-600 to-blue-500 border-b border-indigo-200">
-        <h3 class="text-xl font-bold text-white">Artisan Productivity</h3>
-        <p class="text-indigo-100 text-sm mt-1">Track artisan performance and productivity</p>
+        <div class="flex justify-between items-center">
+          <div>
+            <h3 class="text-xl font-bold text-white">Artisan Productivity</h3>
+            <p class="text-indigo-100 text-sm mt-1">Track artisan performance and productivity</p>
+          </div>
+          <button 
+            @click="exportData" 
+            class="px-4 py-2 bg-white text-indigo-600 rounded-md hover:bg-indigo-50 transition-colors duration-200 flex items-center"
+          >
+            <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
+            </svg>
+            Export CSV
+          </button>
+        </div>
       </div>
 
       <div class="p-5">
@@ -134,6 +147,10 @@
                         <span class="text-sm">Approved:</span>
                         <span class="text-sm font-medium">{{ artisan.orders.approved_assignments }}</span>
                       </div>
+                      <div class="flex justify-between">
+                        <span class="text-sm">Rejected:</span>
+                        <span class="text-sm font-medium text-red-600">{{ artisan.orders.rejected_assignments }}</span>
+                      </div>
                     </div>
                   </td>
                   <td class="p-3 border-t">
@@ -146,9 +163,13 @@
                         <span class="text-sm">Completed:</span>
                         <span class="text-sm font-medium">{{ artisan.products.total_completed }}</span>
                       </div>
-                      <div class="flex justify-between">
+                      <div class="flex justify-between mb-1">
                         <span class="text-sm">Approved:</span>
                         <span class="text-sm font-medium">{{ artisan.products.total_approved }}</span>
+                      </div>
+                      <div class="flex justify-between">
+                        <span class="text-sm">Rejected:</span>
+                        <span class="text-sm font-medium text-red-600">{{ artisan.products.total_rejected }}</span>
                       </div>
                       <div class="text-xs text-gray-600 mt-1">
                         {{ artisan.products.average_per_day }} per day
@@ -175,6 +196,16 @@
                         <div class="w-full bg-gray-200 rounded-full h-1.5">
                           <div class="bg-green-600 h-1.5 rounded-full" 
                             :style="{ width: artisan.orders.approval_rate + '%' }"></div>
+                        </div>
+                      </div>
+                      <div>
+                        <div class="flex justify-between mb-1">
+                          <span class="text-xs">Rejection</span>
+                          <span class="text-xs font-medium text-red-600">{{ artisan.orders.rejection_rate }}%</span>
+                        </div>
+                        <div class="w-full bg-gray-200 rounded-full h-1.5">
+                          <div class="bg-red-600 h-1.5 rounded-full" 
+                            :style="{ width: artisan.orders.rejection_rate + '%' }"></div>
                         </div>
                       </div>
                     </div>
@@ -276,6 +307,31 @@ export default {
       }
     }
 
+    async function exportData() {
+      try {
+        const params = {
+          department: selectedDepartment.value,
+          date_range: dateRange.value
+        };
+
+        const response = await axios.get('/artisans/productivity/export', { 
+          params,
+          responseType: 'blob'
+        });
+
+        const url = window.URL.createObjectURL(new Blob([response.data]));
+        const link = document.createElement('a');
+        link.href = url;
+        link.setAttribute('download', `artisan_productivity_${new Date().toISOString().split('T')[0]}.csv`);
+        document.body.appendChild(link);
+        link.click();
+        link.remove();
+      } catch (error) {
+        console.error('Error exporting data:', error);
+        alert('Failed to export data. Please try again.');
+      }
+    }
+
     async function fetchDepartments() {
       try {
         const response = await axios.get('/departments');
@@ -319,6 +375,7 @@ export default {
       error,
       errorMessage,
       fetchProductivity,
+      exportData,
       getDepartmentColor
     };
   }
