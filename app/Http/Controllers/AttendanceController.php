@@ -462,10 +462,11 @@ class AttendanceController extends Controller
 
         // Add data rows
         foreach ($attendance as $record) {
+            $attendanceable = $record->attendanceable;
             $csv->insertOne([
-                $record->attendanceable->name,
-                $record->attendanceable_type === User::class ? 'User' : 'Artisan',
-                $record->attendanceable->department?->name ?? 'N/A',
+                $attendanceable ? $attendanceable->name : 'Deleted User',
+                $attendanceable ? ($record->attendanceable_type === User::class ? 'User' : 'Artisan') : 'Unknown',
+                $attendanceable ? ($attendanceable->department?->name ?? 'N/A') : 'N/A',
                 $record->date->format('Y-m-d'),
                 ucfirst($record->status),
                 $record->check_in?->format('H:i:s') ?? 'N/A',

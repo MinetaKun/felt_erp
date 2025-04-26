@@ -83,7 +83,7 @@
     </div>
 
     <div class="date">
-        Date: {{ \Carbon\Carbon::now()->format('jS F, Y') }}
+        Generated Date: {{ \Carbon\Carbon::now()->format('jS F, Y') }}
     </div>
 
     <div class="to-section">

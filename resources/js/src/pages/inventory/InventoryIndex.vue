@@ -1,9 +1,15 @@
 <template>
   <div class="min-h-screen bg-gray-100">
     <!-- Header -->
-    <div class="bg-white shadow">
-      <div class="max-w-7xl mx-auto py-6 px-4 sm:px-6 lg:px-8">
-        <h1 class="text-3xl font-bold text-gray-900">Inventory Management</h1>
+    <div class="p-5">
+      <div class="bg-white rounded-lg shadow">
+        <!-- Header Section -->
+        <div class="p-5 bg-gradient-to-r from-indigo-600 to-blue-500 border-b border-indigo-200 flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
+          <div class="text-white">
+            <h3 class="text-xl font-bold">Inventory Management</h3>
+            <p class="text-indigo-100 text-sm mt-1">Overview of your inventory</p>
+          </div>
+        </div>
       </div>
     </div>
 
@@ -174,8 +180,9 @@ async function fetchInventoryData() {
 function formatCurrency(amount) {
   return new Intl.NumberFormat('en-US', {
     style: 'currency',
-    currency: 'USD'
-  }).format(amount);
+    currency: 'INR',
+    currencyDisplay: 'symbol'
+  }).format(amount).replace('₹', 'Rs.');
 }
 
 function formatStatus(status) {

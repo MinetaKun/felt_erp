@@ -1,279 +1,260 @@
 <template>
   <div class="container mx-auto px-4 py-8">
-    <div class="flex justify-between items-center mb-6">
-      <h1 class="text-2xl font-bold text-gray-800">Raw Materials Inventory</h1>
-      <div class="flex space-x-4">
-        <button
-          @click="printInventory"
-          class="bg-gray-500 hover:bg-gray-600 text-white px-4 py-2 rounded-lg flex items-center"
-        >
-          <span class="mr-2">🖨️</span>
-          Print Inventory
-        </button>
-        <button
-          @click="showAddModal = true"
-          class="bg-blue-500 hover:bg-blue-600 text-white px-4 py-2 rounded-lg flex items-center"
-        >
-          <span class="mr-2">+</span>
-          Add Raw Material
-        </button>
-      </div>
-    </div>
-
-    <!-- Filters -->
-    <div class="bg-white rounded-lg shadow p-4 mb-6">
-      <div class="grid grid-cols-1 md:grid-cols-4 gap-4">
-        <div>
-          <label class="block text-sm font-medium text-gray-700 mb-1">Type</label>
-          <select
-            v-model="filters.type"
-            @change="applyFilters"
-            class="w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
+    <div class="bg-white rounded-lg shadow">
+      <!-- Header Section -->
+      <div class="p-5 bg-gradient-to-r from-indigo-600 to-blue-500 border-b border-indigo-200 flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
+        <div class="text-white">
+          <h3 class="text-xl font-bold">Raw Materials</h3>
+          <p class="text-indigo-100 text-sm mt-1">Manage your raw materials inventory</p>
+        </div>
+        <div class="flex flex-wrap gap-2">
+          <button
+            @click="showAddModal = true"
+            class="inline-flex items-center px-4 py-2 bg-emerald-500 text-white text-sm font-medium rounded-lg hover:bg-emerald-600 transition duration-200 shadow-sm"
           >
-            <option value="">All Types</option>
-            <option v-for="type in materialTypes" :key="type" :value="type">
-              {{ type }}
-            </option>
-          </select>
-        </div>
-        <div>
-          <label class="block text-sm font-medium text-gray-700 mb-1">Color</label>
-          <select
-            v-model="filters.color"
-            @change="applyFilters"
-            class="w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
-          >
-            <option value="">All Colors</option>
-            <option v-for="color in materialColors" :key="color" :value="color">
-              {{ color }}
-            </option>
-          </select>
-        </div>
-        <div>
-          <label class="block text-sm font-medium text-gray-700 mb-1">Stock Status</label>
-          <select
-            v-model="filters.stockStatus"
-            @change="applyFilters"
-            class="w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
-          >
-            <option value="">All Status</option>
-            <option value="low">Low Stock</option>
-            <option value="warning">Warning</option>
-            <option value="good">Good</option>
-          </select>
-        </div>
-        <div>
-          <label class="block text-sm font-medium text-gray-700 mb-1">Search</label>
-          <input
-            type="text"
-            v-model="filters.search"
-            @input="debounceSearch"
-            placeholder="Search by name, description, or supplier..."
-            class="w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
-          />
+            <i class="fas fa-plus mr-2"></i> Add Material
+          </button>
         </div>
       </div>
-    </div>
 
-    <!-- Inventory Summary -->
-    <div class="grid grid-cols-1 md:grid-cols-4 gap-6 mb-6">
-      <div class="bg-white rounded-lg shadow p-6">
-        <h3 class="text-lg font-medium text-gray-900">Total Items</h3>
-        <p class="mt-2 text-3xl font-bold text-blue-600">{{ totalItems }}</p>
-      </div>
-      <div class="bg-white rounded-lg shadow p-6">
-        <h3 class="text-lg font-medium text-gray-900">Low Stock Items</h3>
-        <p class="mt-2 text-3xl font-bold text-red-600">{{ lowStockCount }}</p>
-      </div>
-      <div class="bg-white rounded-lg shadow p-6">
-        <h3 class="text-lg font-medium text-gray-900">Total Value</h3>
-        <p class="mt-2 text-3xl font-bold text-green-600">{{ formatCurrency(totalValue) }}</p>
-      </div>
-      <div class="bg-white rounded-lg shadow p-6">
-        <h3 class="text-lg font-medium text-gray-900">Machines & Equipment</h3>
-        <p class="mt-2 text-3xl font-bold text-purple-600">{{ machineCount }}</p>
-      </div>
-    </div>
-
-    <!-- Low Stock Alert -->
-    <div v-if="lowStockMaterials.length > 0" class="mb-6">
-      <div class="bg-red-50 border-l-4 border-red-400 p-4">
-        <div class="flex">
-          <div class="flex-shrink-0">
-            !
+      <div class="p-5">
+        <!-- Filters -->
+        <div class="flex flex-wrap gap-4 mb-4">
+          <div class="w-full md:w-1/4">
+            <input 
+              type="text" 
+              class="w-full p-2 border border-gray-300 rounded focus:border-blue-500 focus:ring focus:ring-blue-200" 
+              placeholder="Search by name, type, or supplier..." 
+              v-model="filters.search"
+              @input="debouncedFetchMaterials"
+            >
           </div>
-          <div class="ml-3">
-            <h3 class="text-sm font-medium text-red-800">Low Stock Alert</h3>
-            <div class="mt-2 text-sm text-red-700">
-              <p>The following items are running low on stock:</p>
-              <ul class="list-disc pl-5 mt-2">
-                <li v-for="material in lowStockMaterials" :key="material.id">
-                  {{ material.name }} ({{ material.quantity }} {{ material.unit }} remaining)
-                  <button
-                    @click="updateStock(material)"
-                    class="ml-2 text-blue-600 hover:text-blue-800 text-sm"
-                  >
-                    Restock
-                  </button>
-                </li>
-              </ul>
+          <div class="w-full md:w-1/4">
+            <select 
+              class="w-full p-2 border border-gray-300 rounded focus:border-blue-500 focus:ring focus:ring-blue-200" 
+              v-model="filters.type" 
+              @change="fetchMaterials"
+            >
+              <option value="">All Types</option>
+              <option v-for="type in materialTypes" :key="type" :value="type">
+                {{ type }}
+              </option>
+            </select>
+          </div>
+          <div class="w-full md:w-1/4">
+            <select 
+              class="w-full p-2 border border-gray-300 rounded focus:border-blue-500 focus:ring focus:ring-blue-200" 
+              v-model="filters.color" 
+              @change="fetchMaterials"
+            >
+              <option value="">All Colors</option>
+              <option v-for="color in materialColors" :key="color" :value="color">
+                {{ color }}
+              </option>
+            </select>
+          </div>
+          <div class="w-full md:w-1/4">
+            <button 
+              class="inline-flex items-center px-3 py-2 bg-gray-200 text-gray-700 rounded hover:bg-gray-300"
+              @click="resetFilters"
+            >
+              <i class="fas fa-sync-alt mr-1"></i> Reset
+            </button>
+          </div>
+        </div>
+
+        <!-- Inventory Summary -->
+        <div class="grid grid-cols-1 md:grid-cols-4 gap-6 mb-6">
+          <div class="bg-white rounded-lg shadow p-6">
+            <h3 class="text-lg font-medium text-gray-900">Total Items</h3>
+            <p class="mt-2 text-3xl font-bold text-blue-600">{{ totalItems }}</p>
+          </div>
+          <div class="bg-white rounded-lg shadow p-6">
+            <h3 class="text-lg font-medium text-gray-900">Low Stock Items</h3>
+            <p class="mt-2 text-3xl font-bold text-red-600">{{ lowStockCount }}</p>
+          </div>
+          <div class="bg-white rounded-lg shadow p-6">
+            <h3 class="text-lg font-medium text-gray-900">Total Value</h3>
+            <p class="mt-2 text-3xl font-bold text-green-600">{{ formatCurrency(totalValue) }}</p>
+          </div>
+          <div class="bg-white rounded-lg shadow p-6">
+            <h3 class="text-lg font-medium text-gray-900">Machines & Equipment</h3>
+            <p class="mt-2 text-3xl font-bold text-purple-600">{{ machineCount }}</p>
+          </div>
+        </div>
+
+        <!-- Low Stock Alert -->
+        <div v-if="lowStockMaterials.length > 0" class="mb-6">
+          <div class="bg-red-50 border-l-4 border-red-400 p-4">
+            <div class="flex">
+              <div class="flex-shrink-0">
+                !
+              </div>
+              <div class="ml-3">
+                <h3 class="text-sm font-medium text-red-800">Low Stock Alert</h3>
+                <div class="mt-2 text-sm text-red-700">
+                  <p>The following items are running low on stock:</p>
+                  <ul class="list-disc pl-5 mt-2">
+                    <li v-for="material in lowStockMaterials" :key="material.id">
+                      {{ material.name }} ({{ material.quantity }} {{ material.unit }} remaining)
+                      <button
+                        @click="updateStock(material)"
+                        class="ml-2 text-blue-600 hover:text-blue-800 text-sm"
+                      >
+                        Restock
+                      </button>
+                    </li>
+                  </ul>
+                </div>
+              </div>
             </div>
           </div>
         </div>
-      </div>
-    </div>
 
-    <!-- Materials Table -->
-    <div class="bg-white rounded-lg shadow overflow-hidden">
-      <div class="flex justify-between items-center p-4 border-b">
-        <h2 class="text-lg font-medium text-gray-900">Inventory Items</h2>
-        <button
-          @click="printInventory"
-          class="bg-gray-100 hover:bg-gray-200 text-gray-700 px-4 py-2 rounded-lg flex items-center"
-        >
-          <span class="mr-2">🖨️</span>
-          Print Inventory
-        </button>
-      </div>
-      <table class="min-w-full divide-y divide-gray-200">
-        <thead class="bg-gray-50">
-          <tr>
-            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">ID</th>
-            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Name</th>
-            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Type</th>
-            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Color</th>
-            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Quantity</th>
-            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Unit</th>
-            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Min Stock</th>
-            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Price/Unit</th>
-            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Supplier</th>
-            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Location</th>
-            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
-            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
-          </tr>
-        </thead>
-        <tbody class="bg-white divide-y divide-gray-200">
-          <tr v-for="material in materials" :key="material.id">
-            <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{{ material.id }}</td>
-            <td class="px-6 py-4 whitespace-nowrap">
-              <div class="text-sm font-medium text-gray-900">{{ material.name }}</div>
-              <div class="text-sm text-gray-500">{{ material.description }}</div>
-            </td>
-            <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{{ material.type }}</td>
-            <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{{ material.color }}</td>
-            <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{{ material.quantity }}</td>
-            <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{{ material.unit }}</td>
-            <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{{ material.min_stock_level }}</td>
-            <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{{ formatCurrency(material.price_per_unit) }}</td>
-            <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{{ material.supplier }}</td>
-            <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{{ material.location }}</td>
-            <td class="px-6 py-4 whitespace-nowrap">
-              <span
-                :class="{
-                  'bg-red-100 text-red-800': material.stock_status === 'low',
-                  'bg-yellow-100 text-yellow-800': material.stock_status === 'warning',
-                  'bg-green-100 text-green-800': material.stock_status === 'good'
-                }"
-                class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full"
-              >
-                {{ material.stock_status }}
-              </span>
-            </td>
-            <td class="px-6 py-4 whitespace-nowrap text-sm font-medium">
-              <div class="flex items-center space-x-2">
-                <!-- Edit Button -->
-                <button
-                  @click="editMaterial(material)"
-                  class="text-blue-600 hover:text-blue-900 p-1 rounded-full hover:bg-blue-50"
-                  title="Edit"
-                >
-                  <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
-                  </svg>
-                </button>
-
-                <!-- Delete Button -->
-                <button
-                  @click="deleteMaterial(material)"
-                  class="text-red-600 hover:text-red-900 p-1 rounded-full hover:bg-red-50"
-                  title="Delete"
-                >
-                  <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
-                  </svg>
-                </button>
-              </div>
-            </td>
-          </tr>
-        </tbody>
-      </table>
-
-      <!-- Pagination -->
-      <div class="bg-white px-4 py-3 flex items-center justify-between border-t border-gray-200 sm:px-6">
-        <div class="flex-1 flex justify-between sm:hidden">
-          <button
-            @click="currentPage > 1 ? currentPage-- : null"
-            :disabled="currentPage === 1"
-            class="relative inline-flex items-center px-4 py-2 border border-gray-300 text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50"
-          >
-            Previous
-          </button>
-          <button
-            @click="currentPage < lastPage ? currentPage++ : null"
-            :disabled="currentPage === lastPage"
-            class="ml-3 relative inline-flex items-center px-4 py-2 border border-gray-300 text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50"
-          >
-            Next
-          </button>
-        </div>
-        <div class="hidden sm:flex-1 sm:flex sm:items-center sm:justify-between">
-          <div>
-            <p class="text-sm text-gray-700">
-              Showing
-              <span class="font-medium">{{ (currentPage - 1) * perPage + 1 }}</span>
-              to
-              <span class="font-medium">{{ Math.min(currentPage * perPage, total) }}</span>
-              of
-              <span class="font-medium">{{ total }}</span>
-              results
-            </p>
+        <!-- Materials Table -->
+        <div class="bg-white rounded-lg shadow overflow-hidden">
+          <div class="overflow-x-auto">
+            <div class="inline-block min-w-full align-middle">
+              <table class="min-w-full divide-y divide-gray-200">
+                <thead class="bg-gray-50">
+                  <tr>
+                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider sticky left-0 bg-gray-50">ID</th>
+                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider sticky left-0 bg-gray-50">Name</th>
+                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Type</th>
+                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Color</th>
+                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Quantity</th>
+                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Unit</th>
+                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Min Stock</th>
+                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Price/Unit</th>
+                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Supplier</th>
+                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Location</th>
+                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
+                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider sticky right-0 bg-gray-50">Actions</th>
+                  </tr>
+                </thead>
+                <tbody class="bg-white divide-y divide-gray-200">
+                  <tr v-for="material in materials" :key="material.id">
+                    <td class="px-6 py-4 whitespace-nowrap sticky left-0 bg-white">{{ material.id }}</td>
+                    <td class="px-6 py-4 sticky left-0 bg-white">
+                      <div class="text-sm font-medium text-gray-900">{{ material.name }}</div>
+                      <div class="text-sm text-gray-500">{{ material.description }}</div>
+                    </td>
+                    <td class="px-6 py-4 whitespace-nowrap">{{ material.type }}</td>
+                    <td class="px-6 py-4 whitespace-nowrap">{{ material.color }}</td>
+                    <td class="px-6 py-4 whitespace-nowrap">{{ material.quantity }}</td>
+                    <td class="px-6 py-4 whitespace-nowrap">{{ material.unit }}</td>
+                    <td class="px-6 py-4 whitespace-nowrap">{{ material.min_stock_level }}</td>
+                    <td class="px-6 py-4 whitespace-nowrap">{{ formatCurrency(material.price_per_unit) }}</td>
+                    <td class="px-6 py-4 whitespace-nowrap">{{ material.supplier }}</td>
+                    <td class="px-6 py-4 whitespace-nowrap">{{ material.location }}</td>
+                    <td class="px-6 py-4 whitespace-nowrap">
+                      <span 
+                        :class="{
+                          'bg-red-100 text-red-800': material.stock_status === 'low',
+                          'bg-yellow-100 text-yellow-800': material.stock_status === 'warning',
+                          'bg-green-100 text-green-800': material.stock_status === 'good'
+                        }"
+                        class="px-2 py-1 text-xs font-semibold rounded-full"
+                      >
+                        {{ material.stock_status }}
+                      </span>
+                    </td>
+                    <td class="px-6 py-4 whitespace-nowrap text-right text-sm font-medium sticky right-0 bg-white">
+                      <div class="flex space-x-2">
+                        <button 
+                          @click="editMaterial(material)"
+                          class="text-blue-600 hover:text-blue-900"
+                          title="Edit Material"
+                        >
+                          <svg class="h-5 w-5" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor">
+                            <path d="M13.586 3.586a2 2 0 112.828 2.828l-.793.793-2.828-2.828.793-.793zM11.379 5.793L3 14.172V17h2.828l8.38-8.379-2.83-2.828z" />
+                          </svg>
+                        </button>
+                        <button 
+                          @click="deleteMaterial(material)"
+                          class="text-red-600 hover:text-red-900"
+                          title="Delete Material"
+                        >
+                          <svg class="h-5 w-5" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor">
+                            <path fill-rule="evenodd" d="M9 2a1 1 0 00-.894.553L7.382 4H4a1 1 0 000 2v10a2 2 0 002 2h8a2 2 0 002-2V6a1 1 0 100-2h-3.382l-.724-1.447A1 1 0 0011 2H9zM7 8a1 1 0 012 0v6a1 1 0 11-2 0V8zm5-1a1 1 0 00-1 1v6a1 1 0 102 0V8a1 1 0 00-1-1z" clip-rule="evenodd" />
+                          </svg>
+                        </button>
+                      </div>
+                    </td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
           </div>
-          <div>
-            <nav class="relative z-0 inline-flex rounded-md shadow-sm -space-x-px" aria-label="Pagination">
+
+          <!-- Pagination -->
+          <div class="bg-white px-4 py-3 flex items-center justify-between border-t border-gray-200 sm:px-6">
+            <div class="flex-1 flex justify-between sm:hidden">
               <button
                 @click="currentPage > 1 ? currentPage-- : null"
                 :disabled="currentPage === 1"
-                class="relative inline-flex items-center px-2 py-2 rounded-l-md border border-gray-300 bg-white text-sm font-medium text-gray-500 hover:bg-gray-50"
+                class="relative inline-flex items-center px-4 py-2 border border-gray-300 text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50"
               >
-                <span class="sr-only">Previous</span>
-                <svg class="h-5 w-5" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
-                  <path fill-rule="evenodd" d="M12.707 5.293a1 1 0 010 1.414L9.414 10l3.293 3.293a1 1 0 01-1.414 1.414l-4-4a1 1 0 010-1.414l4-4a1 1 0 011.414 0z" clip-rule="evenodd" />
-                </svg>
-              </button>
-              <button
-                v-for="page in pages"
-                :key="page"
-                @click="currentPage = page"
-                :class="[
-                  currentPage === page
-                    ? 'z-10 bg-blue-50 border-blue-500 text-blue-600'
-                    : 'bg-white border-gray-300 text-gray-500 hover:bg-gray-50',
-                  'relative inline-flex items-center px-4 py-2 border text-sm font-medium'
-                ]"
-              >
-                {{ page }}
+                Previous
               </button>
               <button
                 @click="currentPage < lastPage ? currentPage++ : null"
                 :disabled="currentPage === lastPage"
-                class="relative inline-flex items-center px-2 py-2 rounded-r-md border border-gray-300 bg-white text-sm font-medium text-gray-500 hover:bg-gray-50"
+                class="ml-3 relative inline-flex items-center px-4 py-2 border border-gray-300 text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50"
               >
-                <span class="sr-only">Next</span>
-                <svg class="h-5 w-5" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
-                  <path fill-rule="evenodd" d="M7.293 14.707a1 1 0 010-1.414L10.586 10 7.293 6.707a1 1 0 011.414-1.414l4 4a1 1 0 010 1.414l-4 4a1 1 0 01-1.414 0z" clip-rule="evenodd" />
-                </svg>
+                Next
               </button>
-            </nav>
+            </div>
+            <div class="hidden sm:flex-1 sm:flex sm:items-center sm:justify-between">
+              <div>
+                <p class="text-sm text-gray-700">
+                  Showing
+                  <span class="font-medium">{{ (currentPage - 1) * perPage + 1 }}</span>
+                  to
+                  <span class="font-medium">{{ Math.min(currentPage * perPage, total) }}</span>
+                  of
+                  <span class="font-medium">{{ total }}</span>
+                  results
+                </p>
+              </div>
+              <div>
+                <nav class="relative z-0 inline-flex rounded-md shadow-sm -space-x-px" aria-label="Pagination">
+                  <button
+                    @click="currentPage > 1 ? currentPage-- : null"
+                    :disabled="currentPage === 1"
+                    class="relative inline-flex items-center px-2 py-2 rounded-l-md border border-gray-300 bg-white text-sm font-medium text-gray-500 hover:bg-gray-50"
+                  >
+                    <span class="sr-only">Previous</span>
+                    <svg class="h-5 w-5" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
+                      <path fill-rule="evenodd" d="M12.707 5.293a1 1 0 010 1.414L9.414 10l3.293 3.293a1 1 0 01-1.414 1.414l-4-4a1 1 0 010-1.414l4-4a1 1 0 011.414 0z" clip-rule="evenodd" />
+                    </svg>
+                  </button>
+                  <button
+                    v-for="page in pages"
+                    :key="page"
+                    @click="currentPage = page"
+                    :class="[
+                      currentPage === page
+                        ? 'z-10 bg-blue-50 border-blue-500 text-blue-600'
+                        : 'bg-white border-gray-300 text-gray-500 hover:bg-gray-50',
+                      'relative inline-flex items-center px-4 py-2 border text-sm font-medium'
+                    ]"
+                  >
+                    {{ page }}
+                  </button>
+                  <button
+                    @click="currentPage < lastPage ? currentPage++ : null"
+                    :disabled="currentPage === lastPage"
+                    class="relative inline-flex items-center px-2 py-2 rounded-r-md border border-gray-300 bg-white text-sm font-medium text-gray-500 hover:bg-gray-50"
+                  >
+                    <span class="sr-only">Next</span>
+                    <svg class="h-5 w-5" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
+                      <path fill-rule="evenodd" d="M7.293 14.707a1 1 0 010-1.414L10.586 10 7.293 6.707a1 1 0 011.414-1.414l4 4a1 1 0 010 1.414l-4 4a1 1 0 01-1.414 0z" clip-rule="evenodd" />
+                    </svg>
+                  </button>
+                </nav>
+              </div>
+            </div>
           </div>
         </div>
       </div>
@@ -523,6 +504,10 @@ import { ref, reactive, computed, onMounted, watch } from 'vue'
 import Modal from '../../components/Modal.vue'
 import axios from 'axios'
 import debounce from 'lodash/debounce'
+import { useToast } from 'vue-toastification'
+import Swal from 'sweetalert2'
+
+const toast = useToast()
 
 const materials = ref([])
 const lowStockMaterials = ref([])
@@ -794,16 +779,43 @@ async function applyFilters() {
 }
 
 async function deleteMaterial(material) {
-  if (confirm(`Are you sure you want to delete "${material.name}"? This action cannot be undone.`)) {
-    try {
-      const response = await axios.delete(`/inventory/raw-materials/${material.id}`)
+  try {
+    const result = await Swal.fire({
+      title: 'Are you sure?',
+      text: `You are about to delete ${material.name}. This action cannot be undone.`,
+      icon: 'warning',
+      showCancelButton: true,
+      confirmButtonColor: '#d33',
+      cancelButtonColor: '#3085d6',
+      confirmButtonText: 'Yes, delete it!',
+      cancelButtonText: 'Cancel',
+      reverseButtons: true
+    });
+
+    if (result.isConfirmed) {
+      const response = await axios.delete(`/inventory/raw-materials/${material.id}`);
+      
       if (response.data.success) {
-        await fetchMaterials()
-        await fetchLowStockMaterials()
+        await Swal.fire({
+          title: 'Deleted!',
+          text: 'The material has been deleted successfully.',
+          icon: 'success',
+          timer: 2000,
+          showConfirmButton: false
+        });
+        await fetchMaterials();
+      } else {
+        throw new Error(response.data.message || 'Failed to delete material');
       }
-    } catch (error) {
-      console.error('Failed to delete material:', error)
     }
+  } catch (error) {
+    console.error('Error deleting material:', error);
+    Swal.fire({
+      title: 'Error!',
+      text: 'Failed to delete the material. Please try again.',
+      icon: 'error',
+      confirmButtonText: 'OK'
+    });
   }
 }
 

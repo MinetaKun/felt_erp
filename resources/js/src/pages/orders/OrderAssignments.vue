@@ -1,407 +1,425 @@
 <template>
     <div class="container mx-auto px-4 py-8">
-      <div class="mb-6">
-        <h1 class="text-2xl font-bold mb-2">Order Assignments</h1>
-        <p class="text-gray-600">Manage and process order assignments</p>
-      </div>
-  
-      <!-- Filters -->
-      <div class="bg-white dark:bg-gray-800 rounded-lg shadow p-4 mb-6">
-        <div class="grid grid-cols-1 md:grid-cols-4 gap-4">
-          <div>
-            <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Search</label>
-            <input
-              type="text"
-              v-model="filters.search"
-              @input="debouncedFetchAssignments"
-              placeholder="Search by order ID, product, or artisan"
-              class="w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-300 focus:ring focus:ring-indigo-200 focus:ring-opacity-50 dark:bg-gray-700 dark:border-gray-600 dark:text-white"
-            />
+      <div class="space-y-6">
+        <!-- Header -->
+        <div class="bg-white rounded-lg shadow">
+          <div class="p-5 bg-gradient-to-r from-indigo-600 to-blue-500 border-b border-indigo-200 flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
+            <div class="text-white">
+              <h3 class="text-xl font-bold">Order Assignments</h3>
+              <p class="text-indigo-100 text-sm mt-1">Manage order assignments to artisans</p>
+            </div>
+            <div class="flex flex-wrap gap-2">
+              <button
+                v-if="selectedAssignments.length > 0"
+                @click="bulkApprove"
+                :disabled="processing"
+                class="inline-flex items-center px-4 py-2 bg-green-500 text-white text-sm font-medium rounded-lg hover:bg-green-600 transition duration-200 shadow-sm"
+              >
+                <span v-if="processing">Processing...</span>
+                <span v-else>Approve Selected ({{ selectedAssignments.length }})</span>
+              </button>
+            </div>
           </div>
-          <div>
-            <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Artisan</label>
-            <select
-              v-model="filters.artisan_id"
-              @change="fetchAssignments"
-              class="w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-300 focus:ring focus:ring-indigo-200 focus:ring-opacity-50 dark:bg-gray-700 dark:border-gray-600 dark:text-white"
-            >
-              <option value="">All Artisans</option>
-              <option v-for="artisan in artisans" :key="artisan.id" :value="artisan.id">{{ artisan.name }}</option>
-            </select>
-          </div>
-          <div>
-            <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Department</label>
-            <select
-              v-model="filters.department_id"
-              @change="fetchAssignments"
-              class="w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-300 focus:ring focus:ring-indigo-200 focus:ring-opacity-50 dark:bg-gray-700 dark:border-gray-600 dark:text-white"
-            >
-              <option value="">All Departments</option>
-              <option v-for="dept in departments" :key="dept.id" :value="dept.id">{{ dept.name }}</option>
-            </select>
-          </div>
-          <div>
-            <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Status</label>
-            <select
-              v-model="filters.status"
-              @change="fetchAssignments"
-              class="w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-300 focus:ring focus:ring-indigo-200 focus:ring-opacity-50 dark:bg-gray-700 dark:border-gray-600 dark:text-white"
-            >
-              <option value="">All Statuses</option>
-              <option value="pending">Pending</option>
-              <option value="in_production">In Production</option>
-              <option value="completed">Completed</option>
-              <option value="approved">Approved</option>
-              <option value="dispatched">Dispatched</option>
-            </select>
-          </div>
-          <div class="flex items-end">
-            <button
-              @click="resetFilters"
-              class="bg-gray-200 hover:bg-gray-300 text-gray-700 py-2 px-4 rounded-md mr-2"
-            >
-              Reset
-            </button>
-            <button
-              @click="fetchAssignments"
-              class="bg-blue-500 hover:bg-blue-600 text-white py-2 px-4 rounded-md"
-            >
-              Apply Filters
-            </button>
-          </div>
-        </div>
-      </div>
-  
-      <!-- Bulk Actions -->
-      <div class="bg-white dark:bg-gray-800 rounded-lg shadow p-4 mb-6 flex justify-between items-center">
-        <div>
-          <span class="text-sm text-gray-600 dark:text-gray-400">
-            {{ selectedAssignments.length }} of {{ assignments.data.length }} selected
-          </span>
-        </div>
-        <div class="flex space-x-2">
-          <button
-            v-if="selectedAssignments.length > 0"
-            @click="openBulkApproveModal"
-            class="px-4 py-2 bg-green-500 text-white rounded-md hover:bg-green-600"
-          >
-            Bulk Approve
-          </button>
-        </div>
-      </div>
-  
-      <!-- Assignments Table -->
-      <div class="bg-white dark:bg-gray-800 rounded-lg shadow overflow-hidden">
-        <div class="flex justify-between items-center p-4 border-b">
-          <h2 class="text-lg font-medium">Order Assignments</h2>
-        </div>
-        <div class="overflow-x-auto">
-          <table class="min-w-full divide-y divide-gray-200 dark:divide-gray-700">
-            <thead class="bg-gray-50 dark:bg-gray-700">
-              <tr>
-                <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
-                  <div class="flex items-center">
-                    <input
-                      type="checkbox"
-                      :checked="isAllSelected"
-                      @change="toggleSelectAll"
-                      class="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
-                    />
-                  </div>
-                </th>
-                <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
-                  Order ID
-                </th>
-                <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
-                  Product
-                </th>
-                <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
-                  Artisan
-                </th>
-                <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
-                  Assigned
-                </th>
-                <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
-                  Rejected
-                </th>
-                <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
-                  Approved
-                </th>
-                <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
-                  Status
-                </th>
-                <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
-                  Actions
-                </th>
-              </tr>
-            </thead>
-            <tbody class="bg-white dark:bg-gray-800 divide-y divide-gray-200 dark:divide-gray-700">
-              <tr v-if="loading" class="animate-pulse">
-                <td colspan="9" class="px-6 py-4 text-center text-gray-500 dark:text-gray-400">
-                  Loading assignments...
-                </td>
-              </tr>
-              <tr v-else-if="assignments.data.length === 0" class="hover:bg-gray-50 dark:hover:bg-gray-700">
-                <td colspan="9" class="px-6 py-4 text-center text-gray-500 dark:text-gray-400">
-                  No assignments found matching your criteria.
-                </td>
-              </tr>
-              <tr v-for="assignment in assignments.data" :key="assignment.id" class="hover:bg-gray-50 dark:hover:bg-gray-700">
-                <td class="px-6 py-4 whitespace-nowrap">
-                  <input
-                    type="checkbox"
-                    v-model="selectedAssignments"
-                    :value="assignment.id"
-                    :disabled="assignment.status !== 'in_production'"
-                    class="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
-                  />
-                </td>
-                <td class="px-6 py-4 whitespace-nowrap">
-                  <div class="text-sm font-medium text-gray-900 dark:text-white">
-                    {{ assignment.order?.order_id || 'N/A' }}
-                  </div>
-                </td>
-                <td class="px-6 py-4 whitespace-nowrap">
-                  <div class="text-sm text-gray-900 dark:text-white">
-                    {{ assignment.order?.product_name || 'N/A' }}
-                  </div>
-                </td>
-                <td class="px-6 py-4 whitespace-nowrap">
-                  <div class="text-sm text-gray-900 dark:text-white">
-                    {{ assignment.artisan?.name || 'N/A' }}
-                  </div>
-                </td>
-                <td class="px-6 py-4 whitespace-nowrap">
-                  <div class="text-sm text-gray-900 dark:text-white">
-                    {{ assignment.assigned_quantity }}
-                  </div>
-                </td>
-                <td class="px-6 py-4 whitespace-nowrap">
-                  <div class="text-sm text-gray-900 dark:text-white">
-                    {{ assignment.rejected_quantity || 0 }}
-                  </div>
-                </td>
-                <td class="px-6 py-4 whitespace-nowrap">
-                  <div class="text-sm text-gray-900 dark:text-white">
-                    {{ assignment.approved_quantity }}
-                  </div>
-                </td>
-                <td class="px-6 py-4 whitespace-nowrap">
-                  <span :class="['px-2 inline-flex text-xs leading-5 font-semibold rounded-full', getStatusClass(assignment.status)]">
-                    {{ formatStatus(assignment.status) }}
-                  </span>
-                </td>
-                <td class="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
-                  <div class="flex justify-end space-x-2">
-                    <button
-                      v-if="assignment.status === 'completed'"
-                      @click="openApprovalModal(assignment)"
-                      class="text-green-600 hover:text-green-900"
-                      title="Approve"
-                    >
-                      <i class="fas fa-check-circle"></i>
-                    </button>
-                    
-                    <button
-                      v-if="assignment.status === 'approved'"
-                      @click="openDispatchModal(assignment)"
-                      class="text-purple-600 hover:text-purple-900"
-                      title="Dispatch"
-                    >
-                      <i class="fas fa-truck"></i>
-                    </button>
-                    
-                    <button
-                      @click="deleteAssignment(assignment)"
-                      class="text-red-600 hover:text-red-900"
-                      title="Delete"
-                    >
-                      <i class="fas fa-trash"></i>
-                    </button>
-                  </div>
-                </td>
-              </tr>
-            </tbody>
-          </table>
         </div>
   
-        <!-- Pagination -->
-        <div class="px-6 py-4 bg-white dark:bg-gray-800 border-t border-gray-200 dark:border-gray-700">
-          <div class="flex items-center justify-between">
-            <div class="text-sm text-gray-700 dark:text-gray-300">
-              Showing
-              <span class="font-medium">{{ (pagination.current_page - 1) * pagination.per_page + 1 }}</span>
-              to
-              <span class="font-medium">
-                {{ Math.min(pagination.current_page * pagination.per_page, pagination.total) }}
-              </span>
-              of
-              <span class="font-medium">{{ pagination.total }}</span>
-              results
+        <!-- Filters -->
+        <div class="bg-white dark:bg-gray-800 rounded-lg shadow p-4 mb-6">
+          <div class="grid grid-cols-1 md:grid-cols-4 gap-4">
+            <div>
+              <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Search</label>
+              <input
+                type="text"
+                v-model="filters.search"
+                @input="debouncedFetchAssignments"
+                placeholder="Search by order ID, product, or artisan"
+                class="w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-300 focus:ring focus:ring-indigo-200 focus:ring-opacity-50 dark:bg-gray-700 dark:border-gray-600 dark:text-white"
+              />
             </div>
             <div>
-              <nav class="relative z-0 inline-flex rounded-md shadow-sm -space-x-px" aria-label="Pagination">
-                <button
-                  @click="handlePageChange(pagination.current_page - 1)"
-                  :disabled="pagination.current_page === 1"
-                  :class="[
-                    'relative inline-flex items-center px-2 py-2 rounded-l-md border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-sm font-medium',
-                    pagination.current_page === 1
-                      ? 'text-gray-300 dark:text-gray-500 cursor-not-allowed'
-                      : 'text-gray-500 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-600'
-                  ]"
-                >
-                  <span class="sr-only">Previous</span>
-                  &larr;
-                </button>
-                <template v-for="(page, index) in getPageNumbers()" :key="index">
-                  <span
-                    v-if="page === '...'"
-                    class="relative inline-flex items-center px-4 py-2 border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-sm font-medium text-gray-700 dark:text-gray-300"
-                  >
-                    ...
-                  </span>
+              <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Artisan</label>
+              <select
+                v-model="filters.artisan_id"
+                @change="fetchAssignments"
+                class="w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-300 focus:ring focus:ring-indigo-200 focus:ring-opacity-50 dark:bg-gray-700 dark:border-gray-600 dark:text-white"
+              >
+                <option value="">All Artisans</option>
+                <option v-for="artisan in artisans" :key="artisan.id" :value="artisan.id">{{ artisan.name }}</option>
+              </select>
+            </div>
+            <div>
+              <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Department</label>
+              <select
+                v-model="filters.department_id"
+                @change="fetchAssignments"
+                class="w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-300 focus:ring focus:ring-indigo-200 focus:ring-opacity-50 dark:bg-gray-700 dark:border-gray-600 dark:text-white"
+              >
+                <option value="">All Departments</option>
+                <option v-for="dept in departments" :key="dept.id" :value="dept.id">{{ dept.name }}</option>
+              </select>
+            </div>
+            <div>
+              <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Status</label>
+              <select
+                v-model="filters.status"
+                @change="fetchAssignments"
+                class="w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-300 focus:ring focus:ring-indigo-200 focus:ring-opacity-50 dark:bg-gray-700 dark:border-gray-600 dark:text-white"
+              >
+                <option value="">All Statuses</option>
+                <option value="pending">Pending</option>
+                <option value="in_production">In Production</option>
+                <option value="completed">Completed</option>
+                <option value="approved">Approved</option>
+                <option value="dispatched">Dispatched</option>
+              </select>
+            </div>
+            <div class="flex items-end">
+              <button
+                @click="resetFilters"
+                class="bg-gray-200 hover:bg-gray-300 text-gray-700 py-2 px-4 rounded-md mr-2"
+              >
+                Reset
+              </button>
+              <button
+                @click="fetchAssignments"
+                class="bg-blue-500 hover:bg-blue-600 text-white py-2 px-4 rounded-md"
+              >
+                Apply Filters
+              </button>
+            </div>
+          </div>
+        </div>
+  
+        <!-- Bulk Actions -->
+        <div class="bg-white dark:bg-gray-800 rounded-lg shadow p-4 mb-6 flex justify-between items-center">
+          <div>
+            <span class="text-sm text-gray-600 dark:text-gray-400">
+              {{ selectedAssignments.length }} of {{ assignments.data.length }} selected
+            </span>
+          </div>
+          <div class="flex space-x-2">
+            <button
+              v-if="selectedAssignments.length > 0"
+              @click="openBulkApproveModal"
+              class="px-4 py-2 bg-green-500 text-white rounded-md hover:bg-green-600"
+            >
+              Bulk Approve
+            </button>
+          </div>
+        </div>
+  
+        <!-- Assignments Table -->
+        <div class="bg-white dark:bg-gray-800 rounded-lg shadow overflow-hidden">
+          <div class="flex justify-between items-center p-4 border-b">
+            <h2 class="text-lg font-medium">Order Assignments</h2>
+          </div>
+          <div class="overflow-x-auto">
+            <table class="min-w-full divide-y divide-gray-200 dark:divide-gray-700">
+              <thead class="bg-gray-50 dark:bg-gray-700">
+                <tr>
+                  <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
+                    <div class="flex items-center">
+                      <input
+                        type="checkbox"
+                        :checked="isAllSelected"
+                        @change="toggleSelectAll"
+                        class="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
+                      />
+                    </div>
+                  </th>
+                  <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
+                    Order ID
+                  </th>
+                  <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
+                    Product
+                  </th>
+                  <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
+                    Artisan
+                  </th>
+                  <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
+                    Assigned
+                  </th>
+                  <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
+                    Rejected
+                  </th>
+                  <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
+                    Approved
+                  </th>
+                  <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
+                    Status
+                  </th>
+                  <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
+                    Actions
+                  </th>
+                </tr>
+              </thead>
+              <tbody class="bg-white dark:bg-gray-800 divide-y divide-gray-200 dark:divide-gray-700">
+                <tr v-if="loading" class="animate-pulse">
+                  <td colspan="9" class="px-6 py-4 text-center text-gray-500 dark:text-gray-400">
+                    Loading assignments...
+                  </td>
+                </tr>
+                <tr v-else-if="assignments.data.length === 0" class="hover:bg-gray-50 dark:hover:bg-gray-700">
+                  <td colspan="9" class="px-6 py-4 text-center text-gray-500 dark:text-gray-400">
+                    No assignments found matching your criteria.
+                  </td>
+                </tr>
+                <tr v-for="assignment in assignments.data" :key="assignment.id" class="hover:bg-gray-50 dark:hover:bg-gray-700">
+                  <td class="px-6 py-4 whitespace-nowrap">
+                    <input
+                      type="checkbox"
+                      v-model="selectedAssignments"
+                      :value="assignment.id"
+                      :disabled="assignment.status !== 'in_production'"
+                      class="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
+                    />
+                  </td>
+                  <td class="px-6 py-4 whitespace-nowrap">
+                    <div class="text-sm font-medium text-gray-900 dark:text-white">
+                      {{ assignment.order?.order_id || 'N/A' }}
+                    </div>
+                  </td>
+                  <td class="px-6 py-4 whitespace-nowrap">
+                    <div class="text-sm text-gray-900 dark:text-white">
+                      {{ assignment.order?.product_name || 'N/A' }}
+                    </div>
+                  </td>
+                  <td class="px-6 py-4 whitespace-nowrap">
+                    <div class="text-sm text-gray-900 dark:text-white">
+                      {{ assignment.artisan?.name || 'N/A' }}
+                    </div>
+                  </td>
+                  <td class="px-6 py-4 whitespace-nowrap">
+                    <div class="text-sm text-gray-900 dark:text-white">
+                      {{ assignment.assigned_quantity }}
+                    </div>
+                  </td>
+                  <td class="px-6 py-4 whitespace-nowrap">
+                    <div class="text-sm text-gray-900 dark:text-white">
+                      {{ assignment.rejected_quantity || 0 }}
+                    </div>
+                  </td>
+                  <td class="px-6 py-4 whitespace-nowrap">
+                    <div class="text-sm text-gray-900 dark:text-white">
+                      {{ assignment.approved_quantity }}
+                    </div>
+                  </td>
+                  <td class="px-6 py-4 whitespace-nowrap">
+                    <span :class="['px-2 inline-flex text-xs leading-5 font-semibold rounded-full', getStatusClass(assignment.status)]">
+                      {{ formatStatus(assignment.status) }}
+                    </span>
+                  </td>
+                  <td class="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
+                    <div class="flex justify-end space-x-2">
+                      <button
+                        v-if="assignment.status === 'completed'"
+                        @click="openApprovalModal(assignment)"
+                        class="text-green-600 hover:text-green-900"
+                        title="Approve"
+                      >
+                        <i class="fas fa-check-circle"></i>
+                      </button>
+                      
+                      <button
+                        v-if="assignment.status === 'approved'"
+                        @click="openDispatchModal(assignment)"
+                        class="text-purple-600 hover:text-purple-900"
+                        title="Dispatch"
+                      >
+                        <i class="fas fa-truck"></i>
+                      </button>
+                      
+                      <button
+                        @click="deleteAssignment(assignment)"
+                        class="text-red-600 hover:text-red-900"
+                        title="Delete"
+                      >
+                        <i class="fas fa-trash"></i>
+                      </button>
+                    </div>
+                  </td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+  
+          <!-- Pagination -->
+          <div class="px-6 py-4 bg-white dark:bg-gray-800 border-t border-gray-200 dark:border-gray-700">
+            <div class="flex items-center justify-between">
+              <div class="text-sm text-gray-700 dark:text-gray-300">
+                Showing
+                <span class="font-medium">{{ (pagination.current_page - 1) * pagination.per_page + 1 }}</span>
+                to
+                <span class="font-medium">
+                  {{ Math.min(pagination.current_page * pagination.per_page, pagination.total) }}
+                </span>
+                of
+                <span class="font-medium">{{ pagination.total }}</span>
+                results
+              </div>
+              <div>
+                <nav class="relative z-0 inline-flex rounded-md shadow-sm -space-x-px" aria-label="Pagination">
                   <button
-                    v-else
-                    @click="handlePageChange(page)"
+                    @click="handlePageChange(pagination.current_page - 1)"
+                    :disabled="pagination.current_page === 1"
                     :class="[
-                      'relative inline-flex items-center px-4 py-2 border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-sm font-medium',
-                      page === pagination.current_page
-                        ? 'z-10 bg-blue-50 dark:bg-blue-900 border-blue-500 dark:border-blue-500 text-blue-600 dark:text-blue-200'
+                      'relative inline-flex items-center px-2 py-2 rounded-l-md border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-sm font-medium',
+                      pagination.current_page === 1
+                        ? 'text-gray-300 dark:text-gray-500 cursor-not-allowed'
                         : 'text-gray-500 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-600'
                     ]"
                   >
-                    {{ page }}
+                    <span class="sr-only">Previous</span>
+                    &larr;
                   </button>
-                </template>
-                <button
-                  @click="handlePageChange(pagination.current_page + 1)"
-                  :disabled="pagination.current_page === pagination.last_page"
-                  :class="[
-                    'relative inline-flex items-center px-2 py-2 rounded-r-md border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-sm font-medium',
-                    pagination.current_page === pagination.last_page
-                      ? 'text-gray-300 dark:text-gray-500 cursor-not-allowed'
-                      : 'text-gray-500 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-600'
-                  ]"
-                >
-                  <span class="sr-only">Next</span>
-                  &rarr;
-                </button>
-              </nav>
+                  <template v-for="(page, index) in getPageNumbers()" :key="index">
+                    <span
+                      v-if="page === '...'"
+                      class="relative inline-flex items-center px-4 py-2 border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-sm font-medium text-gray-700 dark:text-gray-300"
+                    >
+                      ...
+                    </span>
+                    <button
+                      v-else
+                      @click="handlePageChange(page)"
+                      :class="[
+                        'relative inline-flex items-center px-4 py-2 border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-sm font-medium',
+                        page === pagination.current_page
+                          ? 'z-10 bg-blue-50 dark:bg-blue-900 border-blue-500 dark:border-blue-500 text-blue-600 dark:text-blue-200'
+                          : 'text-gray-500 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-600'
+                      ]"
+                    >
+                      {{ page }}
+                    </button>
+                  </template>
+                  <button
+                    @click="handlePageChange(pagination.current_page + 1)"
+                    :disabled="pagination.current_page === pagination.last_page"
+                    :class="[
+                      'relative inline-flex items-center px-2 py-2 rounded-r-md border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-sm font-medium',
+                      pagination.current_page === pagination.last_page
+                        ? 'text-gray-300 dark:text-gray-500 cursor-not-allowed'
+                        : 'text-gray-500 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-600'
+                    ]"
+                  >
+                    <span class="sr-only">Next</span>
+                    &rarr;
+                  </button>
+                </nav>
+              </div>
             </div>
           </div>
         </div>
-      </div>
   
-      <!-- Approval Modal -->
-      <div v-if="showApprovalModal" class="fixed inset-0 bg-gray-500 bg-opacity-75 flex items-center justify-center z-50">
-        <div class="bg-white rounded-lg p-6 max-w-md w-full">
-          <h3 class="text-lg font-medium mb-4">Approve Assignment</h3>
-          
-          <div class="mb-4">
-            <label class="block text-sm font-medium text-gray-700 mb-1">Approved Quantity</label>
-            <input
-              type="number"
-              v-model="approvalForm.approved_quantity"
-              :max="selectedAssignmentForApproval?.assigned_quantity"
-              class="w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-300 focus:ring focus:ring-indigo-200 focus:ring-opacity-50"
-            />
-          </div>
-          
-          <div class="mb-4">
-            <label class="block text-sm font-medium text-gray-700 mb-1">Rejection Reason (if any)</label>
-            <textarea
-              v-model="approvalForm.rejection_reason"
-              rows="3"
-              class="w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-300 focus:ring focus:ring-indigo-200 focus:ring-opacity-50"
-            ></textarea>
-          </div>
-          
-          <div class="flex justify-end space-x-3">
-            <button
-              @click="showApprovalModal = false"
-              class="px-4 py-2 bg-gray-200 text-gray-700 rounded-md hover:bg-gray-300"
-            >
-              Cancel
-            </button>
-            <button
-              @click="confirmApproval"
-              :disabled="processing"
-              class="px-4 py-2 bg-green-500 text-white rounded-md hover:bg-green-600 disabled:opacity-50"
-            >
-              <span v-if="processing">Processing...</span>
-              <span v-else>Approve</span>
-            </button>
+        <!-- Approval Modal -->
+        <div v-if="showApprovalModal" class="fixed inset-0 bg-gray-500 bg-opacity-75 flex items-center justify-center z-50">
+          <div class="bg-white rounded-lg p-6 max-w-md w-full">
+            <h3 class="text-lg font-medium mb-4">Approve Assignment</h3>
+            
+            <div class="mb-4">
+              <label class="block text-sm font-medium text-gray-700 mb-1">Approved Quantity</label>
+              <input
+                type="number"
+                v-model="approvalForm.approved_quantity"
+                :max="selectedAssignmentForApproval?.assigned_quantity"
+                class="w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-300 focus:ring focus:ring-indigo-200 focus:ring-opacity-50"
+              />
+            </div>
+            
+            <div class="mb-4">
+              <label class="block text-sm font-medium text-gray-700 mb-1">Rejection Reason (if any)</label>
+              <textarea
+                v-model="approvalForm.rejection_reason"
+                rows="3"
+                class="w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-300 focus:ring focus:ring-indigo-200 focus:ring-opacity-50"
+              ></textarea>
+            </div>
+            
+            <div class="flex justify-end space-x-3">
+              <button
+                @click="showApprovalModal = false"
+                class="px-4 py-2 bg-gray-200 text-gray-700 rounded-md hover:bg-gray-300"
+              >
+                Cancel
+              </button>
+              <button
+                @click="confirmApproval"
+                :disabled="processing"
+                class="px-4 py-2 bg-green-500 text-white rounded-md hover:bg-green-600 disabled:opacity-50"
+              >
+                <span v-if="processing">Processing...</span>
+                <span v-else>Approve</span>
+              </button>
+            </div>
           </div>
         </div>
-      </div>
   
-      <!-- Bulk Approval Modal -->
-      <div v-if="showBulkApprovalModal" class="fixed inset-0 z-50 overflow-y-auto">
-        <div class="flex items-center justify-center min-h-screen pt-4 px-4 pb-20 text-center sm:block sm:p-0">
-          <div class="fixed inset-0 transition-opacity" aria-hidden="true">
-            <div class="absolute inset-0 bg-gray-500 opacity-75"></div>
-          </div>
-          <span class="hidden sm:inline-block sm:align-middle sm:h-screen" aria-hidden="true">&#8203;</span>
-          <div class="inline-block align-bottom bg-white dark:bg-gray-800 rounded-lg text-left overflow-hidden shadow-xl transform transition-all sm:my-8 sm:align-middle sm:max-w-4xl sm:w-full">
-            <div class="bg-white dark:bg-gray-800 px-4 pt-5 pb-4 sm:p-6 sm:pb-4">
-              <div class="sm:flex sm:items-start">
-                <div class="mt-3 text-center sm:mt-0 sm:ml-4 sm:text-left w-full">
-                  <h3 class="text-lg leading-6 font-medium text-gray-900 dark:text-white" id="modal-title">
-                    Bulk Approve Assignments
-                  </h3>
-                  <div class="mt-4 max-h-96 overflow-y-auto">
-                    <div v-for="(assignment, index) in bulkAssignments" :key="assignment.id" class="mb-6 pb-6 border-b border-gray-200 dark:border-gray-700">
-                      <div class="mb-2">
-                        <label class="block text-sm font-medium text-gray-700 dark:text-gray-300">
-                          {{ assignment.order_id }} - {{ assignment.product_name }} ({{ assignment.artisan_name }})
-                        </label>
-                      </div>
-                      <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-                        <div>
-                          <label class="block text-sm font-medium text-gray-700 dark:text-gray-300">Approved Quantity</label>
-                          <input
-                            type="number"
-                            v-model="assignment.approved_quantity"
-                            min="0"
-                            :max="assignment.assigned_quantity"
-                            class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-300 focus:ring focus:ring-indigo-200 focus:ring-opacity-50 dark:bg-gray-700 dark:border-gray-600 dark:text-white"
-                          />
-                          <p class="mt-1 text-sm text-gray-500 dark:text-gray-400">
-                            Rejected: {{ assignment.assigned_quantity - assignment.approved_quantity }}
-                          </p>
+        <!-- Bulk Approval Modal -->
+        <div v-if="showBulkApprovalModal" class="fixed inset-0 z-50 overflow-y-auto">
+          <div class="flex items-center justify-center min-h-screen pt-4 px-4 pb-20 text-center sm:block sm:p-0">
+            <div class="fixed inset-0 transition-opacity" aria-hidden="true">
+              <div class="absolute inset-0 bg-gray-500 opacity-75"></div>
+            </div>
+            <span class="hidden sm:inline-block sm:align-middle sm:h-screen" aria-hidden="true">&#8203;</span>
+            <div class="inline-block align-bottom bg-white dark:bg-gray-800 rounded-lg text-left overflow-hidden shadow-xl transform transition-all sm:my-8 sm:align-middle sm:max-w-4xl sm:w-full">
+              <div class="bg-white dark:bg-gray-800 px-4 pt-5 pb-4 sm:p-6 sm:pb-4">
+                <div class="sm:flex sm:items-start">
+                  <div class="mt-3 text-center sm:mt-0 sm:ml-4 sm:text-left w-full">
+                    <h3 class="text-lg leading-6 font-medium text-gray-900 dark:text-white" id="modal-title">
+                      Bulk Approve Assignments
+                    </h3>
+                    <div class="mt-4 max-h-96 overflow-y-auto">
+                      <div v-for="(assignment, index) in bulkAssignments" :key="assignment.id" class="mb-6 pb-6 border-b border-gray-200 dark:border-gray-700">
+                        <div class="mb-2">
+                          <label class="block text-sm font-medium text-gray-700 dark:text-gray-300">
+                            {{ assignment.order_id }} - {{ assignment.product_name }} ({{ assignment.artisan_name }})
+                          </label>
                         </div>
-                        <div v-if="assignment.assigned_quantity - assignment.approved_quantity > 0">
-                          <label class="block text-sm font-medium text-gray-700 dark:text-gray-300">Rejection Reason</label>
-                          <textarea
-                            v-model="assignment.rejection_reason"
-                            rows="2"
-                            class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-300 focus:ring focus:ring-indigo-200 focus:ring-opacity-50 dark:bg-gray-700 dark:border-gray-600 dark:text-white"
-                            placeholder="Please provide a reason for rejection"
-                          ></textarea>
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                          <div>
+                            <label class="block text-sm font-medium text-gray-700 dark:text-gray-300">Approved Quantity</label>
+                            <input
+                              type="number"
+                              v-model="assignment.approved_quantity"
+                              min="0"
+                              :max="assignment.assigned_quantity"
+                              class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-300 focus:ring focus:ring-indigo-200 focus:ring-opacity-50 dark:bg-gray-700 dark:border-gray-600 dark:text-white"
+                            />
+                            <p class="mt-1 text-sm text-gray-500 dark:text-gray-400">
+                              Rejected: {{ assignment.assigned_quantity - assignment.approved_quantity }}
+                            </p>
+                          </div>
+                          <div v-if="assignment.assigned_quantity - assignment.approved_quantity > 0">
+                            <label class="block text-sm font-medium text-gray-700 dark:text-gray-300">Rejection Reason</label>
+                            <textarea
+                              v-model="assignment.rejection_reason"
+                              rows="2"
+                              class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-300 focus:ring focus:ring-indigo-200 focus:ring-opacity-50 dark:bg-gray-700 dark:border-gray-600 dark:text-white"
+                              placeholder="Please provide a reason for rejection"
+                            ></textarea>
+                          </div>
                         </div>
                       </div>
                     </div>
                   </div>
                 </div>
               </div>
-            </div>
-            <div class="bg-gray-50 dark:bg-gray-700 px-4 py-3 sm:px-6 sm:flex sm:flex-row-reverse">
-              <button
-                type="button"
-                @click="confirmBulkApproval"
-                :disabled="processing"
-                class="w-full inline-flex justify-center rounded-md border border-transparent shadow-sm px-4 py-2 bg-green-600 text-base font-medium text-white hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500 sm:ml-3 sm:w-auto sm:text-sm"
-              >
-                {{ processing ? 'Processing...' : 'Approve All' }}
-              </button>
-              <button
-                type="button"
-                @click="showBulkApprovalModal = false"
-                class="mt-3 w-full inline-flex justify-center rounded-md border border-gray-300 shadow-sm px-4 py-2 bg-white text-base font-medium text-gray-700 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 sm:mt-0 sm:ml-3 sm:w-auto sm:text-sm dark:bg-gray-800 dark:text-gray-200 dark:border-gray-600 dark:hover:bg-gray-700"
-              >
-                Cancel
-              </button>
+              <div class="bg-gray-50 dark:bg-gray-700 px-4 py-3 sm:px-6 sm:flex sm:flex-row-reverse">
+                <button
+                  type="button"
+                  @click="confirmBulkApproval"
+                  :disabled="processing"
+                  class="w-full inline-flex justify-center rounded-md border border-transparent shadow-sm px-4 py-2 bg-green-600 text-base font-medium text-white hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500 sm:ml-3 sm:w-auto sm:text-sm"
+                >
+                  {{ processing ? 'Processing...' : 'Approve All' }}
+                </button>
+                <button
+                  type="button"
+                  @click="showBulkApprovalModal = false"
+                  class="mt-3 w-full inline-flex justify-center rounded-md border border-gray-300 shadow-sm px-4 py-2 bg-white text-base font-medium text-gray-700 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 sm:mt-0 sm:ml-3 sm:w-auto sm:text-sm dark:bg-gray-800 dark:text-gray-200 dark:border-gray-600 dark:hover:bg-gray-700"
+                >
+                  Cancel
+                </button>
+              </div>
             </div>
           </div>
         </div>

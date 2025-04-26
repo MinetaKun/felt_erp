@@ -1,23 +1,28 @@
 <template>
     <div class="container mx-auto px-4 py-8">
-      <div class="flex justify-between items-center mb-6">
-        <h1 class="text-2xl font-bold">Orders Management</h1>
-        <div class="flex space-x-2">
-          <button
-            @click="openOrderForm"
-            class="bg-teal-500 hover:bg-teal-600 text-white px-4 py-2 rounded-md flex items-center"
-          >
-            <span class="mr-2">+</span> New Order
-          </button>
-          <button
-            v-if="selectedOrders.length > 0"
-            @click="bulkApprove"
-            :disabled="processing"
-            class="bg-green-500 hover:bg-green-600 text-white px-4 py-2 rounded-md flex items-center"
-          >
-            <span v-if="processing">Processing...</span>
-            <span v-else>Approve Selected ({{ selectedOrders.length }})</span>
-          </button>
+      <div class="bg-white rounded-lg shadow">
+        <div class="p-5 bg-gradient-to-r from-indigo-600 to-blue-500 border-b border-indigo-200 flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
+          <div class="text-white">
+            <h3 class="text-xl font-bold">Orders Management</h3>
+            <p class="text-indigo-100 text-sm mt-1">Manage your orders efficiently</p>
+          </div>
+          <div class="flex flex-wrap gap-2">
+            <button
+              @click="openOrderForm"
+              class="inline-flex items-center px-4 py-2 bg-emerald-500 text-white text-sm font-medium rounded-lg hover:bg-emerald-600 transition duration-200 shadow-sm"
+            >
+              <i class="fas fa-plus mr-2"></i> New Order
+            </button>
+            <button
+              v-if="selectedOrders.length > 0"
+              @click="bulkApprove"
+              :disabled="processing"
+              class="inline-flex items-center px-4 py-2 bg-green-500 text-white text-sm font-medium rounded-lg hover:bg-green-600 transition duration-200 shadow-sm"
+            >
+              <span v-if="processing">Processing...</span>
+              <span v-else>Approve Selected ({{ selectedOrders.length }})</span>
+            </button>
+          </div>
         </div>
       </div>
   

@@ -232,44 +232,38 @@
             </div>
           </li>
 
-          <li v-if="hasPermission(['payroll-all', 'payroll-view'])" class="mb-2">
-            <div class="space-y-1">
-              <button
-                @click="dropdownOpen.payroll = !dropdownOpen.payroll"
-                class="flex items-center justify-between w-full px-4 py-2 text-gray-300 hover:bg-gray-700 rounded-lg transition-colors"
-                :class="{ 'bg-gray-700': dropdownOpen.payroll }"
-              >
-                <div class="flex items-center">
-                  <i class="fas fa-money-bill-wave mr-3"></i>
-                  <span>Payroll</span>
-                </div>
-                <i
-                  class="fas fa-chevron-down text-sm transition-transform"
-                  :class="{ 'transform rotate-180': dropdownOpen.payroll }"
-                ></i>
+          <li v-if="hasPermission(['payroll-all', 'payroll-view', 'wages-all', 'wages-view'])" class="mb-2">
+            <div>
+              <button @click="toggleDropdown('payroll')" 
+                      class="w-full flex items-center p-3 text-gray-300 hover:bg-gray-700 rounded-lg transition-colors"
+                      :class="{ 'justify-center': isCollapsed, 'bg-gray-700': dropdownOpen.payroll }">
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" 
+                        d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                </svg>
+                <span v-if="!isCollapsed" class="ml-3 flex-1 text-left">Payroll & Wages</span>
+                <svg v-if="!isCollapsed" xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 transition-transform"
+                    :class="{ 'rotate-180': dropdownOpen.payroll }"
+                    fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" />
+                </svg>
               </button>
-
-              <div v-show="dropdownOpen.payroll" class="pl-4 space-y-1">
-                <router-link
-                  to="/payroll"
-                  class="block px-4 py-2 text-gray-300 hover:bg-gray-700 rounded-lg transition-colors"
-                  :class="{ 'bg-gray-700': isActive('/payroll') }"
-                >
+              
+              <div v-if="(!isCollapsed && dropdownOpen.payroll)" class="ml-8 mt-2 space-y-2">
+                <router-link to="/payroll" class="block p-2 text-gray-400 hover:text-white hover:bg-gray-700 rounded-lg transition-colors">
                   Payroll Management
                 </router-link>
-                <router-link
-                  to="/payroll/salary-calculation"
-                  class="block px-4 py-2 text-gray-300 hover:bg-gray-700 rounded-lg transition-colors"
-                  :class="{ 'bg-gray-700': isActive('/payroll/salary-calculation') }"
-                >
+                <router-link to="/payroll/salary-calculation" class="block p-2 text-gray-400 hover:text-white hover:bg-gray-700 rounded-lg transition-colors">
                   Salary Calculation
                 </router-link>
-                <router-link
-                  to="/payroll/advances"
-                  class="block px-4 py-2 text-gray-300 hover:bg-gray-700 rounded-lg transition-colors"
-                  :class="{ 'bg-gray-700': isActive('/payroll/advances') }"
-                >
+                <router-link to="/payroll/advances" class="block p-2 text-gray-400 hover:text-white hover:bg-gray-700 rounded-lg transition-colors">
                   Artisan Advances
+                </router-link>
+                <router-link to="/wages/calculations" class="block p-2 text-gray-400 hover:text-white hover:bg-gray-700 rounded-lg transition-colors">
+                  Wage Calculations
+                </router-link>
+                <router-link to="/wages/reports" class="block p-2 text-gray-400 hover:text-white hover:bg-gray-700 rounded-lg transition-colors">
+                  Wage Report
                 </router-link>
               </div>
             </div>
@@ -302,35 +296,6 @@
                 </router-link>
                 <router-link to="/wool/usage/summary" class="block p-2 text-gray-400 hover:text-white hover:bg-gray-700 rounded-lg transition-colors">
                   Monthly Summary
-                </router-link>
-              </div>
-            </div>
-          </li>
-
-          <!-- Wages Section -->
-          <li v-if="hasPermission(['wages-all', 'wages-view'])" class="mb-2">
-            <div>
-              <button @click="toggleDropdown('wages')" 
-                      class="w-full flex items-center p-3 text-gray-300 hover:bg-gray-700 rounded-lg transition-colors"
-                      :class="{ 'justify-center': isCollapsed, 'bg-gray-700': isActive('/wages') }">
-                <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" 
-                        d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-                </svg>
-                <span v-if="!isCollapsed" class="ml-3 flex-1 text-left">Wages</span>
-                <svg v-if="!isCollapsed" xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 transition-transform"
-                     :class="{ 'rotate-180': dropdownOpen.wages || shouldOpenDropdown.wages }"
-                     fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" />
-                </svg>
-              </button>
-              
-              <div v-if="(!isCollapsed && (dropdownOpen.wages || shouldOpenDropdown.wages))" class="ml-8 mt-2 space-y-2">
-                <router-link to="/wages/calculations" class="block p-2 text-gray-400 hover:text-white hover:bg-gray-700 rounded-lg transition-colors">
-                  Wage Calculations
-                </router-link>
-                <router-link to="/wages/reports" class="block p-2 text-gray-400 hover:text-white hover:bg-gray-700 rounded-lg transition-colors">
-                  Wage Report
                 </router-link>
               </div>
             </div>
@@ -401,13 +366,13 @@ const toggleDropdown = (section) => {
   dropdownOpen.value[section] = !dropdownOpen.value[section]
 }
 
-// Update the shouldOpenDropdown computed property to include userManagement and inventory
+// Update the shouldOpenDropdown computed property to include wages routes for the payroll section
 const shouldOpenDropdown = computed(() => {
   return {
     pettyCash: isActive("/petty-cash"),
     orders: isActive("/orders"),
     artisans: isActive("/artisans"),
-    payroll: isActive("/payroll"),
+    payroll: isActive("/payroll") || isActive("/wages"),
     attendance: isActive("/attendance"),
     wool: isActive("/wool"),
     userManagement: isActive("/users") || isActive("/roles") || isActive("/permissions"),

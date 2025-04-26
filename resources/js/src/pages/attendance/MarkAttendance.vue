@@ -2,9 +2,13 @@
   <div class="min-h-screen bg-gray-50 p-6">
     <div class="max-w-7xl mx-auto">
       <!-- Header -->
-      <div class="mb-6">
-        <h1 class="text-2xl font-bold text-gray-900">Mark Daily Attendance</h1>
-        <p class="text-gray-600">Mark attendance for all users and artisans</p>
+      <div class="bg-white rounded-lg shadow">
+        <div class="p-5 bg-gradient-to-r from-indigo-600 to-blue-500 border-b border-indigo-200 flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
+          <div class="text-white">
+            <h3 class="text-xl font-bold">Mark Daily Attendance</h3>
+            <p class="text-indigo-100 text-sm mt-1">Mark attendance for all users and artisans</p>
+          </div>
+        </div>
       </div>
 
       <!-- Date Selection -->

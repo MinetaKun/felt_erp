@@ -6,6 +6,8 @@ use App\Models\RawMaterial;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\Response;
+use League\Csv\Writer;
 
 class RawMaterialController extends Controller
 {
@@ -229,6 +231,81 @@ class RawMaterialController extends Controller
             return response()->json([
                 'success' => false,
                 'message' => 'Failed to fetch low stock materials',
+                'error' => $e->getMessage()
+            ], 500);
+        }
+    }
+
+    public function export(Request $request)
+    {
+        try {
+            $query = RawMaterial::query();
+
+            // Apply filters if provided
+            if ($request->has('type') && !empty($request->type)) {
+                $query->where('type', $request->type);
+            }
+
+            if ($request->has('color') && !empty($request->color)) {
+                $query->where('color', $request->color);
+            }
+
+            if ($request->has('search') && !empty($request->search)) {
+                $search = $request->search;
+                $query->where(function ($q) use ($search) {
+                    $q->where('name', 'like', "%{$search}%")
+                        ->orWhere('description', 'like', "%{$search}%")
+                        ->orWhere('supplier', 'like', "%{$search}%");
+                });
+            }
+
+            $materials = $query->get();
+
+            // Create CSV writer
+            $csv = Writer::createFromString('');
+            $csv->insertOne([
+                'ID',
+                'Name',
+                'Type',
+                'Color',
+                'Quantity',
+                'Unit',
+                'Min Stock Level',
+                'Price Per Unit',
+                'Supplier',
+                'Description',
+                'Location',
+                'Stock Status'
+            ]);
+
+            foreach ($materials as $material) {
+                $csv->insertOne([
+                    $material->id,
+                    $material->name,
+                    $material->type,
+                    $material->color,
+                    $material->quantity,
+                    $material->unit,
+                    $material->min_stock_level,
+                    $material->price_per_unit,
+                    $material->supplier,
+                    $material->description,
+                    $material->location,
+                    $material->stock_status
+                ]);
+            }
+
+            $filename = 'raw_materials_export_' . date('Y-m-d') . '.csv';
+
+            return Response::make($csv->getContent(), 200, [
+                'Content-Type' => 'text/csv',
+                'Content-Disposition' => 'attachment; filename="' . $filename . '"',
+            ]);
+        } catch (\Exception $e) {
+            Log::error('Failed to export raw materials: ' . $e->getMessage());
+            return response()->json([
+                'success' => false,
+                'message' => 'Failed to export raw materials',
                 'error' => $e->getMessage()
             ], 500);
         }

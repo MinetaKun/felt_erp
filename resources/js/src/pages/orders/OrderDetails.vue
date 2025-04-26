@@ -1,22 +1,20 @@
 <template>
     <div v-if="order" class="space-y-6">
       <!-- Order Header -->
-      <div class="flex flex-col md:flex-row justify-between items-start md:items-center">
-        <div>
-          <h3 class="text-xl font-bold text-gray-900 dark:text-white">
-            {{ order.product_name }}
-          </h3>
-          <p class="text-sm text-gray-500 dark:text-gray-400">
-            Order ID: {{ order.order_id }}
-          </p>
-        </div>
-        <div class="mt-2 md:mt-0">
-          <span 
-            class="px-3 py-1 inline-flex text-sm leading-5 font-semibold rounded-full"
-            :class="getStatusClass(order.status)"
-          >
-            {{ formatStatus(order.status) }}
-          </span>
+      <div class="bg-white rounded-lg shadow">
+        <div class="p-5 bg-gradient-to-r from-indigo-600 to-blue-500 border-b border-indigo-200 flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
+          <div class="text-white">
+            <h3 class="text-xl font-bold">{{ order.product_name }}</h3>
+            <p class="text-indigo-100 text-sm mt-1">Order ID: {{ order.order_id }}</p>
+          </div>
+          <div class="mt-2 md:mt-0">
+            <span 
+              class="px-3 py-1 inline-flex text-sm leading-5 font-semibold rounded-full"
+              :class="getStatusClass(order.status)"
+            >
+              {{ formatStatus(order.status) }}
+            </span>
+          </div>
         </div>
       </div>
   

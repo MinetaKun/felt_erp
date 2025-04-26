@@ -1,16 +1,16 @@
 <template>
   <div class="container mx-auto py-4">
     <div class="bg-white shadow-md rounded-lg">
-      <div class="flex justify-between items-center p-4 bg-gray-100 rounded-t-lg">
-        <h3 class="text-xl font-semibold text-gray-900">Petty Cash Categories</h3>
+      <div class="p-5 bg-gradient-to-r from-indigo-600 to-blue-500 border-b border-indigo-200 flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
+        <div class="text-white">
+          <h3 class="text-xl font-bold">Petty Cash Categories</h3>
+          <p class="text-indigo-100 text-sm mt-1">Manage your petty cash categories efficiently</p>
+        </div>
         <button 
           @click="openCreateModal" 
-          class="bg-blue-600 text-white px-4 py-2 rounded-md hover:bg-blue-700 transition duration-300 flex items-center"
+          class="inline-flex items-center px-4 py-2 bg-emerald-500 text-white text-sm font-medium rounded-lg hover:bg-emerald-600 transition duration-200 shadow-sm"
         >
-          <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"></path>
-          </svg>
-          Add Category
+          <i class="fas fa-plus mr-2"></i> Add Category
         </button>
       </div>
       <div class="p-4">
