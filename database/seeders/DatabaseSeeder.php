@@ -20,23 +20,9 @@ class DatabaseSeeder extends Seeder
         //     'email' => 'test@example.com',
         // ]);
 
-        $this->call(UserTableSeeder::class);
-        $this->call(RoleTableSeeder::class);
-        $this->call(PermissionTableSeeder::class);
-        $this->call(RoleUserTableSeeder::class);
-        $this->call(PermissionRoleTableSeeder::class);
-        $this->call(DepartmentSeeder::class); // Runs first because Artisan depends on Department
-        $this->call(ArtisanSeeder::class);
-        $this->call(AttendanceTableSeeder::class);
-        $this->call(PettyCashCategorySeeder::class);
-        $this->call(PettyCashTransactionSeeder::class);
-        $this->call(WoolSupplierSeeder::class);
-        $this->call(WoolStockSeeder::class);
-        $this->call(RawMaterialSeeder::class);
-        $this->call(FinishedProductSeeder::class);
         $this->call([
-            OrderSeeder::class,
-            ArtisanProductivitySeeder::class,
+            PayrollSeeder::class,
+            WoolUsageSeeder::class,
         ]);
     }
 }

@@ -286,6 +286,24 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::post('/suppliers/{id}/restore', [\App\Http\Controllers\WoolSupplierController::class, 'restore'])
             ->middleware('permission:wool-all|wool-edit');
 
+        // Usage routes
+        Route::get('/usage/summary/export', [\App\Http\Controllers\WoolUsageController::class, 'exportSummary'])
+            ->middleware('permission:wool-all|wool-view');
+        Route::get('/usage/summary', [\App\Http\Controllers\WoolUsageController::class, 'summary'])
+            ->middleware('permission:wool-all|wool-view');
+        Route::get('/usage/export', [\App\Http\Controllers\WoolUsageController::class, 'export'])
+            ->middleware('permission:wool-all|wool-view');
+        Route::get('/usage', [\App\Http\Controllers\WoolUsageController::class, 'index'])
+            ->middleware('permission:wool-all|wool-view');
+        Route::post('/usage', [\App\Http\Controllers\WoolUsageController::class, 'store'])
+            ->middleware('permission:wool-all|wool-create');
+        Route::get('/usage/{id}', [\App\Http\Controllers\WoolUsageController::class, 'show'])
+            ->middleware('permission:wool-all|wool-view');
+        Route::put('/usage/{id}', [\App\Http\Controllers\WoolUsageController::class, 'update'])
+            ->middleware('permission:wool-all|wool-edit');
+        Route::delete('/usage/{id}', [\App\Http\Controllers\WoolUsageController::class, 'destroy'])
+            ->middleware('permission:wool-all|wool-delete');
+
         // Orders routes
         Route::get('/orders', [\App\Http\Controllers\WoolOrderController::class, 'index'])
             ->middleware('permission:wool-all|wool-view');
@@ -371,4 +389,66 @@ Route::middleware('auth:sanctum')->group(function () {
 
     // Dashboard
     Route::get('/dashboard', [DashboardController::class, 'index'])->middleware('auth:sanctum');
+
+    /**
+     * ------------------------------------------------------------------------
+     * payroll routes
+     * ------------------------------------------------------------------------
+     */
+    Route::prefix('payroll')->group(function () {
+        // Admin Payroll
+        Route::get('/admin', [\App\Http\Controllers\PayrollController::class, 'getAdminPayroll'])
+            ->middleware('permission:payroll-all|payroll-view');
+        Route::post('/admin', [\App\Http\Controllers\PayrollController::class, 'saveAdminPayroll'])
+            ->middleware('permission:payroll-all|payroll-create');
+
+        // Worker Payroll
+        Route::get('/worker', [\App\Http\Controllers\PayrollController::class, 'getWorkerPayroll'])
+            ->middleware('permission:payroll-all|payroll-view');
+        Route::post('/worker', [\App\Http\Controllers\PayrollController::class, 'saveWorkerPayroll'])
+            ->middleware('permission:payroll-all|payroll-create');
+
+        // Artisan Advances
+        Route::get('/advances', [\App\Http\Controllers\PayrollController::class, 'getAdvances'])
+            ->middleware('permission:payroll-all|payroll-view');
+        Route::post('/advances', [\App\Http\Controllers\PayrollController::class, 'saveAdvances'])
+            ->middleware('permission:payroll-all|payroll-create');
+        Route::get('/advances/export', [\App\Http\Controllers\PayrollController::class, 'generateAdvanceReport'])
+            ->middleware('permission:payroll-all|payroll-view')
+            ->name('payroll.advances.export');
+
+        // Salary Calculation Routes
+        Route::get('/salary-calculation', [\App\Http\Controllers\PayrollController::class, 'getSalaryCalculations'])
+            ->middleware('permission:payroll-all|payroll-view');
+        Route::post('/salary-calculation', [\App\Http\Controllers\PayrollController::class, 'saveSalaryCalculation'])
+            ->middleware('permission:payroll-all|payroll-create');
+        Route::get('/salary-calculation/export', [\App\Http\Controllers\PayrollController::class, 'exportSalaryCalculations'])
+            ->middleware('permission:payroll-all|payroll-view');
+        Route::get('/salary-calculation/{id}', [\App\Http\Controllers\PayrollController::class, 'getSalaryCalculation'])
+            ->middleware('permission:payroll-all|payroll-view');
+        Route::put('/salary-calculation/{id}', [\App\Http\Controllers\PayrollController::class, 'updateSalaryCalculation'])
+            ->middleware('permission:payroll-all|payroll-edit');
+        Route::delete('/salary-calculation/{id}', [\App\Http\Controllers\PayrollController::class, 'deleteSalaryCalculation'])
+            ->middleware('permission:payroll-all|payroll-delete');
+        Route::get('/salary-calculation/department/{departmentId}', [\App\Http\Controllers\PayrollController::class, 'getDepartmentSalaryCalculations'])
+            ->middleware('permission:payroll-all|payroll-view');
+        Route::get('/salary-calculation/artisan/{artisanId}', [\App\Http\Controllers\PayrollController::class, 'getArtisanSalaryCalculations'])
+            ->middleware('permission:payroll-all|payroll-view');
+
+        // Bank Transfer
+        Route::get('/bank-transfers', [\App\Http\Controllers\PayrollController::class, 'getBankTransfers'])
+            ->middleware('permission:payroll-all|payroll-view');
+        Route::get('/bank-transfer-sheet', [\App\Http\Controllers\PayrollController::class, 'generateBankTransferSheet'])
+            ->middleware('permission:payroll-all|payroll-view');
+        Route::get('/bank-transfer-csv', [\App\Http\Controllers\PayrollController::class, 'exportBankTransferCSV'])
+            ->middleware('permission:payroll-all|payroll-view');
+
+        // Cash Payment
+        Route::get('/cash-payments', [\App\Http\Controllers\PayrollController::class, 'getCashPayments'])
+            ->middleware('permission:payroll-all|payroll-view');
+        Route::get('/cash-payment-sheet', [\App\Http\Controllers\PayrollController::class, 'generateCashPaymentSheet'])
+            ->middleware('permission:payroll-all|payroll-view');
+        Route::get('/cash-payment-csv', [\App\Http\Controllers\PayrollController::class, 'exportCashPaymentCSV'])
+            ->middleware('permission:payroll-all|payroll-view');
+    });
 });

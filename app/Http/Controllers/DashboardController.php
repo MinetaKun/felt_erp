@@ -13,7 +13,7 @@ use Illuminate\Support\Facades\DB;
 
 class DashboardController extends Controller
 {
-    public function index()
+    public function index(Request $request)
     {
         // Get basic stats
         $stats = [
@@ -22,11 +22,14 @@ class DashboardController extends Controller
             'totalArtisans' => Artisan::count(),
             'activeArtisans' => Artisan::where('status', 'active')->count(),
             'totalProducts' => Product::count(),
-            'inStockProducts' => Product::where('stock_quantity', '>', 0)->count(),
-            'totalRevenue' => Order::where('status', 'dispatched')->sum('total_amount'),
-            'monthlyRevenue' => Order::where('status', 'dispatched')
+            'inStockProducts' => Product::where('quantity', '>', 0)->count(),
+            'totalRevenue' => number_format(Order::where('status', 'dispatched')
+                ->selectRaw('SUM(total_quantity * wages_per_unit) as total')
+                ->value('total') ?? 0, 2),
+            'monthlyRevenue' => number_format(Order::where('status', 'dispatched')
                 ->whereMonth('created_at', Carbon::now()->month)
-                ->sum('total_amount')
+                ->selectRaw('SUM(total_quantity * wages_per_unit) as total')
+                ->value('total') ?? 0, 2)
         ];
 
         // Get recent orders
@@ -64,15 +67,14 @@ class DashboardController extends Controller
             ->values();
 
         // Get inventory status
-        $inventoryStatus = Product::select('id', 'name', 'category', 'stock_quantity', 'updated_at')
+        $inventoryStatus = Product::select('id', 'name', 'quantity', 'updated_at')
             ->get()
             ->map(function ($product) {
                 return [
                     'id' => $product->id,
                     'name' => $product->name,
-                    'category' => $product->category,
-                    'quantity' => $product->stock_quantity,
-                    'stock_level' => $this->getStockLevel($product->stock_quantity),
+                    'quantity' => $product->quantity,
+                    'stock_level' => $this->getStockLevel($product->quantity),
                     'updated_at' => $product->updated_at
                 ];
             });
@@ -80,12 +82,44 @@ class DashboardController extends Controller
         // Get recent activities
         $recentActivities = $this->getRecentActivities();
 
+        // Get monthly revenue data
+        $year = $request->input('year', Carbon::now()->year);
+        $monthlyData = [];
+        $currentDate = Carbon::createFromFormat('Y', $year)->startOfYear();
+
+        for ($i = 0; $i < 12; $i++) {
+            $month = $currentDate->copy()->addMonths($i);
+            $revenue = Order::where('status', 'dispatched')
+                ->whereYear('created_at', $month->year)
+                ->whereMonth('created_at', $month->month)
+                ->selectRaw('SUM(total_quantity * wages_per_unit) as total')
+                ->value('total') ?? 0;
+
+            $monthlyData[] = [
+                'month' => $month->format('M Y'),
+                'revenue' => $revenue
+            ];
+        }
+
+        // Get order status distribution
+        $statusDistribution = Order::select('status', DB::raw('count(*) as count'))
+            ->groupBy('status')
+            ->get()
+            ->map(function ($item) {
+                return [
+                    'status' => ucfirst(str_replace('_', ' ', $item->status)),
+                    'count' => $item->count
+                ];
+            });
+
         return response()->json([
             'stats' => $stats,
             'recentOrders' => $recentOrders,
             'topArtisans' => $topArtisans,
             'inventoryStatus' => $inventoryStatus,
-            'recentActivities' => $recentActivities
+            'recentActivities' => $recentActivities,
+            'monthly_data' => $monthlyData,
+            'status_distribution' => $statusDistribution
         ]);
     }
 

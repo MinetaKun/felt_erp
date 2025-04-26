@@ -264,18 +264,18 @@ export default [
       },
     },
     {
-      path: "/wool/orders",
-      name: "wool.orders",
-      component: () => import("../pages/wool/WoolOrders.vue"),
+      path: "/wool/usage",
+      name: "wool.usage",
+      component: () => import("../pages/wool/WoolUsage.vue"),
       meta: {
         layout: "dashboard",
         permissions: ["wool-all", "wool-view"],
       },
     },
     {
-      path: "/wool/stock",
-      name: "wool.stock",
-      component: () => import("../pages/wool/WoolStock.vue"),
+      path: "/wool/usage/summary",
+      name: "wool.usage.summary",
+      component: () => import("../pages/wool/WoolUsageSummary.vue"),
       meta: {
         layout: "dashboard",
         permissions: ["wool-all", "wool-view"],
@@ -355,5 +355,35 @@ export default [
         permissions: ['inventory-all', 'inventory-edit'],
       },
     },
+    // Payroll routes
+    {
+      path: "/payroll",
+      name: "payroll",
+      component: () => import("../pages/payroll/Payroll.vue"),
+      meta: {
+        layout: "dashboard",
+        permissions: ["payroll-all", "payroll-view"],
+      },
+    },
+    {
+      path: "/payroll/salary-calculation",
+      name: "payroll.salary-calculation",
+      component: () => import("../pages/payroll/SalaryCalculation.vue"),
+      meta: {
+        layout: "dashboard",
+        permissions: ["payroll-all", "payroll-view"],
+      },
+    },
+    {
+      path: "/payroll/advances",
+      name: "payroll.advances",
+      component: () => import("../pages/payroll/ArtisanAdvances.vue"),
+      meta: {
+        layout: "dashboard",
+        permissions: ["payroll-all", "payroll-view"],
+      },
+    },
+    
+    
 ]
   

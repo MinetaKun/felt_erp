@@ -233,25 +233,47 @@
           </li>
 
           <li v-if="hasPermission(['payroll-all', 'payroll-view'])" class="mb-2">
-            <div>
-                <button @click="toggleDropdown('payroll')" 
-                        class="w-full flex items-center p-3 text-gray-300 hover:bg-gray-700 rounded-lg transition-colors"
-                        :class="{ 'justify-center': isCollapsed, 'bg-gray-700': isActive('/payroll') }">
-                <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" 
-                        d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-                </svg>
-                <span v-if="!isCollapsed" class="ml-3 flex-1 text-left">Payroll</span>
-                <svg v-if="!isCollapsed" xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 transition-transform"
-                    :class="{ 'rotate-180': dropdownOpen.payroll || shouldOpenDropdown.payroll }"
-                    fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" />
-                </svg>
-                </button>
-                
-                
+            <div class="space-y-1">
+              <button
+                @click="dropdownOpen.payroll = !dropdownOpen.payroll"
+                class="flex items-center justify-between w-full px-4 py-2 text-gray-300 hover:bg-gray-700 rounded-lg transition-colors"
+                :class="{ 'bg-gray-700': dropdownOpen.payroll }"
+              >
+                <div class="flex items-center">
+                  <i class="fas fa-money-bill-wave mr-3"></i>
+                  <span>Payroll</span>
+                </div>
+                <i
+                  class="fas fa-chevron-down text-sm transition-transform"
+                  :class="{ 'transform rotate-180': dropdownOpen.payroll }"
+                ></i>
+              </button>
+
+              <div v-show="dropdownOpen.payroll" class="pl-4 space-y-1">
+                <router-link
+                  to="/payroll"
+                  class="block px-4 py-2 text-gray-300 hover:bg-gray-700 rounded-lg transition-colors"
+                  :class="{ 'bg-gray-700': isActive('/payroll') }"
+                >
+                  Payroll Management
+                </router-link>
+                <router-link
+                  to="/payroll/salary-calculation"
+                  class="block px-4 py-2 text-gray-300 hover:bg-gray-700 rounded-lg transition-colors"
+                  :class="{ 'bg-gray-700': isActive('/payroll/salary-calculation') }"
+                >
+                  Salary Calculation
+                </router-link>
+                <router-link
+                  to="/payroll/advances"
+                  class="block px-4 py-2 text-gray-300 hover:bg-gray-700 rounded-lg transition-colors"
+                  :class="{ 'bg-gray-700': isActive('/payroll/advances') }"
+                >
+                  Artisan Advances
+                </router-link>
+              </div>
             </div>
-        </li>
+          </li>
                     
           <!-- Wool Management Section -->
           <li v-if="hasPermission(['wool-all', 'wool-view'])" class="mb-2">
@@ -265,8 +287,8 @@
                 </svg>
                 <span v-if="!isCollapsed" class="ml-3 flex-1 text-left">Wool Management</span>
                 <svg v-if="!isCollapsed" xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 transition-transform"
-                     :class="{ 'rotate-180': dropdownOpen.wool || shouldOpenDropdown.wool }"
-                     fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    :class="{ 'rotate-180': dropdownOpen.wool || shouldOpenDropdown.wool }"
+                    fill="none" viewBox="0 0 24 24" stroke="currentColor">
                   <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" />
                 </svg>
               </button>
@@ -275,11 +297,11 @@
                 <router-link to="/wool/suppliers" class="block p-2 text-gray-400 hover:text-white hover:bg-gray-700 rounded-lg transition-colors">
                   Suppliers
                 </router-link>
-                <router-link to="/wool/orders" class="block p-2 text-gray-400 hover:text-white hover:bg-gray-700 rounded-lg transition-colors">
-                  Orders
+                <router-link to="/wool/usage" class="block p-2 text-gray-400 hover:text-white hover:bg-gray-700 rounded-lg transition-colors">
+                  Usage Records
                 </router-link>
-                <router-link to="/wool/stock" class="block p-2 text-gray-400 hover:text-white hover:bg-gray-700 rounded-lg transition-colors">
-                  Stock
+                <router-link to="/wool/usage/summary" class="block p-2 text-gray-400 hover:text-white hover:bg-gray-700 rounded-lg transition-colors">
+                  Monthly Summary
                 </router-link>
               </div>
             </div>

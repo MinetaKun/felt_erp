@@ -3,7 +3,6 @@
 use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\ProductController;
 
-
 Route::get(
     '/{any}',
     fn() => view('app')
