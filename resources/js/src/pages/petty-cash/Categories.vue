@@ -145,6 +145,7 @@
 <script>
 import { ref, onMounted } from 'vue';
 import axios from 'axios';
+import Swal from 'sweetalert2'
 
 export default {
   setup() {
@@ -178,20 +179,44 @@ export default {
           console.log('Categories assigned:', categories.value);
         } else {
           console.error('Response data is not an array:', response.data);
-          alert('Unexpected response format from server.');
+          Swal.fire({
+            icon: 'error',
+            title: 'Error!',
+            text: 'Unexpected response format from server.',
+            timer: 3000,
+            showConfirmButton: false
+          });
         }
       } catch (error) {
         console.error('Error fetching categories:', error);
         if (error.response) {
           console.error('Status:', error.response.status);
           console.error('Response data:', error.response.data);
-          alert(`Failed to load categories: ${error.response.status} - ${error.response.data.message || 'Unknown error'}`);
+          Swal.fire({
+            icon: 'error',
+            title: 'Error!',
+            text: error.response.data.message || 'Failed to load categories. Please try again.',
+            timer: 3000,
+            showConfirmButton: false
+          });
         } else if (error.request) {
           console.error('No response received:', error.request);
-          alert('Failed to load categories: No response from server');
+          Swal.fire({
+            icon: 'error',
+            title: 'Error!',
+            text: 'Failed to load categories: No response from server',
+            timer: 3000,
+            showConfirmButton: false
+          });
         } else {
           console.error('Error details:', error.message);
-          alert(`Failed to load categories: ${error.message}`);
+          Swal.fire({
+            icon: 'error',
+            title: 'Error!',
+            text: error.message,
+            timer: 3000,
+            showConfirmButton: false
+          });
         }
       }
     };
@@ -226,10 +251,22 @@ export default {
       try {
         if (isEditing.value) {
           await axios.put(`/petty-cash/categories/${currentCategoryId.value}`, formData.value);
-          alert('Category updated successfully.');
+          Swal.fire({
+            icon: 'success',
+            title: 'Success!',
+            text: 'Category updated successfully',
+            timer: 2000,
+            showConfirmButton: false
+          });
         } else {
-          await axios.post('/petty-cash/categories`, formData.value');
-          alert('Category created successfully.');
+          await axios.post('/petty-cash/categories', formData.value);
+          Swal.fire({
+            icon: 'success',
+            title: 'Success!',
+            text: 'Category created successfully',
+            timer: 2000,
+            showConfirmButton: false
+          });
         }
         await fetchCategories();
         closeModal();
@@ -237,8 +274,13 @@ export default {
         if (error.response?.status === 422) {
           errors.value = error.response.data.errors;
         } else {
-          const message = error.response?.data?.message || 'An error occurred.';
-          alert(`Error: ${message}`);
+          Swal.fire({
+            icon: 'error',
+            title: 'Error!',
+            text: error.response?.data?.message || 'An error occurred while processing your request.',
+            timer: 3000,
+            showConfirmButton: false
+          });
         }
       } finally {
         isSubmitting.value = false;
@@ -246,14 +288,35 @@ export default {
     };
 
     const confirmDelete = async (id) => {
-      if (confirm('Are you sure you want to delete this category? This action cannot be undone.')) {
+      const result = await Swal.fire({
+        title: 'Are you sure?',
+        text: "You won't be able to revert this!",
+        icon: 'warning',
+        showCancelButton: true,
+        confirmButtonColor: '#3085d6',
+        cancelButtonColor: '#d33',
+        confirmButtonText: 'Yes, delete it!'
+      });
+
+      if (result.isConfirmed) {
         try {
           await axios.delete(`/petty-cash/categories/${id}`);
-          alert('Category deleted successfully.');
+          Swal.fire({
+            icon: 'success',
+            title: 'Deleted!',
+            text: 'Category has been deleted.',
+            timer: 2000,
+            showConfirmButton: false
+          });
           await fetchCategories();
         } catch (error) {
-          const message = error.response?.data?.message || 'Failed to delete category.';
-          alert(`Error: ${message}`);
+          Swal.fire({
+            icon: 'error',
+            title: 'Error!',
+            text: error.response?.data?.message || 'Failed to delete category.',
+            timer: 3000,
+            showConfirmButton: false
+          });
         }
       }
     };

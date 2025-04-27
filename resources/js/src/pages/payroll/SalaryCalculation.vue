@@ -142,6 +142,7 @@
 <script setup>
 import { ref, computed, onMounted } from 'vue'
 import axios from 'axios'
+import Swal from 'sweetalert2'
 
 const employees = ref([])
 const departments = ref([])
@@ -232,13 +233,27 @@ const saveCalculations = async () => {
     })
     
     if (response.data.success) {
-      alert('Salary calculations saved successfully')
+      Swal.fire({
+        icon: 'success',
+        title: 'Success!',
+        text: 'Salary calculations saved successfully',
+        timer: 2000,
+        showConfirmButton: false
+      })
     } else {
-      alert(response.data.message || 'Failed to save salary calculations')
+      Swal.fire({
+        icon: 'error',
+        title: 'Error',
+        text: response.data.message || 'Failed to save salary calculations'
+      })
     }
   } catch (error) {
     console.error('Error saving salary calculations:', error)
-    alert('Failed to save salary calculations. Please try again.')
+    Swal.fire({
+      icon: 'error',
+      title: 'Error',
+      text: 'Failed to save salary calculations. Please try again.'
+    })
   }
 }
 
@@ -270,9 +285,21 @@ const exportCalculations = async () => {
     
     window.URL.revokeObjectURL(url)
     document.body.removeChild(link)
+
+    Swal.fire({
+      icon: 'success',
+      title: 'Success!',
+      text: 'Salary calculations exported successfully',
+      timer: 2000,
+      showConfirmButton: false
+    })
   } catch (error) {
     console.error('Error exporting salary calculations:', error)
-    alert('Failed to export salary calculations. Please try again.')
+    Swal.fire({
+      icon: 'error',
+      title: 'Error',
+      text: 'Failed to export salary calculations. Please try again.'
+    })
   }
 }
 

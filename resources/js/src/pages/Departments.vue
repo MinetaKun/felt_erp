@@ -134,18 +134,19 @@
                 <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">{{ department.name || 'N/A' }}</td>
                 <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
                   <div class="flex space-x-2">
-                    <button
-                      @click="editDepartment(department)"
-                      class="text-emerald-600 hover:text-emerald-800 px-2 py-1 rounded hover:bg-emerald-50 transition"
+                    <router-link
+                      :to="`/departments/${department.id}/edit`"
+                      class="inline-flex items-center px-2 py-1 bg-emerald-500 text-white text-sm rounded hover:bg-emerald-600 mr-1"
                     >
-                      Edit
-                    </button>
+                      <i class="fas fa-edit"></i>
+                    </router-link>
                     <button
-                      @click="deleteDepartment(department.id)"
+                      @click="deleteDepartmentPrompt(department.id)"
                       :disabled="deleting === department.id"
-                      class="text-red-600 hover:text-red-800 px-2 py-1 rounded hover:bg-red-50 transition disabled:text-red-300 disabled:cursor-not-allowed"
+                      class="inline-flex items-center px-2 py-1 bg-red-500 text-white text-sm rounded hover:bg-red-600"
                     >
-                      {{ deleting === department.id ? 'Deleting...' : 'Delete' }}
+                      <i v-if="deleting !== department.id" class="fas fa-trash"></i>
+                      <i v-else class="fas fa-spinner fa-spin"></i>
                     </button>
                   </div>
                 </td>

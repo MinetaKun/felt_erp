@@ -380,7 +380,11 @@ class AttendanceController extends Controller
 
     public function report(Request $request)
     {
-        $query = Attendance::with(['attendanceable.department']);
+        $query = Attendance::with(['attendanceable' => function ($query) {
+            $query->when($query->getModel() instanceof Artisan, function ($q) {
+                $q->with('department');
+            });
+        }]);
 
         // Apply filters
         if ($request->filled('startDate')) {
@@ -420,11 +424,12 @@ class AttendanceController extends Controller
 
         // Transform the data for the response
         $attendance->getCollection()->transform(function ($record) {
+            $attendanceable = $record->attendanceable;
             return [
                 'id' => $record->id,
-                'name' => $record->attendanceable->name,
+                'name' => $attendanceable->name,
                 'type' => $record->attendanceable_type === User::class ? 'User' : 'Artisan',
-                'department' => $record->attendanceable->department?->name ?? 'N/A',
+                'department' => $record->attendanceable_type === Artisan::class ? ($attendanceable->department?->name ?? 'N/A') : 'N/A',
                 'date' => $record->date,
                 'status' => $record->status,
                 'remarks' => $record->remarks,

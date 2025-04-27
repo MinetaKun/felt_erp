@@ -124,7 +124,6 @@
             <tr>
               <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Name</th>
               <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Type</th>
-              <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Department</th>
               <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Date</th>
               <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
               <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Remarks</th>
@@ -132,9 +131,8 @@
           </thead>
           <tbody class="bg-white divide-y divide-gray-200">
             <tr v-for="record in reportData" :key="record.id">
-              <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">{{ record.name }}</td>
+              <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{{ record.name }}</td>
               <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{{ record.type }}</td>
-              <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{{ record.department }}</td>
               <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{{ formatDate(record.date) }}</td>
               <td class="px-6 py-4 whitespace-nowrap">
                 <span
@@ -240,7 +238,10 @@ export default {
         const response = await axios.get('/attendance/report', { params });
         
         if (response.data) {
-          this.reportData = response.data.data;
+          this.reportData = response.data.data.map(record => ({
+            ...record,
+            department: record.type === 'artisan' ? record.department : 'N/A'
+          }));
           this.pagination = {
             currentPage: response.data.current_page,
             lastPage: response.data.last_page,

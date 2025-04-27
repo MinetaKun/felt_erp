@@ -89,8 +89,7 @@ class ArtisanController extends Controller
             'bank_account_number' => 'required|string|max:50|unique:artisans,bank_account_number',
             'department_id' => 'required|exists:departments,id',
             'status' => 'sometimes|in:active,inactive',
-            'skills' => 'required|array',
-            'skills.*' => 'required|string|max:255',
+            'skills' => 'required|string',
             'profile_photo' => 'sometimes|image|max:2048',
             'citizenship_photo' => 'sometimes|image|max:2048',
         ]);
@@ -99,6 +98,9 @@ class ArtisanController extends Controller
         if (!isset($validated['status'])) {
             $validated['status'] = 'inactive';
         }
+
+        // Decode the skills JSON string
+        $validated['skills'] = json_decode($validated['skills'], true);
 
         if ($request->hasFile('profile_photo')) {
             $validated['profile_photo'] = $request->file('profile_photo')->store('photos', 'public');
@@ -130,6 +132,7 @@ class ArtisanController extends Controller
             'phone_number' => $artisan->phone_number,
             'basic_salary' => $artisan->basic_salary,
             'pan_number' => $artisan->pan_number,
+            'bank_account_number' => $artisan->bank_account_number,
             'department' => $artisan->department,
             'status' => $artisan->status,
             'skills' => is_string($artisan->skills) ? json_decode($artisan->skills, true) : ($artisan->skills ?? []),
@@ -149,6 +152,11 @@ class ArtisanController extends Controller
     {
         $artisan = Artisan::findOrFail($id);
 
+        \Illuminate\Support\Facades\Log::info('Updating artisan', [
+            'id' => $id,
+            'request_data' => $request->all()
+        ]);
+
         $validated = $request->validate([
             'name' => 'sometimes|required|string|max:255',
             'email' => 'sometimes|required|email|unique:artisans,email,' . $artisan->id,
@@ -158,15 +166,36 @@ class ArtisanController extends Controller
             'bank_account_number' => 'sometimes|required|string|max:50|unique:artisans,bank_account_number,' . $artisan->id,
             'department_id' => 'sometimes|required|exists:departments,id',
             'status' => 'sometimes|in:active,inactive',
-            'skills' => 'sometimes|required|array',
-            'skills.*' => 'required|string|max:255',
+            'skills' => 'sometimes|required|string',
             'profile_photo' => 'sometimes|image|max:2048',
             'citizenship_photo' => 'sometimes|image|max:2048',
         ]);
 
+        \Illuminate\Support\Facades\Log::info('Validated data', ['validated' => $validated]);
+
+        // Decode the skills JSON string
+        if (isset($validated['skills'])) {
+            $validated['skills'] = json_decode($validated['skills'], true);
+        }
+
+        // Handle profile photo upload
+        if ($request->hasFile('profile_photo')) {
+            $validated['profile_photo'] = $request->file('profile_photo')->store('photos', 'public');
+        }
+
+        // Handle citizenship photo upload
+        if ($request->hasFile('citizenship_photo')) {
+            $validated['citizenship_photo'] = $request->file('citizenship_photo')->store('photos', 'public');
+        }
+
         // Update the artisan with the validated data
         $artisan->fill($validated);
         $artisan->save();
+
+        \Illuminate\Support\Facades\Log::info('Artisan updated', [
+            'id' => $artisan->id,
+            'updated_data' => $artisan->fresh()->toArray()
+        ]);
 
         // Refresh the artisan to get updated data
         $artisan = $artisan->fresh();

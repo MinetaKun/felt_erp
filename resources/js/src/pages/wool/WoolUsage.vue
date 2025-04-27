@@ -224,6 +224,16 @@
               <textarea v-model="form.remarks" id="remarks"
                         class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-indigo-500 focus:border-indigo-500"></textarea>
             </div>
+            <div class="mb-4">
+              <label class="block text-gray-700 text-sm font-bold mb-2" for="supplier_id">Supplier</label>
+              <select v-model="form.supplier_id" id="supplier_id" required
+                      class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-indigo-500 focus:border-indigo-500">
+                <option value="">Select Supplier</option>
+                <option v-for="supplier in suppliers" :key="supplier.id" :value="supplier.id">
+                  {{ supplier.name }}
+                </option>
+              </select>
+            </div>
             <div class="flex justify-end space-x-3">
               <button type="button" @click="closeModal"
                       class="px-4 py-2 bg-gray-200 text-gray-700 rounded-md hover:bg-gray-300 focus:outline-none focus:ring-2 focus:ring-gray-500">
@@ -248,6 +258,7 @@ import Swal from 'sweetalert2'
 
 const usages = ref([])
 const departments = ref([])
+const suppliers = ref([])
 const showAddModal = ref(false)
 const showEditModal = ref(false)
 const editingId = ref(null)
@@ -273,7 +284,8 @@ const form = ref({
   roll_count: '',
   total_kg: '',
   usage_purpose: '',
-  remarks: ''
+  remarks: '',
+  supplier_id: ''
 })
 
 const fetchUsage = async () => {
@@ -336,6 +348,22 @@ const fetchDepartments = async () => {
       icon: 'error',
       title: 'Error!',
       text: 'Failed to load departments. Please try again.',
+      timer: 3000,
+      showConfirmButton: false
+    })
+  }
+}
+
+const fetchSuppliers = async () => {
+  try {
+    const response = await axios.get('/wool/suppliers')
+    suppliers.value = response.data
+  } catch (error) {
+    console.error('Error fetching suppliers:', error)
+    Swal.fire({
+      icon: 'error',
+      title: 'Error!',
+      text: 'Failed to load suppliers. Please try again.',
       timer: 3000,
       showConfirmButton: false
     })
@@ -512,7 +540,8 @@ const closeModal = () => {
     roll_count: '',
     total_kg: '',
     usage_purpose: '',
-    remarks: ''
+    remarks: '',
+    supplier_id: ''
   }
 }
 
@@ -523,5 +552,6 @@ const formatDate = (date) => {
 onMounted(() => {
   fetchUsage()
   fetchDepartments()
+  fetchSuppliers()
 })
 </script> 

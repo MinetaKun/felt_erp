@@ -612,6 +612,13 @@ async function fetchMaterials() {
     }
   } catch (error) {
     console.error('Failed to fetch materials:', error)
+    Swal.fire({
+      icon: 'error',
+      title: 'Error!',
+      text: error.response?.data?.message || 'Failed to load materials. Please try again.',
+      timer: 3000,
+      showConfirmButton: false
+    })
   }
 }
 
@@ -623,6 +630,13 @@ async function fetchLowStockMaterials() {
     }
   } catch (error) {
     console.error('Failed to fetch low stock materials:', error)
+    Swal.fire({
+      icon: 'error',
+      title: 'Error!',
+      text: error.response?.data?.message || 'Failed to load low stock materials. Please try again.',
+      timer: 3000,
+      showConfirmButton: false
+    })
   }
 }
 
@@ -652,9 +666,24 @@ async function saveMaterial() {
       await fetchMaterials()
       await fetchLowStockMaterials()
       resetForm()
+      
+      Swal.fire({
+        icon: 'success',
+        title: 'Success!',
+        text: editingMaterial.value ? 'Material updated successfully' : 'Material added successfully',
+        timer: 2000,
+        showConfirmButton: false
+      })
     }
   } catch (error) {
     console.error('Failed to save material:', error)
+    Swal.fire({
+      icon: 'error',
+      title: 'Error!',
+      text: error.response?.data?.message || 'Failed to save material. Please try again.',
+      timer: 3000,
+      showConfirmButton: false
+    })
   }
 }
 
@@ -668,9 +697,24 @@ async function saveStockUpdate() {
       showStockModal.value = false
       await fetchMaterials()
       await fetchLowStockMaterials()
+      
+      Swal.fire({
+        icon: 'success',
+        title: 'Success!',
+        text: 'Stock updated successfully',
+        timer: 2000,
+        showConfirmButton: false
+      })
     }
   } catch (error) {
     console.error('Failed to update stock:', error)
+    Swal.fire({
+      icon: 'error',
+      title: 'Error!',
+      text: error.response?.data?.message || 'Failed to update stock. Please try again.',
+      timer: 3000,
+      showConfirmButton: false
+    })
   }
 }
 
@@ -812,9 +856,10 @@ async function deleteMaterial(material) {
     console.error('Error deleting material:', error);
     Swal.fire({
       title: 'Error!',
-      text: 'Failed to delete the material. Please try again.',
+      text: error.response?.data?.message || 'Failed to delete the material. Please try again.',
       icon: 'error',
-      confirmButtonText: 'OK'
+      timer: 3000,
+      showConfirmButton: false
     });
   }
 }

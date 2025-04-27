@@ -242,22 +242,22 @@ const onSubmit = async () => {
         formDataToSend.append('profile_photo', newProfilePhoto.value);
     }
 
-    // Log the data being sent
-    console.log('Sending update data:', Object.fromEntries(formDataToSend));
-
     try {
         let response;
         if (props.user?.id) {
             // For update, use axios directly with PUT method
-            response = await axios.put(`users/${props.user.id}`, formDataToSend, {
+            response = await axios.put(`/users/${props.user.id}`, formDataToSend, {
                 headers: {
                     'Content-Type': 'multipart/form-data'
                 }
             });
-            console.log('Update response:', response.data);
         } else {
-            // For create, use the store function
-            response = await createUser(formDataToSend);
+            // For create, use the store function with proper headers
+            response = await createUser(formDataToSend, {
+                headers: {
+                    'Content-Type': 'multipart/form-data'
+                }
+            });
         }
 
         if (response?.data?.id) {
@@ -266,17 +266,30 @@ const onSubmit = async () => {
                 message: `User ${props.user?.id ? 'updated' : 'created'} successfully`,
                 duration: 3000,
             });
-            await userStore.loadUsers(); // Make sure to await the users reload
+            await userStore.loadUsers();
             emit('user-saved');
             emit('hide');
         }
     } catch (error) {
         console.error('Error saving user:', error);
-        showToast({
-            type: 'error',
-            message: error.response?.data?.message || 'Failed to save user',
-            duration: 3000,
-        });
+        if (error.response?.data?.errors) {
+            // Handle validation errors
+            formErrors.value = error.response.data.errors;
+            // Show specific error messages
+            Object.entries(error.response.data.errors).forEach(([field, messages]) => {
+                showToast({
+                    type: 'error',
+                    message: `${field}: ${messages[0]}`,
+                    duration: 3000,
+                });
+            });
+        } else {
+            showToast({
+                type: 'error',
+                message: error.response?.data?.message || 'Failed to save user',
+                duration: 3000,
+            });
+        }
     }
 };
 

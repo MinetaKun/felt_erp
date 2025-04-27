@@ -326,7 +326,12 @@ export default {
       // Add all form fields except files
       Object.keys(this.form).forEach((key) => {
         if (key !== "profile_photo" && key !== "citizenship_photo") {
-          formData.append(key, this.form[key])
+          if (key === 'skills') {
+            // Ensure skills is an array and convert to JSON string
+            formData.append(key, JSON.stringify(this.form[key]))
+          } else {
+            formData.append(key, this.form[key])
+          }
         }
       })
 

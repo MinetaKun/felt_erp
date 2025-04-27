@@ -408,8 +408,9 @@ export default {
     formatCurrency(value) {
       return new Intl.NumberFormat('en-US', {
         style: 'currency',
-        currency: 'USD'
-      }).format(value);
+        currency: 'INR',
+        currencyDisplay: 'code'
+      }).format(value).replace('INR', 'Rs.');
     },
     formatStatus(status) {
       if (!status) return 'Unknown';

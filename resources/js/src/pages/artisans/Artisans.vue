@@ -99,8 +99,8 @@
             <tr v-for="artisan in artisans.data" :key="artisan.id" class="hover:bg-gray-50">
               <td class="p-3 border-t">
                 <div class="flex-shrink-0 h-10 w-10">
-                  <img v-if="artisan.profile_photo" 
-                      :src="'/storage/' + artisan.profile_photo" 
+                  <img v-if="artisan.profile_photo_url" 
+                      :src="artisan.profile_photo_url" 
                       class="h-10 w-10 rounded-full object-cover"
                       :alt="artisan.name">
                   <div v-else class="h-10 w-10 rounded-full bg-gray-200 flex items-center justify-center">
