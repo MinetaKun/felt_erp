@@ -3,72 +3,138 @@
 namespace Database\Seeders;
 
 use Illuminate\Database\Seeder;
-use App\Models\Attendance;
-use App\Models\Artisan;
-use App\Models\Department;
+use Illuminate\Support\Facades\DB;
 use Carbon\Carbon;
 
 class AttendanceTableSeeder extends Seeder
 {
-    public function run()
+    /**
+     * Run the database seeds.
+     */
+    public function run(): void
     {
-        // Check if we have a department, if not create one
-        $department = Department::first();
-        if (!$department) {
-            $department = Department::create([
-                'name' => 'Default Department',
-                'description' => 'Default department for testing'
-            ]);
-        }
+        $attendanceRecords = [
+            // Artisan 1 - Present with normal hours
+            [
+                'attendanceable_type' => 'App\\Models\\Artisan',
+                'attendanceable_id' => 1,
+                'date' => Carbon::now()->subDays(5),
+                'check_in' => '09:00:00',
+                'check_out' => '17:00:00',
+                'status' => 'present',
+                'remarks' => 'Regular working hours',
+                'created_at' => now(),
+                'updated_at' => now(),
+            ],
+            [
+                'attendanceable_type' => 'App\\Models\\Artisan',
+                'attendanceable_id' => 1,
+                'date' => Carbon::now()->subDays(4),
+                'check_in' => '08:55:00',
+                'check_out' => '17:05:00',
+                'status' => 'present',
+                'remarks' => 'Regular working hours',
+                'created_at' => now(),
+                'updated_at' => now(),
+            ],
 
-        // Ensure we have artisans
-        $artisan = Artisan::first();
-        if (!$artisan) {
-            $artisan = Artisan::create([
-                'name' => 'Test Artisan',
-                'email' => 'artisan@example.com',
-                'phone_number' => '1234567890',
-                'department_id' => $department->id
-            ]);
-        }
+            // Artisan 2 - Late arrival
+            [
+                'attendanceable_type' => 'App\\Models\\Artisan',
+                'attendanceable_id' => 2,
+                'date' => Carbon::now()->subDays(5),
+                'check_in' => '09:45:00',
+                'check_out' => '17:00:00',
+                'status' => 'late',
+                'remarks' => 'Late arrival due to traffic',
+                'created_at' => now(),
+                'updated_at' => now(),
+            ],
+            [
+                'attendanceable_type' => 'App\\Models\\Artisan',
+                'attendanceable_id' => 2,
+                'date' => Carbon::now()->subDays(4),
+                'check_in' => null,
+                'check_out' => null,
+                'status' => 'absent',
+                'remarks' => 'No show',
+                'created_at' => now(),
+                'updated_at' => now(),
+            ],
 
-        // Generate attendance for the last 30 days
-        $startDate = Carbon::now()->subDays(30);
-        $endDate = Carbon::now();
+            // Artisan 3 - Half day (marked as late)
+            [
+                'attendanceable_type' => 'App\\Models\\Artisan',
+                'attendanceable_id' => 3,
+                'date' => Carbon::now()->subDays(5),
+                'check_in' => '09:00:00',
+                'check_out' => '13:00:00',
+                'status' => 'late',
+                'remarks' => 'Left early for personal appointment',
+                'created_at' => now(),
+                'updated_at' => now(),
+            ],
+            [
+                'attendanceable_type' => 'App\\Models\\Artisan',
+                'attendanceable_id' => 3,
+                'date' => Carbon::now()->subDays(4),
+                'check_in' => '09:00:00',
+                'check_out' => '17:00:00',
+                'status' => 'present',
+                'remarks' => 'Regular working hours',
+                'created_at' => now(),
+                'updated_at' => now(),
+            ],
 
-        for ($date = $startDate; $date <= $endDate; $date->addDay()) {
-            // Skip weekends
-            if ($date->isWeekend()) {
-                continue;
-            }
+            // Artisan 4 - Leave (marked as absent)
+            [
+                'attendanceable_type' => 'App\\Models\\Artisan',
+                'attendanceable_id' => 4,
+                'date' => Carbon::now()->subDays(5),
+                'check_in' => null,
+                'check_out' => null,
+                'status' => 'absent',
+                'remarks' => 'Annual leave',
+                'created_at' => now(),
+                'updated_at' => now(),
+            ],
+            [
+                'attendanceable_type' => 'App\\Models\\Artisan',
+                'attendanceable_id' => 4,
+                'date' => Carbon::now()->subDays(4),
+                'check_in' => '09:00:00',
+                'check_out' => '17:00:00',
+                'status' => 'present',
+                'remarks' => 'Regular working hours',
+                'created_at' => now(),
+                'updated_at' => now(),
+            ],
 
-            // Create attendance for artisan
-            Attendance::create([
-                'attendanceable_id' => $artisan->id,
-                'attendanceable_type' => Artisan::class,
-                'date' => $date->format('Y-m-d'),
-                'status' => $this->getRandomStatus(),
-                'remarks' => $this->getRandomRemarks()
-            ]);
-        }
-    }
-
-    private function getRandomStatus()
-    {
-        $statuses = ['present', 'absent', 'late'];
-        return $statuses[array_rand($statuses)];
-    }
-
-    private function getRandomRemarks()
-    {
-        $remarks = [
-            'On time',
-            'Late due to traffic',
-            'Sick leave',
-            'Personal leave',
-            'Work from home',
-            null
+            // Artisan 5 - Overtime
+            [
+                'attendanceable_type' => 'App\\Models\\Artisan',
+                'attendanceable_id' => 5,
+                'date' => Carbon::now()->subDays(5),
+                'check_in' => '09:00:00',
+                'check_out' => '19:00:00',
+                'status' => 'present',
+                'remarks' => 'Overtime work - 2 hours',
+                'created_at' => now(),
+                'updated_at' => now(),
+            ],
+            [
+                'attendanceable_type' => 'App\\Models\\Artisan',
+                'attendanceable_id' => 5,
+                'date' => Carbon::now()->subDays(4),
+                'check_in' => '09:00:00',
+                'check_out' => '17:00:00',
+                'status' => 'present',
+                'remarks' => 'Regular working hours',
+                'created_at' => now(),
+                'updated_at' => now(),
+            ],
         ];
-        return $remarks[array_rand($remarks)];
+
+        DB::table('attendance')->insert($attendanceRecords);
     }
 }

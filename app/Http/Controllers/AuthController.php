@@ -24,22 +24,43 @@ class AuthController extends Controller
             $user = User::with('roles.permissions')
                 ->where('email', $credentials['email'])
                 ->first();
-            if (
-                !$user ||
-                !Hash::check($credentials['password'], $user->password)
-            ) {
-                throw new \Exception(
-                    'Error|Credentials doesn\'t match--403',
-                    13333
-                );
+
+            if (!$user || !Hash::check($credentials['password'], $user->password)) {
+                return response()->json([
+                    'message' => 'Invalid credentials'
+                ], 401);
+            }
+
+            if (!$user->is_active) {
+                return response()->json([
+                    'message' => 'Account is inactive'
+                ], 401);
             }
 
             $request->session()->regenerate();
             Auth::loginUsingId($user->id, true);
 
-            return response()->json($this->extractPermissionsFromUser($user));
+            // Generate token for API access
+            $token = $user->createToken('auth-token')->plainTextToken;
+
+            return response()->json([
+                'token' => $token,
+                'user' => [
+                    'id' => $user->id,
+                    'name' => $user->name,
+                    'email' => $user->email,
+                    'permissions' => $this->extractPermissionsFromUser($user)
+                ]
+            ]);
+        } catch (\Illuminate\Validation\ValidationException $error) {
+            return response()->json([
+                'message' => 'Validation failed',
+                'errors' => $error->errors()
+            ], 422);
         } catch (\Exception $error) {
-            return $this->errorResponse($error);
+            return response()->json([
+                'message' => 'An error occurred during login'
+            ], 500);
         }
     }
 

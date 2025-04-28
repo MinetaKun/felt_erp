@@ -12,7 +12,6 @@ return new class extends Migration
     public function up(): void
     {
         Schema::table('artisans', function (Blueprint $table) {
-            $table->dropColumn('basic_salary');
             $table->json('skills')->nullable()->after('status');
         });
     }
@@ -23,7 +22,6 @@ return new class extends Migration
     public function down(): void
     {
         Schema::table('artisans', function (Blueprint $table) {
-            $table->decimal('basic_salary', 10, 2)->nullable();
             $table->dropColumn('skills');
         });
     }

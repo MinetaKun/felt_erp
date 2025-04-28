@@ -6,13 +6,14 @@ use App\Http\Controllers\NotificationController;
 use App\Http\Controllers\ArtisanProductivityController;
 use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\ReportController;
+use App\Http\Controllers\AuthController;
 
 /**
  * ------------------------------------------------------------------------
  * auth routes
  * ------------------------------------------------------------------------
  */
-Route::post('login', [\App\Http\Controllers\AuthController::class, 'login']);
+Route::post('/login', [AuthController::class, 'login'])->middleware('throttle:login');
 Route::get('auth/verify', [
     \App\Http\Controllers\AuthController::class,
     'verify',
@@ -28,7 +29,7 @@ Route::middleware('auth:sanctum')->group(function () {
         \App\Http\Controllers\AuthController::class,
         'logout',
     ]);
-    Route::get('user', function (Request $request) {
+    Route::get('/user', function (Request $request) {
         return $request->user();
     });
 
