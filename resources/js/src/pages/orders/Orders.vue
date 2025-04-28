@@ -27,7 +27,7 @@
       </div>
   
       <!-- Filters -->
-      <div class="bg-white dark:bg-gray-800 p-4 rounded-lg shadow mb-6">
+      <div class="bg-white p-4 rounded-lg shadow mb-6">
         <div class="grid grid-cols-1 md:grid-cols-4 gap-4">
           <div>
             <label class="block text-sm font-medium mb-1">Search</label>
@@ -83,10 +83,10 @@
       </div>
   
       <!-- Orders Table -->
-      <div class="bg-white dark:bg-gray-800 rounded-lg shadow overflow-hidden">
+      <div class="bg-white rounded-lg shadow overflow-hidden">
         <div class="overflow-x-auto">
           <table class="min-w-full divide-y divide-gray-200">
-            <thead class="bg-gray-50 dark:bg-gray-700">
+            <thead class="bg-gray-50">
               <tr>
                 <th class="px-4 py-3 text-left">
                   <div class="flex items-center">
@@ -114,7 +114,7 @@
               <tr v-else-if="orders.length === 0" class="text-center">
                 <td colspan="7" class="px-4 py-4">No orders found</td>
               </tr>
-              <tr v-for="order in orders" :key="order.id" class="hover:bg-gray-50 dark:hover:bg-gray-700">
+              <tr v-for="order in orders" :key="order.id" class="hover:bg-gray-50">
                 <td class="px-4 py-3">
                   <div class="flex items-center">
                     <input
@@ -282,7 +282,7 @@
   
       <!-- Order Form Modal -->
       <div v-if="showOrderForm" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-        <div class="bg-white dark:bg-gray-800 rounded-lg shadow-lg w-full max-w-3xl max-h-[90vh] overflow-y-auto">
+        <div class="bg-white rounded-lg shadow-lg w-full max-w-3xl max-h-[90vh] overflow-y-auto">
           <div class="p-6">
             <div class="flex justify-between items-center mb-4">
               <h2 class="text-xl font-bold">{{ isEditMode ? 'Edit Order' : 'Create New Order' }}</h2>
@@ -304,7 +304,7 @@
   
       <!-- Order Details Modal -->
       <div v-if="showOrderDetails" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-        <div class="bg-white dark:bg-gray-800 rounded-lg shadow-lg w-full max-w-4xl max-h-[90vh] overflow-y-auto">
+        <div class="bg-white rounded-lg shadow-lg w-full max-w-4xl max-h-[90vh] overflow-y-auto">
           <div class="p-6">
             <div class="flex justify-between items-center mb-4">
               <h2 class="text-xl font-bold">Order Details</h2>
@@ -326,7 +326,7 @@
   
       <!-- Assignment Form Modal -->
       <div v-if="showAssignmentForm" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-        <div class="bg-white dark:bg-gray-800 rounded-lg shadow-lg w-full max-w-3xl max-h-[90vh] overflow-y-auto">
+        <div class="bg-white rounded-lg shadow-lg w-full max-w-3xl max-h-[90vh] overflow-y-auto">
           <div class="p-6">
             <div class="flex justify-between items-center mb-4">
               <h2 class="text-xl font-bold">Assign Order</h2>
@@ -347,7 +347,7 @@
   
       <!-- Delete Confirmation Modal -->
       <div v-if="showDeleteConfirm" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-        <div class="bg-white dark:bg-gray-800 rounded-lg shadow-lg w-full max-w-md">
+        <div class="bg-white rounded-lg shadow-lg w-full max-w-md">
           <div class="p-6">
             <h2 class="text-xl font-bold mb-4">Confirm Delete</h2>
             <p class="mb-6">Are you sure you want to delete this order? This action cannot be undone.</p>

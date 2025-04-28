@@ -231,11 +231,11 @@ const onSubmit = async () => {
                                                 class="shadow-google rounded-sm"
                                             >
                                                 <div
-                                                    class="p-4 flex-between w-full dark:bg-gray-800/60 rounded-sm border border-[#e6e6e6] dark:border-gray-700"
+                                                    class="p-4 flex-between w-full rounded-sm border border-gray-200 bg-white"
                                                 >
                                                     <div class="flex-1">{{ permission.name }}</div>
                                                     <span
-                                                        class="text-sm cursor-pointer text-red-500 dark:text-red-300"
+                                                        class="text-sm cursor-pointer text-red-500"
                                                         @click="onPermissionRemove(permission)"
                                                     >
                                                         <svg

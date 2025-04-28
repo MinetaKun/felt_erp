@@ -23,46 +23,46 @@
         </div>
   
         <!-- Filters -->
-        <div class="bg-white dark:bg-gray-800 rounded-lg shadow p-4 mb-6">
+        <div class="bg-white rounded-lg shadow p-4 mb-6">
           <div class="grid grid-cols-1 md:grid-cols-4 gap-4">
             <div>
-              <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Search</label>
+              <label class="block text-sm font-medium text-gray-700 mb-1">Search</label>
               <input
                 type="text"
                 v-model="filters.search"
                 @input="debouncedFetchAssignments"
                 placeholder="Search by order ID, product, or artisan"
-                class="w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-300 focus:ring focus:ring-indigo-200 focus:ring-opacity-50 dark:bg-gray-700 dark:border-gray-600 dark:text-white"
+                class="w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-300 focus:ring focus:ring-indigo-200 focus:ring-opacity-50"
               />
             </div>
             <div>
-              <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Artisan</label>
+              <label class="block text-sm font-medium text-gray-700 mb-1">Artisan</label>
               <select
                 v-model="filters.artisan_id"
                 @change="fetchAssignments"
-                class="w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-300 focus:ring focus:ring-indigo-200 focus:ring-opacity-50 dark:bg-gray-700 dark:border-gray-600 dark:text-white"
+                class="w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-300 focus:ring focus:ring-indigo-200 focus:ring-opacity-50"
               >
                 <option value="">All Artisans</option>
                 <option v-for="artisan in artisans" :key="artisan.id" :value="artisan.id">{{ artisan.name }}</option>
               </select>
             </div>
             <div>
-              <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Department</label>
+              <label class="block text-sm font-medium text-gray-700 mb-1">Department</label>
               <select
                 v-model="filters.department_id"
                 @change="fetchAssignments"
-                class="w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-300 focus:ring focus:ring-indigo-200 focus:ring-opacity-50 dark:bg-gray-700 dark:border-gray-600 dark:text-white"
+                class="w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-300 focus:ring focus:ring-indigo-200 focus:ring-opacity-50"
               >
                 <option value="">All Departments</option>
                 <option v-for="dept in departments" :key="dept.id" :value="dept.id">{{ dept.name }}</option>
               </select>
             </div>
             <div>
-              <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Status</label>
+              <label class="block text-sm font-medium text-gray-700 mb-1">Status</label>
               <select
                 v-model="filters.status"
                 @change="fetchAssignments"
-                class="w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-300 focus:ring focus:ring-indigo-200 focus:ring-opacity-50 dark:bg-gray-700 dark:border-gray-600 dark:text-white"
+                class="w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-300 focus:ring focus:ring-indigo-200 focus:ring-opacity-50"
               >
                 <option value="">All Statuses</option>
                 <option value="pending">Pending</option>
@@ -90,9 +90,9 @@
         </div>
   
         <!-- Bulk Actions -->
-        <div class="bg-white dark:bg-gray-800 rounded-lg shadow p-4 mb-6 flex justify-between items-center">
+        <div class="bg-white rounded-lg shadow p-4 mb-6 flex justify-between items-center">
           <div>
-            <span class="text-sm text-gray-600 dark:text-gray-400">
+            <span class="text-sm text-gray-600">
               {{ selectedAssignments.length }} of {{ assignments.data.length }} selected
             </span>
           </div>
@@ -108,15 +108,15 @@
         </div>
   
         <!-- Assignments Table -->
-        <div class="bg-white dark:bg-gray-800 rounded-lg shadow overflow-hidden">
+        <div class="bg-white rounded-lg shadow overflow-hidden">
           <div class="flex justify-between items-center p-4 border-b">
             <h2 class="text-lg font-medium">Order Assignments</h2>
           </div>
           <div class="overflow-x-auto">
-            <table class="min-w-full divide-y divide-gray-200 dark:divide-gray-700">
-              <thead class="bg-gray-50 dark:bg-gray-700">
+            <table class="min-w-full divide-y divide-gray-200">
+              <thead class="bg-gray-50">
                 <tr>
-                  <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
+                  <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                     <div class="flex items-center">
                       <input
                         type="checkbox"
@@ -126,44 +126,44 @@
                       />
                     </div>
                   </th>
-                  <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
+                  <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                     Order ID
                   </th>
-                  <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
+                  <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                     Product
                   </th>
-                  <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
+                  <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                     Artisan
                   </th>
-                  <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
+                  <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                     Assigned
                   </th>
-                  <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
+                  <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                     Rejected
                   </th>
-                  <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
+                  <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                     Approved
                   </th>
-                  <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
+                  <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                     Status
                   </th>
-                  <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
+                  <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                     Actions
                   </th>
                 </tr>
               </thead>
-              <tbody class="bg-white dark:bg-gray-800 divide-y divide-gray-200 dark:divide-gray-700">
+              <tbody class="bg-white divide-y divide-gray-200">
                 <tr v-if="loading" class="animate-pulse">
-                  <td colspan="9" class="px-6 py-4 text-center text-gray-500 dark:text-gray-400">
+                  <td colspan="9" class="px-6 py-4 text-center text-gray-500">
                     Loading assignments...
                   </td>
                 </tr>
-                <tr v-else-if="assignments.data.length === 0" class="hover:bg-gray-50 dark:hover:bg-gray-700">
-                  <td colspan="9" class="px-6 py-4 text-center text-gray-500 dark:text-gray-400">
+                <tr v-else-if="assignments.data.length === 0" class="hover:bg-gray-50">
+                  <td colspan="9" class="px-6 py-4 text-center text-gray-500">
                     No assignments found matching your criteria.
                   </td>
                 </tr>
-                <tr v-for="assignment in assignments.data" :key="assignment.id" class="hover:bg-gray-50 dark:hover:bg-gray-700">
+                <tr v-for="assignment in assignments.data" :key="assignment.id" class="hover:bg-gray-50">
                   <td class="px-6 py-4 whitespace-nowrap">
                     <input
                       type="checkbox"
@@ -174,32 +174,32 @@
                     />
                   </td>
                   <td class="px-6 py-4 whitespace-nowrap">
-                    <div class="text-sm font-medium text-gray-900 dark:text-white">
+                    <div class="text-sm font-medium text-gray-900">
                       {{ assignment.order?.order_id || 'N/A' }}
                     </div>
                   </td>
                   <td class="px-6 py-4 whitespace-nowrap">
-                    <div class="text-sm text-gray-900 dark:text-white">
+                    <div class="text-sm text-gray-900">
                       {{ assignment.order?.product_name || 'N/A' }}
                     </div>
                   </td>
                   <td class="px-6 py-4 whitespace-nowrap">
-                    <div class="text-sm text-gray-900 dark:text-white">
+                    <div class="text-sm text-gray-900">
                       {{ assignment.artisan?.name || 'N/A' }}
                     </div>
                   </td>
                   <td class="px-6 py-4 whitespace-nowrap">
-                    <div class="text-sm text-gray-900 dark:text-white">
+                    <div class="text-sm text-gray-900">
                       {{ assignment.assigned_quantity }}
                     </div>
                   </td>
                   <td class="px-6 py-4 whitespace-nowrap">
-                    <div class="text-sm text-gray-900 dark:text-white">
+                    <div class="text-sm text-gray-900">
                       {{ assignment.rejected_quantity || 0 }}
                     </div>
                   </td>
                   <td class="px-6 py-4 whitespace-nowrap">
-                    <div class="text-sm text-gray-900 dark:text-white">
+                    <div class="text-sm text-gray-900">
                       {{ assignment.approved_quantity }}
                     </div>
                   </td>
@@ -243,9 +243,9 @@
           </div>
   
           <!-- Pagination -->
-          <div class="px-6 py-4 bg-white dark:bg-gray-800 border-t border-gray-200 dark:border-gray-700">
+          <div class="px-6 py-4 bg-white border-t border-gray-200">
             <div class="flex items-center justify-between">
-              <div class="text-sm text-gray-700 dark:text-gray-300">
+              <div class="text-sm text-gray-700">
                 Showing
                 <span class="font-medium">{{ (pagination.current_page - 1) * pagination.per_page + 1 }}</span>
                 to
@@ -262,10 +262,10 @@
                     @click="handlePageChange(pagination.current_page - 1)"
                     :disabled="pagination.current_page === 1"
                     :class="[
-                      'relative inline-flex items-center px-2 py-2 rounded-l-md border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-sm font-medium',
+                      'relative inline-flex items-center px-2 py-2 rounded-l-md border border-gray-300',
                       pagination.current_page === 1
-                        ? 'text-gray-300 dark:text-gray-500 cursor-not-allowed'
-                        : 'text-gray-500 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-600'
+                        ? 'text-gray-300 cursor-not-allowed'
+                        : 'text-gray-500 hover:bg-gray-50'
                     ]"
                   >
                     <span class="sr-only">Previous</span>
@@ -274,7 +274,7 @@
                   <template v-for="(page, index) in getPageNumbers()" :key="index">
                     <span
                       v-if="page === '...'"
-                      class="relative inline-flex items-center px-4 py-2 border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-sm font-medium text-gray-700 dark:text-gray-300"
+                      class="relative inline-flex items-center px-4 py-2 border border-gray-300 bg-white text-sm font-medium text-gray-700"
                     >
                       ...
                     </span>
@@ -282,10 +282,10 @@
                       v-else
                       @click="handlePageChange(page)"
                       :class="[
-                        'relative inline-flex items-center px-4 py-2 border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-sm font-medium',
+                        'relative inline-flex items-center px-4 py-2 border border-gray-300',
                         page === pagination.current_page
-                          ? 'z-10 bg-blue-50 dark:bg-blue-900 border-blue-500 dark:border-blue-500 text-blue-600 dark:text-blue-200'
-                          : 'text-gray-500 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-600'
+                          ? 'z-10 bg-blue-50 text-blue-600'
+                          : 'text-gray-500 hover:bg-gray-50'
                       ]"
                     >
                       {{ page }}
@@ -295,10 +295,10 @@
                     @click="handlePageChange(pagination.current_page + 1)"
                     :disabled="pagination.current_page === pagination.last_page"
                     :class="[
-                      'relative inline-flex items-center px-2 py-2 rounded-r-md border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-sm font-medium',
+                      'relative inline-flex items-center px-2 py-2 rounded-r-md border border-gray-300',
                       pagination.current_page === pagination.last_page
-                        ? 'text-gray-300 dark:text-gray-500 cursor-not-allowed'
-                        : 'text-gray-500 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-600'
+                        ? 'text-gray-300 cursor-not-allowed'
+                        : 'text-gray-500 hover:bg-gray-50'
                     ]"
                   >
                     <span class="sr-only">Next</span>
@@ -360,40 +360,40 @@
               <div class="absolute inset-0 bg-gray-500 opacity-75"></div>
             </div>
             <span class="hidden sm:inline-block sm:align-middle sm:h-screen" aria-hidden="true">&#8203;</span>
-            <div class="inline-block align-bottom bg-white dark:bg-gray-800 rounded-lg text-left overflow-hidden shadow-xl transform transition-all sm:my-8 sm:align-middle sm:max-w-4xl sm:w-full">
-              <div class="bg-white dark:bg-gray-800 px-4 pt-5 pb-4 sm:p-6 sm:pb-4">
+            <div class="inline-block align-bottom bg-white rounded-lg text-left overflow-hidden shadow-xl transform transition-all sm:my-8 sm:align-middle sm:max-w-4xl sm:w-full">
+              <div class="bg-white px-4 pt-5 pb-4 sm:p-6 sm:pb-4">
                 <div class="sm:flex sm:items-start">
                   <div class="mt-3 text-center sm:mt-0 sm:ml-4 sm:text-left w-full">
-                    <h3 class="text-lg leading-6 font-medium text-gray-900 dark:text-white" id="modal-title">
+                    <h3 class="text-lg leading-6 font-medium text-gray-900" id="modal-title">
                       Bulk Approve Assignments
                     </h3>
                     <div class="mt-4 max-h-96 overflow-y-auto">
-                      <div v-for="(assignment, index) in bulkAssignments" :key="assignment.id" class="mb-6 pb-6 border-b border-gray-200 dark:border-gray-700">
+                      <div v-for="(assignment, index) in bulkAssignments" :key="assignment.id" class="mb-6 pb-6 border-b border-gray-200">
                         <div class="mb-2">
-                          <label class="block text-sm font-medium text-gray-700 dark:text-gray-300">
+                          <label class="block text-sm font-medium text-gray-700">
                             {{ assignment.order_id }} - {{ assignment.product_name }} ({{ assignment.artisan_name }})
                           </label>
                         </div>
                         <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
                           <div>
-                            <label class="block text-sm font-medium text-gray-700 dark:text-gray-300">Approved Quantity</label>
+                            <label class="block text-sm font-medium text-gray-700">Approved Quantity</label>
                             <input
                               type="number"
                               v-model="assignment.approved_quantity"
                               min="0"
                               :max="assignment.assigned_quantity"
-                              class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-300 focus:ring focus:ring-indigo-200 focus:ring-opacity-50 dark:bg-gray-700 dark:border-gray-600 dark:text-white"
+                              class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-300 focus:ring focus:ring-indigo-200 focus:ring-opacity-50"
                             />
-                            <p class="mt-1 text-sm text-gray-500 dark:text-gray-400">
+                            <p class="mt-1 text-sm text-gray-500">
                               Rejected: {{ assignment.assigned_quantity - assignment.approved_quantity }}
                             </p>
                           </div>
                           <div v-if="assignment.assigned_quantity - assignment.approved_quantity > 0">
-                            <label class="block text-sm font-medium text-gray-700 dark:text-gray-300">Rejection Reason</label>
+                            <label class="block text-sm font-medium text-gray-700">Rejection Reason</label>
                             <textarea
                               v-model="assignment.rejection_reason"
                               rows="2"
-                              class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-300 focus:ring focus:ring-indigo-200 focus:ring-opacity-50 dark:bg-gray-700 dark:border-gray-600 dark:text-white"
+                              class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-300 focus:ring focus:ring-indigo-200 focus:ring-opacity-50"
                               placeholder="Please provide a reason for rejection"
                             ></textarea>
                           </div>
@@ -403,7 +403,7 @@
                   </div>
                 </div>
               </div>
-              <div class="bg-gray-50 dark:bg-gray-700 px-4 py-3 sm:px-6 sm:flex sm:flex-row-reverse">
+              <div class="bg-gray-50 px-4 py-3 sm:px-6 sm:flex sm:flex-row-reverse">
                 <button
                   type="button"
                   @click="confirmBulkApproval"
@@ -415,7 +415,7 @@
                 <button
                   type="button"
                   @click="showBulkApprovalModal = false"
-                  class="mt-3 w-full inline-flex justify-center rounded-md border border-gray-300 shadow-sm px-4 py-2 bg-white text-base font-medium text-gray-700 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 sm:mt-0 sm:ml-3 sm:w-auto sm:text-sm dark:bg-gray-800 dark:text-gray-200 dark:border-gray-600 dark:hover:bg-gray-700"
+                  class="mt-3 w-full inline-flex justify-center rounded-md border border-gray-300 shadow-sm px-4 py-2 bg-white text-base font-medium text-gray-700 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 sm:mt-0 sm:ml-3 sm:w-auto sm:text-sm"
                 >
                   Cancel
                 </button>

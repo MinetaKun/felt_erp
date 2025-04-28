@@ -12,7 +12,7 @@
     @vite('resources/js/app.js')
 </head>
 
-<body class="box-border p-0 m-0 bg-light-bg text-light-color dark:bg-dark-bg dark:text-dark-color font-lora italic">
+<body class="box-border p-0 m-0 bg-light-bg text-light-color font-lora italic">
     <noscript>
         <strong>Please enable javascript otherwise this website will not work</strong>
     </noscript>

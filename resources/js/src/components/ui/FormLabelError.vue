@@ -39,14 +39,14 @@ const id = ref(`input-${v4()}`);
             {{ label }}
             <span
                 v-if="required"
-                class="text-red-700 dark:text-rose-500 ml-1"
+                class="text-red-700 ml-1"
                 >*</span
             >
         </label>
         <slot></slot>
         <div
             v-if="error"
-            class="w-full text-red-600 dark:text-rose-500 text-xs mt-1"
+            class="w-full text-red-600 text-xs mt-1"
             :class="[errorClass ? errorClass : '']"
         >
             {{ error }}

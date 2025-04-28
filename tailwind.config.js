@@ -3,7 +3,6 @@ import colors from 'tailwindcss/colors';
 import animationDelay from 'tailwindcss-animation-delay';
 
 export default {
-    darkMode: 'class',
     content: [
         './resources/**/*.blade.php',
         './resources/**/*.js',
@@ -18,33 +17,22 @@ export default {
             fontFamily: {
                 'cormorant': ['Cormorant Garamond', 'serif'],
                 'poppins': ['Poppins', 'sans-serif'],
-              },
+            },
             fontSize: {
                 xsm: '13px',
                 '2xs': '11px',
                 xxs: '10px',
             },
             colors: {
-                'dark-bg': '#060818',
-                'dark-color': 'rgba(255, 255, 255, 0.87)',
-                'light-bg': '#ffffff',
+                'light-bg': '#F5F0E6',
                 'light-color': '#213547',
                 active: {
-                    // DEFAULT: '#E2C537',
                     DEFAULT: colors.emerald[500],
                     light: colors.emerald[700],
                     dark: colors.emerald[500],
                     hover: colors.emerald[200],
                 },
-                'cc-12': '#1b2e4b',
-                'cc-18': '#191e3a',
-                'cc-10': '#0e1726',
-                'cc-13': '#25d5e4',
-                'cc-14': '#009688',
-                'cc-19': '#060818',
-                'cc-20': '#1a1c2d',
-                'cc-21': '#3b3f5c',
-               'earthy-brown': '#8B5E3C',
+                'earthy-brown': '#8B5E3C',
                 'earthy-brown-dark': '#6F4A2F',
                 'saffron-gold': '#FFA500',
                 'soft-beige': '#F5F0E6',
@@ -59,11 +47,7 @@ export default {
             },
             boxShadow: {
                 google: '0px 8px 10px 1px rgba(0, 0, 0, 0.14), 0px 3px 14px 2px rgba(0, 0, 0, 0.12), 0px 5px 5px -3px rgba(0, 0, 0, 0.2)',
-                'google-sm':
-                    '0px 2px 2px 1px rgba(0, 0, 0, 0.14), 0px 2px 2px 2px rgba(0, 0, 0, 0.12), 0px 2px 2px 0px rgba(0, 0, 0, 0.2)',
-
-                'google-dark':
-                    '0px 8px 10px 1px rgba(14, 16, 9, 0.86), 0px 3px 14px 2px rgba(14, 16, 9, 0.88), 0px 5px 5px -3px rgba(14, 16, 9, 0.8)',
+                'google-sm': '0px 2px 2px 1px rgba(0, 0, 0, 0.14), 0px 2px 2px 2px rgba(0, 0, 0, 0.12), 0px 2px 2px 0px rgba(0, 0, 0, 0.2)',
             },
             borderRadius: {
                 sm: '4px',

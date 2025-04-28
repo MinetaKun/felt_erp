@@ -1,5 +1,5 @@
 <template>
-    <div class="bg-white dark:bg-gray-800 shadow-md rounded-lg p-6">
+    <div class="bg-white shadow-md rounded-lg p-6">
       <h2 class="text-2xl font-bold mb-6">Assign Order: {{ order.product_name }}</h2>
       
       <div class="mb-6">

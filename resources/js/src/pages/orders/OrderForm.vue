@@ -7,7 +7,7 @@
           
           <!-- Product Name -->
           <div>
-            <label for="product_name" class="block text-sm font-medium text-gray-700 dark:text-gray-300">
+            <label for="product_name" class="block text-sm font-medium text-gray-900">
               Product Name *
             </label>
             <input
@@ -23,7 +23,7 @@
           
           <!-- Size -->
           <div>
-            <label for="size" class="block text-sm font-medium text-gray-700 dark:text-gray-300">
+            <label for="size" class="block text-sm font-medium text-gray-900">
               Size
             </label>
             <input
@@ -38,7 +38,7 @@
           
           <!-- Wool Color -->
           <div>
-            <label for="wool_color" class="block text-sm font-medium text-gray-700 dark:text-gray-300">
+            <label for="wool_color" class="block text-sm font-medium text-gray-900">
               Wool Color
             </label>
             <input
@@ -53,7 +53,7 @@
           
           <!-- Weight -->
           <div>
-            <label for="weight" class="block text-sm font-medium text-gray-700 dark:text-gray-300">
+            <label for="weight" class="block text-sm font-medium text-gray-900">
               Weight (kg)
             </label>
             <input
@@ -70,7 +70,7 @@
           
           <!-- Product Photo -->
           <div>
-            <label class="block text-sm font-medium text-gray-700 dark:text-gray-300">
+            <label class="block text-sm font-medium text-gray-900">
               Product Photo
             </label>
             <div class="mt-1 flex items-center">
@@ -112,7 +112,7 @@
           
           <!-- Total Quantity -->
           <div>
-            <label for="total_quantity" class="block text-sm font-medium text-gray-700 dark:text-gray-300">
+            <label for="total_quantity" class="block text-sm font-medium text-gray-900">
               Total Quantity *
             </label>
             <input
@@ -129,7 +129,7 @@
           
           <!-- Due Date -->
           <div>
-            <label for="due_date" class="block text-sm font-medium text-gray-700 dark:text-gray-300">
+            <label for="due_date" class="block text-sm font-medium text-gray-900">
               Due Date *
             </label>
             <input
@@ -145,7 +145,7 @@
           
           <!-- Wages Per Unit -->
           <div>
-            <label for="wages_per_unit" class="block text-sm font-medium text-gray-700 dark:text-gray-300">
+            <label for="wages_per_unit" class="block text-sm font-medium text-gray-900">
               Wages Per Unit (Rs) *
             </label>
             <input
@@ -162,7 +162,7 @@
           </div>
           
           <!-- Client Details -->
-          <label for="client_name" class="block text-sm font-medium text-gray-700 dark:text-gray-300">
+          <label for="client_name" class="block text-sm font-medium text-gray-900">
                 Client Name
                 </label>
                 <input
@@ -178,7 +178,7 @@
           
           <!-- Notes -->
           <div>
-            <label for="notes" class="block text-sm font-medium text-gray-700 dark:text-gray-300">
+            <label for="notes" class="block text-sm font-medium text-gray-900">
               Notes
             </label>
             <textarea

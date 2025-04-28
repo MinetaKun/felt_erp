@@ -9,15 +9,15 @@
 
 .dark .v-select .vs__dropdown-toggle {
     background: theme('colors.gray.700');
-    color: theme('colors.dark-color');
+    color: theme('colors.light-color');
 }
 
 .dark .v-select .vs__selected {
-    color: theme('colors.dark-color');
+    color: theme('colors.light-color');
 }
 
 .dark .v-select .vs__dropdown-menu {
-    background: theme('colors.cc-10');
+    background: theme('colors.gray.800');
 }
 
 .dark .v-select .vs__clear svg {

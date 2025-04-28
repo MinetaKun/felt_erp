@@ -1,5 +1,5 @@
 import { createApp } from 'vue';
-import App from './App.vue';
+import App from './src/App.vue';
 import './app.css';
 import 'vue-select/dist/vue-select.css';
 import './src/assets/css/vue-select-override.css';

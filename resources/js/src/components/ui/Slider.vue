@@ -41,7 +41,7 @@ const emit = defineEmits(['hide']);
         >
             <div
                 v-if="show"
-                class="h-[calc(100vh-80px)] fixed max-w-full top-20 z-[309] bg-white dark:bg-gray-800 border-l border-gray-400 dark:border-gray-700 shadow-google right-0 slider-container"
+                class="h-[calc(100vh-80px)] fixed max-w-full top-20 z-[309] bg-white border-l border-gray-200 shadow-google right-0 slider-container"
                 :class="[sliderClass]"
             >
                 <div

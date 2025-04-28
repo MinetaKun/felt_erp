@@ -5,8 +5,23 @@ import axios from 'axios';
 
 const useAuth = () => {
     const { index: verify } = useHttpRequest('/auth/verify');
+    const { store: loginRequest } = useHttpRequest('/login');
     const userStore = useUserStore();
     const router = useRouter();
+
+    const login = async (credentials) => {
+        try {
+            const user = await loginRequest(credentials);
+            if (user?.id) {
+                userStore.setUser(user);
+                return user;
+            }
+            return null;
+        } catch (error) {
+            console.error('Login failed:', error);
+            throw error;
+        }
+    };
 
     const isUserAuthenticated = async () => {
         const user = await verify();
@@ -30,6 +45,7 @@ const useAuth = () => {
     };
 
     return {
+        login,
         isUserAuthenticated,
         logout
     };
