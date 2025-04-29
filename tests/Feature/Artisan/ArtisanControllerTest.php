@@ -11,6 +11,7 @@ use Tests\TestCase;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Foundation\Testing\WithoutMiddleware;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Http\UploadedFile;
 
 class ArtisanControllerTest extends TestCase
 {
@@ -36,11 +37,17 @@ class ArtisanControllerTest extends TestCase
             'is_active' => true
         ]);
 
-        // Create test artisan
+        // Create test artisan with all required fields
         Artisan::create([
             'name' => 'Test Artisan',
+            'email' => 'test@example.com',
+            'phone_number' => '1234567890',
+            'basic_salary' => 50000,
+            'pan_number' => 'TEST123456',
+            'bank_account_number' => '12345678901234',
             'department_id' => $this->department->id,
-            'status' => 'active'
+            'status' => 'active',
+            'skills' => json_encode(['skill1', 'skill2'])
         ]);
     }
 
@@ -56,8 +63,16 @@ class ArtisanControllerTest extends TestCase
                     '*' => [
                         'id',
                         'name',
-                        'department_id',
+                        'email',
+                        'phone_number',
+                        'basic_salary',
+                        'pan_number',
+                        'department' => [
+                            'id',
+                            'name'
+                        ],
                         'status',
+                        'skills',
                         'created_at',
                         'updated_at'
                     ]
@@ -70,8 +85,14 @@ class ArtisanControllerTest extends TestCase
     {
         $artisanData = [
             'name' => 'New Artisan',
+            'email' => 'new@example.com',
+            'phone_number' => '9876543210',
+            'basic_salary' => 50000,
+            'pan_number' => 'NEW123456',
+            'bank_account_number' => '98765432109876',
             'department_id' => $this->department->id,
-            'status' => 'active'
+            'status' => 'active',
+            'skills' => json_encode(['skill1', 'skill2'])
         ];
 
         $response = $this->actingAs($this->admin)
@@ -79,15 +100,20 @@ class ArtisanControllerTest extends TestCase
 
         $response->assertStatus(201)
             ->assertJson([
-                'data' => [
-                    'name' => 'New Artisan',
-                    'department_id' => $this->department->id,
-                    'status' => 'active'
-                ]
+                'name' => 'New Artisan',
+                'email' => 'new@example.com',
+                'phone_number' => '9876543210',
+                'basic_salary' => '50000.00',
+                'pan_number' => 'NEW123456',
+                'bank_account_number' => '98765432109876',
+                'department_id' => $this->department->id,
+                'status' => 'active',
+                'skills' => ['skill1', 'skill2']
             ]);
 
         $this->assertDatabaseHas('artisans', [
             'name' => 'New Artisan',
+            'email' => 'new@example.com',
             'department_id' => $this->department->id
         ]);
     }
@@ -138,7 +164,7 @@ class ArtisanControllerTest extends TestCase
             ->deleteJson("/api/artisans/{$artisan->id}");
 
         $response->assertStatus(200)
-            ->assertJson(['message' => 'Artisan deleted successfully']);
+            ->assertJson(['message' => 'Artisan deleted']);
 
         $this->assertDatabaseMissing('artisans', [
             'id' => $artisan->id
@@ -164,7 +190,7 @@ class ArtisanControllerTest extends TestCase
 
         // Create a department (needed for the form)
         $department = Department::create([
-            'name' => 'Test Department'
+            'name' => 'Test Department ' . uniqid()
         ]);
 
         // Simulate user login
@@ -175,5 +201,137 @@ class ArtisanControllerTest extends TestCase
 
         // Assert successful response
         $response->assertStatus(200);
+    }
+
+    /** @test */
+    public function it_can_update_an_artisan_with_all_fields()
+    {
+        $artisan = Artisan::first();
+        $updateData = [
+            'name' => 'Updated Artisan',
+            'email' => 'updated@example.com',
+            'phone_number' => '9876543210',
+            'basic_salary' => 60000,
+            'pan_number' => 'UPDATED1234',
+            'bank_account_number' => '98765432109876',
+            'department_id' => $this->department->id,
+            'status' => 'inactive',
+            'skills' => json_encode(['updated skill 1', 'updated skill 2'])
+        ];
+
+        $response = $this->actingAs($this->admin)
+            ->postJson("/api/artisans/{$artisan->id}", array_merge($updateData, ['_method' => 'PATCH']));
+
+        $response->assertStatus(200)
+            ->assertJson([
+                'success' => true,
+                'data' => [
+                    'name' => 'Updated Artisan',
+                    'email' => 'updated@example.com',
+                    'phone_number' => '9876543210',
+                    'basic_salary' => 60000,
+                    'pan_number' => 'UPDATED1234',
+                    'bank_account_number' => '98765432109876',
+                    'status' => 'inactive'
+                ],
+                'message' => 'Artisan updated successfully'
+            ]);
+
+        $this->assertDatabaseHas('artisans', [
+            'id' => $artisan->id,
+            'name' => 'Updated Artisan',
+            'email' => 'updated@example.com'
+        ]);
+    }
+
+    /** @test */
+    public function it_can_update_an_artisan_with_partial_fields()
+    {
+        $artisan = Artisan::first();
+        $updateData = [
+            'name' => 'Partially Updated',
+            'status' => 'inactive'
+        ];
+
+        $response = $this->actingAs($this->admin)
+            ->postJson("/api/artisans/{$artisan->id}", array_merge($updateData, ['_method' => 'PATCH']));
+
+        $response->assertStatus(200)
+            ->assertJson([
+                'success' => true,
+                'data' => [
+                    'name' => 'Partially Updated',
+                    'status' => 'inactive'
+                ],
+                'message' => 'Artisan updated successfully'
+            ]);
+
+        $this->assertDatabaseHas('artisans', [
+            'id' => $artisan->id,
+            'name' => 'Partially Updated',
+            'status' => 'inactive'
+        ]);
+    }
+
+    /** @test */
+    public function it_validates_unique_fields_during_update()
+    {
+        // Create another artisan first
+        $anotherArtisan = Artisan::create([
+            'name' => 'Another Artisan',
+            'email' => 'another@example.com',
+            'phone_number' => '1111111111',
+            'basic_salary' => 50000,
+            'pan_number' => 'ANOTHER1234',
+            'bank_account_number' => '11111111111111',
+            'department_id' => $this->department->id,
+            'status' => 'active',
+            'skills' => json_encode(['skill1'])
+        ]);
+
+        $artisan = Artisan::first();
+        $updateData = [
+            'email' => 'another@example.com', // Try to use email from another artisan
+            'pan_number' => 'ANOTHER1234', // Try to use PAN from another artisan
+            'bank_account_number' => '11111111111111' // Try to use bank account from another artisan
+        ];
+
+        $response = $this->actingAs($this->admin)
+            ->postJson("/api/artisans/{$artisan->id}", array_merge($updateData, ['_method' => 'PATCH']));
+
+        $response->assertStatus(422)
+            ->assertJsonValidationErrors(['email', 'pan_number', 'bank_account_number']);
+    }
+
+    /** @test */
+    public function it_can_update_artisan_with_file_uploads()
+    {
+        $artisan = Artisan::first();
+
+        // Create test files
+        $profilePhoto = UploadedFile::fake()->image('profile.jpg');
+        $citizenshipPhoto = UploadedFile::fake()->image('citizenship.jpg');
+
+        $updateData = [
+            'name' => 'Updated With Photos',
+            'profile_photo' => $profilePhoto,
+            'citizenship_photo' => $citizenshipPhoto
+        ];
+
+        $response = $this->actingAs($this->admin)
+            ->postJson("/api/artisans/{$artisan->id}", array_merge($updateData, ['_method' => 'PATCH']));
+
+        $response->assertStatus(200)
+            ->assertJson([
+                'success' => true,
+                'data' => [
+                    'name' => 'Updated With Photos'
+                ],
+                'message' => 'Artisan updated successfully'
+            ]);
+
+        // Assert that the files were stored
+        $this->assertNotNull($response->json('data.profile_photo_url'));
+        $this->assertNotNull($response->json('data.citizenship_photo_url'));
     }
 }

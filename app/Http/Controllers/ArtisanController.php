@@ -80,6 +80,12 @@ class ArtisanController extends Controller
 
     public function store(Request $request)
     {
+        \Illuminate\Support\Facades\Log::info('Artisan store method called', [
+            'request_method' => $request->method(),
+            'request_data' => $request->all(),
+            'headers' => $request->headers->all()
+        ]);
+
         $validated = $request->validate([
             'name' => 'required|string|max:255',
             'email' => 'required|email|unique:artisans,email',
@@ -93,6 +99,8 @@ class ArtisanController extends Controller
             'profile_photo' => 'sometimes|image|max:2048',
             'citizenship_photo' => 'sometimes|image|max:2048',
         ]);
+
+        \Illuminate\Support\Facades\Log::info('Validation passed', ['validated_data' => $validated]);
 
         // Set default status if not provided
         if (!isset($validated['status'])) {
@@ -111,6 +119,9 @@ class ArtisanController extends Controller
         }
 
         $artisan = Artisan::create($validated);
+
+        \Illuminate\Support\Facades\Log::info('Artisan created', ['artisan' => $artisan]);
+
         return response()->json($artisan, 201);
     }
 

@@ -172,3 +172,4 @@ class ArtisanSalaryTableSeeder extends Seeder
         DB::table('salary_calculations')->insert($salaries);
     }
 }
+

@@ -116,28 +116,37 @@ Route::middleware('auth:sanctum')->group(function () {
      * artisans routes
      * ------------------------------------------------------------------------
      */
-    Route::get('artisans', [\App\Http\Controllers\ArtisanController::class, 'index'])
-        ->middleware('permission:artisans-all|artisans-view');
+    Route::prefix('artisans')->group(function () {
+        // Create artisan
+        Route::post('/', [\App\Http\Controllers\ArtisanController::class, 'store'])
+            ->middleware('permission:artisans-all|artisans-create');
 
-    // IMPORTANT: Specific routes must come before wildcard routes
-    Route::get('artisans/export', [\App\Http\Controllers\ArtisanController::class, 'export'])
-        ->middleware('permission:artisans-all|artisans-view');
-    Route::post('artisans/import', [\App\Http\Controllers\ArtisanController::class, 'import'])
-        ->middleware('permission:artisans-all|artisans-create');
-    Route::get('artisans/productivity', [ArtisanProductivityController::class, 'index'])
-        ->middleware('permission:artisans-all|artisans-view');
-    Route::get('artisans/productivity/export', [ArtisanProductivityController::class, 'export'])
-        ->middleware('permission:artisans-all|artisans-view');
+        // List artisans
+        Route::get('/', [\App\Http\Controllers\ArtisanController::class, 'index'])
+            ->middleware('permission:artisans-all|artisans-view');
 
-    // Wildcard routes come after specific routes
-    Route::get('artisans/{id}', [\App\Http\Controllers\ArtisanController::class, 'show'])
-        ->middleware('permission:artisans-all|artisans-view');
-    Route::post('artisans', [\App\Http\Controllers\ArtisanController::class, 'store'])
-        ->middleware('permission:artisans-all|artisans-create');
-    Route::match(['PUT', 'PATCH'], 'artisans/{id}', [\App\Http\Controllers\ArtisanController::class, 'update'])
-        ->middleware('permission:artisans-all|artisans-edit');
-    Route::delete('artisans/{artisanId}', [\App\Http\Controllers\ArtisanController::class, 'destroy'])
-        ->middleware('permission:artisans-all|artisans-delete');
+        // Export artisans
+        Route::get('/export', [\App\Http\Controllers\ArtisanController::class, 'export'])
+            ->middleware('permission:artisans-all|artisans-view');
+
+        // Import artisans
+        Route::post('/import', [\App\Http\Controllers\ArtisanController::class, 'import'])
+            ->middleware('permission:artisans-all|artisans-create');
+
+        // Productivity routes
+        Route::get('/productivity', [ArtisanProductivityController::class, 'index'])
+            ->middleware('permission:artisans-all|artisans-view');
+        Route::get('/productivity/export', [ArtisanProductivityController::class, 'export'])
+            ->middleware('permission:artisans-all|artisans-view');
+
+        // Single artisan routes
+        Route::get('/{id}', [\App\Http\Controllers\ArtisanController::class, 'show'])
+            ->middleware('permission:artisans-all|artisans-view');
+        Route::post('/{id}', [\App\Http\Controllers\ArtisanController::class, 'update'])
+            ->middleware('permission:artisans-all|artisans-edit');
+        Route::delete('/{artisanId}', [\App\Http\Controllers\ArtisanController::class, 'destroy'])
+            ->middleware('permission:artisans-all|artisans-delete');
+    });
 
     /**
      * ------------------------------------------------------------------------
@@ -401,16 +410,7 @@ Route::middleware('auth:sanctum')->group(function () {
      */
     Route::prefix('payroll')->group(function () {
         // Admin Payroll
-        Route::get('/admin', [\App\Http\Controllers\PayrollController::class, 'getAdminPayroll'])
-            ->middleware('permission:payroll-all|payroll-view');
-        Route::post('/admin', [\App\Http\Controllers\PayrollController::class, 'saveAdminPayroll'])
-            ->middleware('permission:payroll-all|payroll-create');
 
-        // Worker Payroll
-        Route::get('/worker', [\App\Http\Controllers\PayrollController::class, 'getWorkerPayroll'])
-            ->middleware('permission:payroll-all|payroll-view');
-        Route::post('/worker', [\App\Http\Controllers\PayrollController::class, 'saveWorkerPayroll'])
-            ->middleware('permission:payroll-all|payroll-create');
 
         // Artisan Advances
         Route::get('/advances', [\App\Http\Controllers\PayrollController::class, 'getAdvances'])
@@ -459,15 +459,11 @@ Route::middleware('auth:sanctum')->group(function () {
     });
 
     // Reports Routes
+    /*
     Route::get('/reports/orders', [ReportController::class, 'ordersReport']);
     Route::get('/reports/inventory', [ReportController::class, 'inventoryReport']);
     Route::get('/reports/attendance', [ReportController::class, 'attendanceReport']);
 
-    /**
-     * ------------------------------------------------------------------------
-     * reports routes
-     * ------------------------------------------------------------------------
-     */
     Route::prefix('reports')->group(function () {
         // Attendance reports
         Route::get('/attendance/{subtype}', [ReportController::class, 'export'])
@@ -492,4 +488,5 @@ Route::middleware('auth:sanctum')->group(function () {
 
     Route::get('reports/{type}/{subtype}', [ReportController::class, 'downloadReport'])
         ->middleware('permission:reports-all|reports-view');
+    */
 });

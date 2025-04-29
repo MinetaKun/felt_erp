@@ -1,4 +1,4 @@
-module.exports = {
+export default {
     moduleFileExtensions: [
         'js',
         'jsx',
@@ -14,7 +14,9 @@ module.exports = {
     },
     testEnvironment: 'jsdom',
     testMatch: [
-        '<rootDir>/resources/js/**/*.spec.(js|jsx|ts|tsx)|**/__tests__/*.(js|jsx|ts|tsx)'
+        '<rootDir>/tests/**/*.test.js',
+        '<rootDir>/tests/**/*.spec.js'
     ],
-    transformIgnorePatterns: ['<rootDir>/node_modules/']
+    transformIgnorePatterns: ['/node_modules/'],
+    setupFiles: ['<rootDir>/tests/setup.js']
 }; 

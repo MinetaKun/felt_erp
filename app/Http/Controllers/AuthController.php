@@ -8,6 +8,7 @@ use App\Traits\Helpers;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Str;
 
 class AuthController extends Controller
 {
@@ -37,8 +38,15 @@ class AuthController extends Controller
                 ], 401);
             }
 
+            // Regenerate the session ID to prevent session fixation
             $request->session()->regenerate();
-            Auth::loginUsingId($user->id, true);
+
+            // Login the user and remember them
+            Auth::login($user, true);
+
+            // Update the remember token
+            $user->setRememberToken(Str::random(60));
+            $user->save();
 
             // Generate token for API access
             $token = $user->createToken('auth-token')->plainTextToken;
@@ -77,7 +85,22 @@ class AuthController extends Controller
     public function logout(Request $request)
     {
         try {
+            // Get the current user
+            $user = Auth::user();
+
+            // Clear the remember token
+            if ($user) {
+                $user->setRememberToken(null);
+                $user->save();
+            }
+
+            // Revoke all tokens for the user
+            $user?->tokens()->delete();
+
+            // Logout from web guard
             Auth::guard('web')->logout();
+
+            // Invalidate the session
             $request->session()->invalidate();
             $request->session()->regenerateToken();
 
