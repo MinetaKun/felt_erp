@@ -354,6 +354,8 @@ Route::middleware('auth:sanctum')->group(function () {
             ->middleware('permission:wages-all|wages-view');
         Route::get('/report/export', [\App\Http\Controllers\WageController::class, 'exportReport'])
             ->middleware('permission:wages-all|wages-view');
+        Route::get('/artisan-details', [\App\Http\Controllers\WageController::class, 'artisanDetails'])
+            ->middleware('permission:wages-all|wages-view');
     });
 
     /**

@@ -16,8 +16,9 @@ export default [
       meta: {
         layout: "dashboard",
         permissions: [],
+        requiresAuth: true,
       },
-    },
+    },  
   
     {
       path: "/users",

@@ -1,5 +1,45 @@
 <template>
   <div class="p-6">
+    <!-- Date Range Filter -->
+    <div class="mb-6 flex justify-end">
+      <div class="flex items-center space-x-4">
+        <div class="flex items-center space-x-2">
+          <label class="text-sm font-medium text-gray-700">From:</label>
+          <input
+            type="date"
+            v-model="startDate"
+            class="rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
+            :max="endDate || today"
+            @change="fetchDashboardData"
+          />
+        </div>
+        <div class="flex items-center space-x-2">
+          <label class="text-sm font-medium text-gray-700">To:</label>
+          <input
+            type="date"
+            v-model="endDate"
+            class="rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
+            :max="today"
+            @change="fetchDashboardData"
+          />
+        </div>
+        <div class="flex space-x-2">
+          <button
+            @click="setCurrentMonth"
+            class="px-3 py-1 text-sm rounded-md bg-blue-500 text-white hover:bg-blue-600"
+          >
+            Current Month
+          </button>
+          <button
+            @click="setCurrentDay"
+            class="px-3 py-1 text-sm rounded-md bg-gray-100 text-gray-700 hover:bg-gray-200"
+          >
+            Current Day
+          </button>
+        </div>
+      </div>
+    </div>
+
     <!-- Header Section -->
     <div class="mb-8">
       <div class="bg-gradient-to-r from-indigo-600 to-blue-500 rounded-lg shadow-lg p-6">
@@ -94,10 +134,10 @@
         <div class="flex justify-between items-center mb-4">
           <h3 class="text-lg font-semibold text-gray-700">Monthly Revenue</h3>
           <div class="flex space-x-2">
-            <button 
-              v-for="year in availableYears" 
+            <button
+              v-for="year in availableYears"
               :key="year"
-              @click="selectedYear = year"
+              @click="selectedYear = year; fetchDashboardData()"
               class="px-3 py-1 text-sm rounded-md"
               :class="selectedYear === year ? 'bg-blue-500 text-white' : 'bg-gray-100 text-gray-700 hover:bg-gray-200'"
             >
@@ -235,9 +275,9 @@
 </template>
 
 <script setup>
-import { ref, onMounted, computed } from 'vue'
-import axios from 'axios'
-import Chart from 'chart.js/auto'
+import { ref, onMounted, computed } from 'vue';
+import axios from 'axios';
+import Chart from 'chart.js/auto';
 
 // State
 const stats = ref({
@@ -249,63 +289,85 @@ const stats = ref({
   inStockProducts: 0,
   totalRevenue: 0,
   monthlyRevenue: 0
-})
+});
 
-const recentOrders = ref([])
-const topArtisans = ref([])
-const inventoryStatus = ref([])
-const recentActivities = ref([])
-const monthlyChart = ref(null)
-const statusChart = ref(null)
-const selectedYear = ref(new Date().getFullYear())
+const recentOrders = ref([]);
+const topArtisans = ref([]);
+const inventoryStatus = ref([]);
+const recentActivities = ref([]);
+const monthlyChart = ref(null);
+const statusChart = ref(null);
+const monthlyChartInstance = ref(null);
+const statusChartInstance = ref(null);
 
-const monthlyChartInstance = ref(null)
-const statusChartInstance = ref(null)
+// Date Range State
+const today = new Date().toISOString().split('T')[0];
+const firstDayOfMonth = new Date(new Date().getFullYear(), new Date().getMonth(), 1).toISOString().split('T')[0];
+const lastDayOfMonth = new Date(new Date().getFullYear(), new Date().getMonth() + 1, 0).toISOString().split('T')[0];
+const startDate = ref(firstDayOfMonth);
+const endDate = ref(lastDayOfMonth);
+const selectedYear = ref(new Date().getFullYear());
 
+// Computed
 const availableYears = computed(() => {
-  const currentYear = new Date().getFullYear()
-  return Array.from({ length: 5 }, (_, i) => currentYear - i)
-})
+  const currentYear = new Date().getFullYear();
+  return Array.from({ length: 5 }, (_, i) => currentYear - i);
+});
 
 // Fetch dashboard data
 const fetchDashboardData = async () => {
   try {
+    console.log('Fetching dashboard data with params:', {
+      start_date: startDate.value,
+      end_date: endDate.value,
+      year: selectedYear.value
+    });
     const response = await axios.get('/dashboard', {
       params: {
+        start_date: startDate.value,
+        end_date: endDate.value,
         year: selectedYear.value
       }
-    })
-    stats.value = response.data.stats
-    recentOrders.value = response.data.recentOrders
-    topArtisans.value = response.data.topArtisans
-    inventoryStatus.value = response.data.inventoryStatus
-    recentActivities.value = response.data.recentActivities
+    });
+    console.log('Dashboard response:', response.data);
+    stats.value = response.data.stats;
+    recentOrders.value = response.data.recentOrders;
+    topArtisans.value = response.data.topArtisans;
+    inventoryStatus.value = response.data.inventoryStatus;
+    recentActivities.value = response.data.recentActivities;
 
     // Initialize charts
     if (response.data.monthly_data) {
-      initMonthlyChart(response.data.monthly_data)
+      initMonthlyChart(response.data.monthly_data);
     }
     if (response.data.status_distribution) {
-      initStatusChart(response.data.status_distribution)
+      initStatusChart(response.data.status_distribution);
     }
   } catch (error) {
-    console.error('Error fetching dashboard data:', error)
+    console.error('Error fetching dashboard data:', error);
+    if (error.response) {
+      console.error('Error response:', error.response.data);
+    }
   }
-}
+};
 
 const initMonthlyChart = (data) => {
+  if (!data || !Array.isArray(data)) {
+    console.warn('Invalid monthly data received');
+    return;
+  }
   if (monthlyChartInstance.value) {
-    monthlyChartInstance.value.destroy()
+    monthlyChartInstance.value.destroy();
   }
 
-  const ctx = monthlyChart.value.getContext('2d')
+  const ctx = monthlyChart.value.getContext('2d');
   monthlyChartInstance.value = new Chart(ctx, {
     type: 'bar',
     data: {
       labels: data.map(item => item.month),
       datasets: [{
         label: 'Revenue',
-        data: data.map(item => item.revenue),
+        data: data.map(item => parseFloat(item.revenue) || 0),
         backgroundColor: 'rgba(59, 130, 246, 0.5)',
         borderColor: 'rgb(59, 130, 246)',
         borderWidth: 1
@@ -319,7 +381,7 @@ const initMonthlyChart = (data) => {
           beginAtZero: true,
           ticks: {
             callback: function(value) {
-              return 'Rs. ' + value.toLocaleString()
+              return 'Rs. ' + value.toLocaleString();
             }
           }
         }
@@ -328,28 +390,32 @@ const initMonthlyChart = (data) => {
         tooltip: {
           callbacks: {
             label: function(context) {
-              let label = context.dataset.label || ''
+              let label = context.dataset.label || '';
               if (label) {
-                label += ': '
+                label += ': ';
               }
               if (context.parsed.y !== null) {
-                label += 'Rs. ' + context.parsed.y.toLocaleString()
+                label += 'Rs. ' + context.parsed.y.toLocaleString();
               }
-              return label
+              return label;
             }
           }
         }
       }
     }
-  })
-}
+  });
+};
 
 const initStatusChart = (data) => {
+  if (!data || !Array.isArray(data)) {
+    console.warn('Invalid status distribution data received');
+    return;
+  }
   if (statusChartInstance.value) {
-    statusChartInstance.value.destroy()
+    statusChartInstance.value.destroy();
   }
 
-  const ctx = statusChart.value.getContext('2d')
+  const ctx = statusChart.value.getContext('2d');
   statusChartInstance.value = new Chart(ctx, {
     type: 'doughnut',
     data: {
@@ -379,28 +445,32 @@ const initStatusChart = (data) => {
         tooltip: {
           callbacks: {
             label: function(context) {
-              const label = context.label || ''
-              const value = context.raw || 0
-              const total = context.dataset.data.reduce((a, b) => a + b, 0)
-              const percentage = total > 0 ? Math.round((value / total) * 100) : 0
-              return `${label}: ${value} (${percentage}%)`
+              const label = context.label || '';
+              const value = context.raw || 0;
+              const total = context.dataset.data.reduce((a, b) => a + b, 0);
+              const percentage = total > 0 ? Math.round((value / total) * 100) : 0;
+              return `${label}: ${value} (${percentage}%)`;
             }
           }
         }
       }
     }
-  })
-}
+  });
+};
 
 // Helper functions
 const formatDate = (dateString) => {
-  const date = new Date(dateString)
-  return date.toLocaleDateString()
-}
+  const date = new Date(dateString);
+  return new Intl.DateTimeFormat('en-US', {
+    year: 'numeric',
+    month: 'short',
+    day: 'numeric'
+  }).format(date);
+};
 
 const formatStatus = (status) => {
-  return status.split('_').map(word => word.charAt(0).toUpperCase() + word.slice(1)).join(' ')
-}
+  return status.split('_').map(word => word.charAt(0).toUpperCase() + word.slice(1)).join(' ');
+};
 
 const getStatusColor = (status) => {
   const colors = {
@@ -408,15 +478,15 @@ const getStatusColor = (status) => {
     in_production: 'text-blue-600',
     completed: 'text-green-600',
     dispatched: 'text-purple-600'
-  }
-  return colors[status] || 'text-gray-600'
-}
+  };
+  return colors[status] || 'text-gray-600';
+};
 
 const getStockLevelColor = (level) => {
-  if (level === 'low') return 'text-red-600'
-  if (level === 'medium') return 'text-yellow-600'
-  return 'text-green-600'
-}
+  if (level === 'low') return 'text-red-600';
+  if (level === 'medium') return 'text-yellow-600';
+  return 'text-green-600';
+};
 
 const getActivityIcon = (type) => {
   const icons = {
@@ -424,9 +494,9 @@ const getActivityIcon = (type) => {
     artisan: 'UserIcon',
     inventory: 'PackageIcon',
     payment: 'CurrencyDollarIcon'
-  }
-  return icons[type] || 'InformationCircleIcon'
-}
+  };
+  return icons[type] || 'InformationCircleIcon';
+};
 
 const getActivityIconBg = (type) => {
   const colors = {
@@ -434,9 +504,9 @@ const getActivityIconBg = (type) => {
     artisan: 'bg-green-100',
     inventory: 'bg-purple-100',
     payment: 'bg-yellow-100'
-  }
-  return colors[type] || 'bg-gray-100'
-}
+  };
+  return colors[type] || 'bg-gray-100';
+};
 
 const getActivityIconColor = (type) => {
   const colors = {
@@ -444,11 +514,24 @@ const getActivityIconColor = (type) => {
     artisan: 'text-green-600',
     inventory: 'text-purple-600',
     payment: 'text-yellow-600'
-  }
-  return colors[type] || 'text-gray-600'
-}
+  };
+  return colors[type] || 'text-gray-600';
+};
+
+// Set default date ranges
+const setCurrentMonth = () => {
+  startDate.value = firstDayOfMonth;
+  endDate.value = lastDayOfMonth;
+  fetchDashboardData();
+};
+
+const setCurrentDay = () => {
+  startDate.value = today;
+  endDate.value = today;
+  fetchDashboardData();
+};
 
 onMounted(() => {
-  fetchDashboardData()
-})
+  fetchDashboardData();
+});
 </script>

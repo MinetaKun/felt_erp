@@ -15,34 +15,57 @@ class DashboardController extends Controller
 {
     public function index(Request $request)
     {
+        // Get date range from request, default to current month
+        $startDate = $request->input('start_date')
+            ? Carbon::parse($request->input('start_date'))
+            : Carbon::now()->startOfMonth();
+        $endDate = $request->input('end_date')
+            ? Carbon::parse($request->input('end_date'))
+            : Carbon::now()->endOfMonth();
+        $year = $request->input('year', Carbon::now()->year);
+
+        // Validate date range
+        if ($startDate->gt($endDate)) {
+            [$startDate, $endDate] = [$endDate, $startDate];
+        }
+
         // Get basic stats
         $stats = [
-            'totalOrders' => Order::count(),
-            'activeOrders' => Order::whereIn('status', ['pending', 'in_production'])->count(),
-            'totalArtisans' => Artisan::count(),
-            'activeArtisans' => Artisan::where('status', 'active')->count(),
-            'totalProducts' => Product::count(),
-            'inStockProducts' => Product::where('quantity', '>', 0)->count(),
-            'totalRevenue' => number_format(Order::where('status', 'dispatched')
+            'totalOrders' => Order::whereBetween('created_at', [$startDate, $endDate])->count(),
+            'activeOrders' => Order::whereBetween('created_at', [$startDate, $endDate])
+                ->whereIn('status', ['pending', 'in_production'])->count(),
+            'totalArtisans' => Artisan::whereBetween('created_at', [$startDate, $endDate])->count(),
+            'activeArtisans' => Artisan::whereBetween('created_at', [$startDate, $endDate])
+                ->where('status', 'active')->count(),
+            'totalProducts' => Product::whereBetween('created_at', [$startDate, $endDate])->count(),
+            'inStockProducts' => Product::whereBetween('created_at', [$startDate, $endDate])
+                ->where('quantity', '>', 0)->count(),
+            'totalRevenue' => number_format(Order::whereBetween('created_at', [$startDate, $endDate])
+                ->where('status', 'dispatched')
                 ->selectRaw('SUM(total_quantity * wages_per_unit) as total')
                 ->value('total') ?? 0, 2),
-            'monthlyRevenue' => number_format(Order::where('status', 'dispatched')
+            'monthlyRevenue' => number_format(Order::whereBetween('created_at', [$startDate, $endDate])
                 ->whereMonth('created_at', Carbon::now()->month)
+                ->where('status', 'dispatched')
                 ->selectRaw('SUM(total_quantity * wages_per_unit) as total')
                 ->value('total') ?? 0, 2)
         ];
 
         // Get recent orders
         $recentOrders = Order::with('assignments')
+            ->whereBetween('created_at', [$startDate, $endDate])
             ->latest()
             ->take(5)
             ->get();
 
         // Get top performing artisans
         $topArtisans = Artisan::with(['department', 'orderAssignments'])
+            ->whereBetween('created_at', [$startDate, $endDate])
             ->get()
-            ->map(function ($artisan) {
-                $assignments = $artisan->orderAssignments;
+            ->map(function ($artisan) use ($startDate, $endDate) {
+                $assignments = $artisan->orderAssignments()
+                    ->whereBetween('created_at', [$startDate, $endDate])
+                    ->get();
                 $totalAssignments = $assignments->count();
                 $completedAssignments = $assignments->whereIn('status', ['completed', 'dispatched'])->count();
                 $totalApprovedQuantity = $assignments->whereIn('status', ['approved', 'dispatched'])->sum('approved_quantity');
@@ -68,6 +91,7 @@ class DashboardController extends Controller
 
         // Get inventory status
         $inventoryStatus = Product::select('id', 'name', 'quantity', 'updated_at')
+            ->whereBetween('created_at', [$startDate, $endDate])
             ->get()
             ->map(function ($product) {
                 return [
@@ -75,23 +99,31 @@ class DashboardController extends Controller
                     'name' => $product->name,
                     'quantity' => $product->quantity,
                     'stock_level' => $this->getStockLevel($product->quantity),
-                    'updated_at' => $product->updated_at
+                    'updated_at' => $product->updated_at,
+                    'category' => $product->category ?? 'Uncategorized'
                 ];
             });
 
         // Get recent activities
-        $recentActivities = $this->getRecentActivities();
+        $recentActivities = $this->getRecentActivities($startDate, $endDate);
 
         // Get monthly revenue data
-        $year = $request->input('year', Carbon::now()->year);
         $monthlyData = [];
         $currentDate = Carbon::createFromFormat('Y', $year)->startOfYear();
 
         for ($i = 0; $i < 12; $i++) {
             $month = $currentDate->copy()->addMonths($i);
+            $monthStart = $month->copy()->startOfMonth();
+            $monthEnd = $month->copy()->endOfMonth();
+
+            // Apply date range filter if specified
+            if ($request->has('start_date') || $request->has('end_date')) {
+                $monthStart = $monthStart->max($startDate);
+                $monthEnd = $monthEnd->min($endDate);
+            }
+
             $revenue = Order::where('status', 'dispatched')
-                ->whereYear('created_at', $month->year)
-                ->whereMonth('created_at', $month->month)
+                ->whereBetween('created_at', [$monthStart, $monthEnd])
                 ->selectRaw('SUM(total_quantity * wages_per_unit) as total')
                 ->value('total') ?? 0;
 
@@ -103,6 +135,7 @@ class DashboardController extends Controller
 
         // Get order status distribution
         $statusDistribution = Order::select('status', DB::raw('count(*) as count'))
+            ->whereBetween('created_at', [$startDate, $endDate])
             ->groupBy('status')
             ->get()
             ->map(function ($item) {
@@ -130,12 +163,15 @@ class DashboardController extends Controller
         return 'high';
     }
 
-    private function getRecentActivities()
+    private function getRecentActivities($startDate, $endDate)
     {
         $activities = [];
 
         // Get recent orders
-        $recentOrders = Order::latest()->take(3)->get();
+        $recentOrders = Order::whereBetween('created_at', [$startDate, $endDate])
+            ->latest()
+            ->take(3)
+            ->get();
         foreach ($recentOrders as $order) {
             $activities[] = [
                 'id' => 'order_' . $order->id,
@@ -147,6 +183,7 @@ class DashboardController extends Controller
 
         // Get recent artisan activities
         $recentAssignments = OrderAssignment::with('artisan')
+            ->whereBetween('created_at', [$startDate, $endDate])
             ->latest()
             ->take(3)
             ->get();
@@ -160,7 +197,7 @@ class DashboardController extends Controller
         }
 
         // Get recent inventory updates
-        $recentProducts = Product::where('updated_at', '>=', Carbon::now()->subDays(7))
+        $recentProducts = Product::whereBetween('updated_at', [$startDate, $endDate])
             ->latest()
             ->take(3)
             ->get();

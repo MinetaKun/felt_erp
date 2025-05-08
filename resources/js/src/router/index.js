@@ -1,3 +1,4 @@
+// resources/js/src/router/index.js
 import { createRouter, createWebHistory } from 'vue-router';
 import routes from './routes';
 import useAuth from '../composables/useAuth';
@@ -10,21 +11,21 @@ const router = createRouter({
 router.beforeEach(async (to, from, next) => {
     const { isUserAuthenticated } = useAuth();
 
-    if (from.name === to.name) {
+    if (to.name === from.name && to.path === from.path) {
         return next();
     }
 
-    const isUserLoggedIn = await isUserAuthenticated();
+    const isAuthenticated = await isUserAuthenticated();
+    console.log('Navigation guard - isAuthenticated:', isAuthenticated); // Debug log
 
-    if (isUserLoggedIn) {
-        if (to.name === 'login') {
-            return next({ name: 'users' });
-        }
-    } else {
-        if (to.name !== 'login') {
-            return next({ name: 'login' });
-        }
+    if (isAuthenticated && to.name === 'login') {
+        return next({ name: 'dashboard' });
     }
+
+    if (!isAuthenticated && to.name !== 'login') {
+        return next({ name: 'login' });
+    }
+
     return next();
 });
 

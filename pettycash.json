@@ -1,0 +1,113 @@
+{
+    "name": "Petty Cash",
+    "item": [
+      {
+        "name": "Add Petty Cash Transaction",
+        "request": {
+          "method": "POST",
+          "header": [
+            {
+              "key": "Accept",
+              "type": "text",
+              "value": "application/json"
+            },
+            {
+              "key": "Content-Type",
+              "type": "text",
+              "value": "application/json"
+            }
+          ],
+          "url": {
+            "raw": "{{base_url}}/petty-cash",
+            "host": ["{{base_url}}"],
+            "path": ["petty-cash"]
+          },
+          "body": {
+            "mode": "raw",
+            "raw": "{\n    \"transaction_date\": \"2025-04-29\",\n    \"bs_date\": \"2080-01-15\",\n    \"pan_bill_no\": \"PAN-2025-001\",\n    \"est_bill_no\": \"EST-2025-001\",\n    \"category_id\": 1,\n    \"particulars\": \"Office supplies purchase\",\n    \"cash_in\": 0,\n    \"cash_out\": 500.00,\n    \"vat_amount\": 65.00,\n    \"vat_percentage\": 13,\n    \"is_vat_included\": true,\n    \"reference_no\": \"REF-2025-001\",\n    \"notes\": \"Purchased stationery items\"\n}"
+          }
+        }
+      },
+      {
+        "name": "Edit Petty Cash Transaction",
+        "request": {
+          "method": "PUT",
+          "header": [
+            {
+              "key": "Accept",
+              "type": "text",
+              "value": "application/json"
+            },
+            {
+              "key": "Content-Type",
+              "type": "text",
+              "value": "application/json"
+            }
+          ],
+          "url": {
+            "raw": "{{base_url}}/petty-cash/1",
+            "host": ["{{base_url}}"],
+            "path": ["petty-cash", "1"]
+          },
+          "body": {
+            "mode": "raw",
+            "raw": "{\n    \"transaction_date\": \"2025-04-29\",\n    \"bs_date\": \"2080-01-15\",\n    \"pan_bill_no\": \"PAN-2025-001-U\",\n    \"est_bill_no\": \"EST-2025-001-U\",\n    \"category_id\": 1,\n    \"particulars\": \"Office supplies purchase - Updated\",\n    \"cash_in\": 0,\n    \"cash_out\": 550.00,\n    \"vat_amount\": 71.50,\n    \"vat_percentage\": 13,\n    \"is_vat_included\": true,\n    \"reference_no\": \"REF-2025-001-U\",\n    \"notes\": \"Updated stationery items cost\"\n}"
+          }
+        }
+      },
+      {
+        "name": "Delete Petty Cash Transaction",
+        "request": {
+          "method": "DELETE",
+          "header": [
+            {
+              "key": "Accept",
+              "type": "text",
+              "value": "application/json"
+            }
+          ],
+          "url": {
+            "raw": "{{base_url}}/petty-cash/1",
+            "host": ["{{base_url}}"],
+            "path": ["petty-cash", "1"]
+          }
+        }
+      },
+      {
+        "name": "List Petty Cash Transactions",
+        "request": {
+          "method": "GET",
+          "header": [],
+          "url": {
+            "raw": "{{base_url}}/petty-cash",
+            "host": ["{{base_url}}"],
+            "path": ["petty-cash"]
+          }
+        }
+      },
+      {
+        "name": "Get Petty Cash Dashboard",
+        "request": {
+          "method": "GET",
+          "header": [],
+          "url": {
+            "raw": "{{base_url}}/petty-cash/dashboard",
+            "host": ["{{base_url}}"],
+            "path": ["petty-cash", "dashboard"]
+          }
+        }
+      },
+      {
+        "name": "Export Petty Cash",
+        "request": {
+          "method": "GET",
+          "header": [],
+          "url": {
+            "raw": "{{base_url}}/petty-cash/export",
+            "host": ["{{base_url}}"],
+            "path": ["petty-cash", "export"]
+          }
+        }
+      }
+    ]
+  }

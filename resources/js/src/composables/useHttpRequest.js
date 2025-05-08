@@ -1,3 +1,4 @@
+// resources/js/src/composables/useHttpRequest.js
 import { ref } from 'vue';
 import axios, { AxiosError } from 'axios';
 import useModalToast from './useModalToast';
@@ -98,7 +99,7 @@ const useHttpRequest = (path = '') => {
         showUnauthorizedToast = true,
     ) => {
         if (error instanceof AxiosError) {
-            const errorData = error.response.data;
+            const errorData = error.response?.data;
             if ([13333, 13334, 13335].includes(errorData?.errorCode)) {
                 showToast(
                     `${errorData?.errorMessage}${
@@ -108,17 +109,20 @@ const useHttpRequest = (path = '') => {
                     }`,
                     errorData?.errorCode === 13334 ? 'success' : 'error',
                 );
-            }
-
-            if (
+            } else if (error.response?.status === 401) {
+                showToast(
+                    errorData?.message || 'Authentication failed',
+                    'error',
+                );
+            } else if (
                 showUnauthorizedToast &&
-                error.response.status === 401 &&
-                error.response.data?.message === 'Permission not granted.'
+                error.response?.status === 401 &&
+                errorData?.message === 'Permission not granted.'
             ) {
                 showToast(
-                    `${error.response.data?.message}${
-                        error.response.data?.permissions?.length
-                            ? `\r\nRequired permissions: ${error.response.data?.permissions.join(
+                    `${errorData?.message}${
+                        errorData?.permissions?.length
+                            ? `\r\nRequired permissions: ${errorData?.permissions.join(
                                   ' or ',
                               )}`
                             : ''
@@ -141,7 +145,6 @@ const useHttpRequest = (path = '') => {
         saving,
         updating,
         deleting,
-
         index,
         store,
         update,
