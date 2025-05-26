@@ -6,6 +6,9 @@ import useUserStore from '../store/useUserStore';
 import useAppRouter from '../composables/useAppRouter';
 import axios from 'axios';
 import { useAuthStore } from '../stores/auth';
+import logo from '../assets/logo.png';
+
+
 
 const { index: logout } = useHttpRequest('/logout');
 const { pushToRoute } = useAppRouter();
@@ -112,7 +115,7 @@ const formatDate = (dateString) => {
             <!-- Logo and Title -->
             <RouterLink :to="{ name: 'users' }" class="flex items-center gap-3 hover:opacity-90 transition-opacity">
                 <div class="bg-white p-2 rounded-full shadow-md">
-                    <img src="../assets/logo.png" alt="Logo" class="h-10 w-10" />
+                   <img :src="logo" alt="Logo" class="h-10 w-10"/>
                 </div>
                 <div>
                     <h1 class="text-2xl font-bold text-white">Maata Banasthali</h1>
