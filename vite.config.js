@@ -5,22 +5,22 @@ import path from 'path';
 import dotenv from 'dotenv';
 
 export default defineConfig(() => {
-    const isDevCommantRunOnClient = process.env.INIT_CWD.includes('client');
+    const isDevCommantRunOnClient = process.env.INIT_CWD?.includes('client');
 
-    const env = dotenv.config({
-        path: path.join(
-            process.env.INIT_CWD,
-            `${isDevCommantRunOnClient ? '../' : ''}.env`,
-        ),
-    });
+    const envPath = path.join(
+        process.env.INIT_CWD,
+        `${isDevCommantRunOnClient ? '../' : ''}.env`
+    );
+
+    const env = dotenv.config({ path: envPath });
 
     const frontendEnvs = ['APP_URL'];
 
-    const clientEnv = Object.entries(env.parsed)
+    const clientEnv = Object.entries(env.parsed || {}) // null check added here
         .filter(([key, _]) => frontendEnvs.includes(key))
         .reduce(
             (clientEnv, [key, value]) => ({ ...clientEnv, [key]: value }),
-            {},
+            {}
         );
 
     return {
@@ -32,17 +32,7 @@ export default defineConfig(() => {
             vue({
                 template: {
                     transformAssetUrls: {
-                        // The Vue plugin will re-write asset URLs, when referenced
-                        // in Single File Components, to point to the Laravel web
-                        // server. Setting this to `null` allows the Laravel plugin
-                        // to instead re-write asset URLs to point to the Vite
-                        // server instead.
                         base: null,
-
-                        // The Vue plugin will parse absolute URLs and treat them
-                        // as absolute paths to files on disk. Setting this to
-                        // `false` will leave absolute URLs un-touched so they can
-                        // reference assets in the public directory as expected.
                         includeAbsolute: false,
                     },
                 },
