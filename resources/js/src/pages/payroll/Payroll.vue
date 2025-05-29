@@ -105,7 +105,7 @@
                   <td class="px-6 py-4 whitespace-nowrap">{{ formatCurrency(payroll.salary) }}</td>
                   <td class="px-6 py-4 whitespace-nowrap">{{ formatCurrency(payroll.food_allowance) }}</td>
                   <td class="px-6 py-4 whitespace-nowrap">{{ formatCurrency(payroll.wages) }}</td>
-                  <td class="px-6 py-4 whitespace-nowrap">{{ formatCurrency(payroll.allowances) }}</td>
+                  <td class="px-6 py-4 whitespace-nowrap">{{ formatCurrency(payroll.allowances || 0) }}</td>
                   <td class="px-6 py-4 whitespace-nowrap">{{ formatCurrency(payroll.advance) }}</td>
                   <td class="px-6 py-4 whitespace-nowrap">{{ formatCurrency(payroll.net_salary) }}</td>
                 </tr>

@@ -789,10 +789,10 @@ class PayrollController extends Controller
             return [
                 'id' => $artisan->id,
                 'name' => $artisan->name,
-                'salary' => $salaryCalculation ? $salaryCalculation->salary : $artisan->basic_salary,
-                'food_allowance' => $salaryCalculation ? $salaryCalculation->food_allowance : 0,
+                'salary' => (float)($salaryCalculation ? $salaryCalculation->salary : $artisan->basic_salary),
+                'food_allowance' => (float)($salaryCalculation ? $salaryCalculation->food_allowance : 0),
                 'wages' => (float)$totalWages,
-                'allowances' => $salaryCalculation ? $salaryCalculation->allowances : 0,
+                'allowances' => (float)($salaryCalculation ? $salaryCalculation->allowances : 0),
                 'advance' => (float)$advances,
                 'net_salary' => (float)(
                     ($salaryCalculation ? $salaryCalculation->salary : $artisan->basic_salary) +
