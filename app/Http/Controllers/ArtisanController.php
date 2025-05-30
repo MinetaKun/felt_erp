@@ -11,6 +11,7 @@ use League\Csv\Writer;
 use SplTempFileObject;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
+use Cloudinary\Cloudinary;
 
 
 
@@ -68,8 +69,8 @@ class ArtisanController extends Controller
                 'department' => $artisan->department,
                 'status' => $artisan->status,
                 'skills' => is_string($artisan->skills) ? json_decode($artisan->skills, true) : ($artisan->skills ?? []),
-                'profile_photo_url' => $artisan->profile_photo ? asset('storage/' . $artisan->profile_photo) : null,
-                'citizenship_photo_url' => $artisan->citizenship_photo ? asset('storage/' . $artisan->citizenship_photo) : null,
+                'profile_photo_url' => $artisan->profile_photo, // Return Cloudinary URL directly
+                'citizenship_photo_url' => $artisan->citizenship_photo, // Return Cloudinary URL direct
                 'created_at' => $artisan->created_at,
                 'updated_at' => $artisan->updated_at,
             ];
@@ -110,12 +111,24 @@ class ArtisanController extends Controller
         // Decode the skills JSON string
         $validated['skills'] = json_decode($validated['skills'], true);
 
+        // Upload profile photo to Cloudinary
         if ($request->hasFile('profile_photo')) {
-            $validated['profile_photo'] = $request->file('profile_photo')->store('photos', 'public');
+            $cloudinary = new Cloudinary();
+            $uploadedFile = $cloudinary->uploadApi()->upload(
+                $request->file('profile_photo')->getRealPath(),
+                ['folder' => 'artisans/profile-photos']
+            );
+            $validated['profile_photo'] = $uploadedFile['secure_url']; // HTTPS URL
         }
 
+        // Upload citizenship photo to Cloudinary
         if ($request->hasFile('citizenship_photo')) {
-            $validated['citizenship_photo'] = $request->file('citizenship_photo')->store('photos', 'public');
+            $cloudinary = isset($cloudinary) ? $cloudinary : new Cloudinary();
+            $uploadedFile = $cloudinary->uploadApi()->upload(
+                $request->file('citizenship_photo')->getRealPath(),
+                ['folder' => 'artisans/citizenship-photos']
+            );
+            $validated['citizenship_photo'] = $uploadedFile['secure_url'];
         }
 
         $artisan = Artisan::create($validated);
@@ -147,8 +160,8 @@ class ArtisanController extends Controller
             'department' => $artisan->department,
             'status' => $artisan->status,
             'skills' => is_string($artisan->skills) ? json_decode($artisan->skills, true) : ($artisan->skills ?? []),
-            'profile_photo_url' => $artisan->profile_photo ? asset('storage/' . $artisan->profile_photo) : null,
-            'citizenship_photo_url' => $artisan->citizenship_photo ? asset('storage/' . $artisan->citizenship_photo) : null,
+            'profile_photo_url' => $artisan->profile_photo, // Return Cloudinary URL directly
+            'citizenship_photo_url' => $artisan->citizenship_photo, // Return Cloudinary URL direct
             'created_at' => $artisan->created_at,
             'updated_at' => $artisan->updated_at,
         ];
@@ -189,14 +202,24 @@ class ArtisanController extends Controller
             $validated['skills'] = json_decode($validated['skills'], true);
         }
 
-        // Handle profile photo upload
+        // Upload profile photo to Cloudinary
         if ($request->hasFile('profile_photo')) {
-            $validated['profile_photo'] = $request->file('profile_photo')->store('photos', 'public');
+            $cloudinary = new Cloudinary();
+            $uploadedFile = $cloudinary->uploadApi()->upload(
+                $request->file('profile_photo')->getRealPath(),
+                ['folder' => 'artisans/profile-photos']
+            );
+            $validated['profile_photo'] = $uploadedFile['secure_url']; // HTTPS URL
         }
 
-        // Handle citizenship photo upload
+        // Upload citizenship photo to Cloudinary
         if ($request->hasFile('citizenship_photo')) {
-            $validated['citizenship_photo'] = $request->file('citizenship_photo')->store('photos', 'public');
+            $cloudinary = isset($cloudinary) ? $cloudinary : new Cloudinary();
+            $uploadedFile = $cloudinary->uploadApi()->upload(
+                $request->file('citizenship_photo')->getRealPath(),
+                ['folder' => 'artisans/citizenship-photos']
+            );
+            $validated['citizenship_photo'] = $uploadedFile['secure_url'];
         }
 
         // Update the artisan with the validated data
@@ -224,8 +247,8 @@ class ArtisanController extends Controller
                 'department' => $artisan->department,
                 'status' => $artisan->status,
                 'skills' => $artisan->skills,
-                'profile_photo_url' => $artisan->profile_photo ? asset('storage/' . $artisan->profile_photo) : null,
-                'citizenship_photo_url' => $artisan->citizenship_photo ? asset('storage/' . $artisan->citizenship_photo) : null,
+                'profile_photo_url' => $artisan->profile_photo, // Return Cloudinary URL directly
+                'citizenship_photo_url' => $artisan->citizenship_photo, // Return Cloudinary URL directly
                 'created_at' => $artisan->created_at,
                 'updated_at' => $artisan->updated_at,
             ],

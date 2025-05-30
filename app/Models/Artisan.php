@@ -41,7 +41,7 @@ class Artisan extends Model
         'skills.*' => 'required|string|max:255',
         'basic_salary' => 'required|numeric|min:0',
     ];
-
+    protected $appends = ['profile_photo_url', 'citizenship_photo_url'];
     protected static function boot()
     {
         parent::boot();
@@ -55,6 +55,15 @@ class Artisan extends Model
                 $artisan->skills = [];
             }
         });
+    }
+    public function getProfilePhotoUrlAttribute()
+    {
+        return $this->profile_photo ? $this->profile_photo : null;
+    }
+
+    public function getCitizenshipPhotoUrlAttribute()
+    {
+        return $this->citizenship_photo ? $this->citizenship_photo : null;
     }
 
     public function department()
