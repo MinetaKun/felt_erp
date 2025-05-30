@@ -146,75 +146,72 @@
             <h2 class="text-lg font-semibold mb-4 border-b pb-2">Documents & Photos</h2>
             
             <div class="mb-6">
-              <label class="block text-sm font-medium text-gray-700 mb-1">Profile Photo</label>
-              <div class="mt-1 flex items-center">
-                <div v-if="existingProfilePhoto || form.profile_photo" class="relative">
-                  <!-- <img
-                    :src="existingProfilePhoto || (form.profile_photo instanceof File ? URL.createObjectURL(form.profile_photo) : '')"
-                    class="h-32 w-32 object-cover rounded-md"
-                    alt="Profile Preview"
-                  /> -->
-                  <img
-                  :src="existingProfilePhoto || (form.profile_photo ? URL.createObjectURL(form.profile_photo) : '')"
-                  class="h-32 w-32 object-cover rounded-md"
-                  alt="Profile Preview"
-                />
-                  <button
-                    type="button"
-                    @click="form.profile_photo = null; existingProfilePhoto = null"
-                    class="absolute top-0 right-0 bg-red-500 text-white rounded-full p-1 transform translate-x-1/2 -translate-y-1/2"
-                  >
-                    <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
-                    </svg>
-                  </button>
+                  <label class="block text-sm font-medium text-gray-700 mb-1">Profile Photo</label>
+                  <div class="mt-1 flex items-center">
+                    <div v-if="profilePhotoPreview || existingProfilePhoto" class="relative">
+                      <img
+                        :src="profilePhotoPreview || existingProfilePhoto"
+                        class="h-32 w-32 object-cover rounded-md"
+                        alt="Profile Preview"
+                      />
+                      <button
+                        type="button"
+                        @click="clearProfilePhoto"
+                        class="absolute top-0 right-0 bg-red-500 text-white rounded-full p-1 transform translate-x-1/2 -translate-y-1/2"
+                      >
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+                        </svg>
+                      </button>
+                    </div>
+                    <div v-else class="flex justify-center items-center h-32 w-32 bg-gray-100 rounded-md">
+                      <svg xmlns="http://www.w3.org/2000/svg" class="h-12 w-12 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
+                      </svg>
+                    </div>
+                    <input
+                      type="file"
+                      @change="onProfilePhotoChange"
+                      accept="image/*"
+                      class="ml-4"
+                    />
+                  </div>
                 </div>
-                <div v-else class="flex justify-center items-center h-32 w-32 bg-gray-100 rounded-md">
-                  <svg xmlns="http://www.w3.org/2000/svg" class="h-12 w-12 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
-                  </svg>
-                </div>
-                <input
-                  type="file"
-                  @change="onProfilePhotoChange"
-                  accept="image/*"
-                  class="ml-4"
-                />
-              </div>
-            </div>
+
             
-            <div class="mb-6">
-              <label class="block text-sm font-medium text-gray-700 mb-1">Citizenship Photo</label>
-              <div class="mt-1 flex items-center">
-                <div v-if="existingCitizenshipPhoto || form.citizenship_photo" class="relative">
-                  <img
-                    :src="existingCitizenshipPhoto || (form.citizenship_photo ? URL.createObjectURL(form.citizenship_photo) : '')"
-                    class="h-32 w-32 object-cover rounded-md"
-                    alt="Citizenship Preview"
-                  />
-                  <button
-                    type="button"
-                    @click="form.citizenship_photo = null; existingCitizenshipPhoto = null"
-                    class="absolute top-0 right-0 bg-red-500 text-white rounded-full p-1 transform translate-x-1/2 -translate-y-1/2"
-                  >
-                    <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
-                    </svg>
-                  </button>
-                </div>
-                <div v-else class="flex justify-center items-center h-32 w-32 bg-gray-100 rounded-md">
-                  <svg xmlns="http://www.w3.org/2000/svg" class="h-12 w-12 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-                  </svg>
-                </div>
-                <input
-                  type="file"
-                  @change="onCitizenshipPhotoChange"
-                  accept="image/*"
-                  class="ml-4"
+            <!-- Citizenship Photo Section -->
+          <div class="mb-6">
+            <label class="block text-sm font-medium text-gray-700 mb-1">Citizenship Photo</label>
+            <div class="mt-1 flex items-center">
+              <div v-if="citizenshipPhotoPreview || existingCitizenshipPhoto" class="relative">
+                <img
+                  :src="citizenshipPhotoPreview || existingCitizenshipPhoto"
+                  class="h-32 w-32 object-cover rounded-md"
+                  alt="Citizenship Preview"
                 />
+                <button
+                  type="button"
+                  @click="clearCitizenshipPhoto"
+                  class="absolute top-0 right-0 bg-red-500 text-white rounded-full p-1 transform translate-x-1/2 -translate-y-1/2"
+                >
+                  <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+                  </svg>
+                </button>
               </div>
+              <div v-else class="flex justify-center items-center h-32 w-32 bg-gray-100 rounded-md">
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-12 w-12 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                </svg>
+              </div>
+              <input
+                type="file"
+                @change="onCitizenshipPhotoChange"
+                accept="image/*"
+                class="ml-4"
+              />
             </div>
+          </div>
           </div>
         </div>
         
@@ -263,6 +260,8 @@ export default {
       departments: [],
       loading: false,
       isEdit: false,
+      profilePhotoPreview: null,
+      citizenshipPhotoPreview: null,
       existingProfilePhoto: null,
       existingCitizenshipPhoto: null,
     }
@@ -319,6 +318,7 @@ export default {
       const file = event.target.files[0];
       if (file) {
         this.form.profile_photo = file;
+        this.profilePhotoPreview = URL.createObjectURL(file);
         this.existingProfilePhoto = null; // Clear existing photo preview
       }
     },
@@ -326,8 +326,19 @@ export default {
       const file = event.target.files[0];
       if (file) {
         this.form.citizenship_photo = file;
+        this.citizenshipPhotoPreview = URL.createObjectURL(file);
         this.existingCitizenshipPhoto = null; // Clear existing photo preview
       }
+    },
+    clearProfilePhoto() {
+      this.form.profile_photo = null;
+      this.profilePhotoPreview = null;
+      this.existingProfilePhoto = null;
+    },
+    clearCitizenshipPhoto() {
+      this.form.citizenship_photo = null;
+      this.citizenshipPhotoPreview = null;
+      this.existingCitizenshipPhoto = null;
     },
     async submitForm() {
       this.loading = true
