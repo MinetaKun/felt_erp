@@ -149,11 +149,16 @@
               <label class="block text-sm font-medium text-gray-700 mb-1">Profile Photo</label>
               <div class="mt-1 flex items-center">
                 <div v-if="existingProfilePhoto || form.profile_photo" class="relative">
-                  <img
+                  <!-- <img
                     :src="existingProfilePhoto || (form.profile_photo instanceof File ? URL.createObjectURL(form.profile_photo) : '')"
                     class="h-32 w-32 object-cover rounded-md"
                     alt="Profile Preview"
-                  />
+                  /> -->
+                  <img
+                  :src="existingProfilePhoto || (form.profile_photo ? URL.createObjectURL(form.profile_photo) : '')"
+                  class="h-32 w-32 object-cover rounded-md"
+                  alt="Profile Preview"
+                />
                   <button
                     type="button"
                     @click="form.profile_photo = null; existingProfilePhoto = null"
@@ -183,7 +188,7 @@
               <div class="mt-1 flex items-center">
                 <div v-if="existingCitizenshipPhoto || form.citizenship_photo" class="relative">
                   <img
-                    :src="existingCitizenshipPhoto || (form.citizenship_photo instanceof File ? URL.createObjectURL(form.citizenship_photo) : '')"
+                    :src="existingCitizenshipPhoto || (form.citizenship_photo ? URL.createObjectURL(form.citizenship_photo) : '')"
                     class="h-32 w-32 object-cover rounded-md"
                     alt="Citizenship Preview"
                   />
@@ -311,12 +316,18 @@ export default {
       }
     },
     onProfilePhotoChange(event) {
-      this.form.profile_photo = event.target.files[0]
-      this.existingProfilePhoto = null // Clear existing photo preview
+      const file = event.target.files[0];
+      if (file) {
+        this.form.profile_photo = file;
+        this.existingProfilePhoto = null; // Clear existing photo preview
+      }
     },
     onCitizenshipPhotoChange(event) {
-      this.form.citizenship_photo = event.target.files[0]
-      this.existingCitizenshipPhoto = null // Clear existing photo preview
+      const file = event.target.files[0];
+      if (file) {
+        this.form.citizenship_photo = file;
+        this.existingCitizenshipPhoto = null; // Clear existing photo preview
+      }
     },
     async submitForm() {
       this.loading = true
@@ -336,10 +347,10 @@ export default {
       })
 
       // Add files if they exist
-      if (this.form.profile_photo instanceof File) {
+      if (this.form.profile_photo) {
         formData.append("profile_photo", this.form.profile_photo)
       }
-      if (this.form.citizenship_photo instanceof File) {
+      if (this.form.citizenship_photo) {
         formData.append("citizenship_photo", this.form.citizenship_photo)
       }
 
