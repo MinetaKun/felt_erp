@@ -142,7 +142,7 @@ Route::middleware('auth:sanctum')->group(function () {
         // Single artisan routes
         Route::get('/{id}', [\App\Http\Controllers\ArtisanController::class, 'show'])
             ->middleware('permission:artisans-all|artisans-view');
-        Route::post('/{id}', [\App\Http\Controllers\ArtisanController::class, 'update'])
+        Route::patch('/{id}', [\App\Http\Controllers\ArtisanController::class, 'update'])
             ->middleware('permission:artisans-all|artisans-edit');
         Route::delete('/{artisanId}', [\App\Http\Controllers\ArtisanController::class, 'destroy'])
             ->middleware('permission:artisans-all|artisans-delete');
